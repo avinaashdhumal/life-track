@@ -1,0 +1,6 @@
+{
+  "name": "LifeTrack",
+  "description": "Offline-first personal daily life and health tracker with rock-solid alarm and reminder reliability.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

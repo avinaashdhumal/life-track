@@ -1,0 +1,53 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="expo.modules.alarmengine">
+
+    <!-- Permissions required for reliable alarms -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
+
+    <application>
+        <!-- Full-screen alarm activity that shows over the lock screen -->
+        <activity
+            android:name=".AlarmFullScreenActivity"
+            android:exported="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:showOnLockScreen="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
+        <!-- BroadcastReceiver for scheduled alarm events -->
+        <receiver
+            android:name=".AlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="expo.modules.alarmengine.ALARM_TRIGGER" />
+                <action android:name="expo.modules.alarmengine.ACTION_TAKEN" />
+                <action android:name="expo.modules.alarmengine.ACTION_SNOOZE" />
+                <action android:name="expo.modules.alarmengine.ACTION_SKIP" />
+            </intent-filter>
+        </receiver>
+
+        <!-- BroadcastReceiver for system reboot & time changes -->
+        <receiver
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
