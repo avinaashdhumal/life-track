@@ -1,4 +1,14 @@
+buildscript {
+  def safeExtGet(prop, fallback) {
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+  }
+  ext {
+    safeExtGet = this.&safeExtGet
+  }
+}
+
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 
 group = 'expo.modules.alarmengine'
 version = '0.1.0'
@@ -10,8 +20,12 @@ useCoreDependencies()
 useExpoPublishing()
 
 android {
+  compileSdkVersion safeExtGet("compileSdkVersion", 35)
   namespace "expo.modules.alarmengine"
+  
   defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+    targetSdkVersion safeExtGet("targetSdkVersion", 35)
     versionCode 1
     versionName "0.1.0"
   }
