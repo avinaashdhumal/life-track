@@ -36,7 +36,12 @@
       ]
     },
     "plugins": [
-      "./plugins/withAlarmEngine.js"
-    ]
+      "./plugins/withAlarmEngine.cjs"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "33db5e75-f3c9-4bf1-b865-3a9c25edc591"
+      }
+    }
   }
 }

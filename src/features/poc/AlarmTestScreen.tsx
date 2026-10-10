@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image, Modal } from 'react-native';
 import tw from 'twrnc';
 import { reminderService } from '../../services/AlarmEngineService';
 import {
@@ -272,17 +272,7 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     }
   };
 
-  if (showRecurringModal) {
-    return (
-      <View style={tw`-m-4 bg-zinc-950`}>
-        <AlarmFormScreen
-          existingAlarms={alarms}
-          onClose={() => setShowRecurringModal(false)}
-          onSave={handleSaveRecurring}
-        />
-      </View>
-    );
-  }
+
 
   return (
     <View style={tw`flex flex-col gap-5 pb-12`}>
@@ -707,13 +697,13 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
       </View>
 
       {/* Recurring Alarm Scheduler Modal */}
-      {showRecurringModal && (
+      <Modal visible={showRecurringModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowRecurringModal(false)}>
         <AlarmFormScreen
           existingAlarms={alarms}
           onClose={() => setShowRecurringModal(false)}
           onSave={handleSaveRecurring}
         />
-      )}
+      </Modal>
 
       {/* Alarm Conflict Detection Modal (5-Minute Window) */}
       {pendingConflict && (

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import tw from 'twrnc';
 import {
   NotificationChannelId,
@@ -207,7 +207,10 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   };
 
   return (
-    <View style={tw`flex-1 bg-zinc-950`}>
+    <KeyboardAvoidingView
+      style={tw`flex-1 bg-zinc-950`}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={tw`flex-1 flex flex-col`}>
         {/* Header */}
         <View style={tw`p-5 border-b border-zinc-800 flex-row items-center justify-between bg-zinc-900/95`}>
@@ -244,11 +247,10 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                   <TouchableOpacity
                     key={catId}
                     onPress={() => handleSelectCategory(catId)}
-                    style={tw`px-4 py-3 rounded-2xl flex-row items-center gap-2 border ${
-                      isSelected
-                        ? 'bg-zinc-800 border-zinc-600'
-                        : 'bg-zinc-950 border-zinc-800'
-                    }`}
+                    style={tw`px-4 py-3 rounded-2xl flex-row items-center gap-2 border ${isSelected
+                      ? 'bg-zinc-800 border-zinc-600'
+                      : 'bg-zinc-950 border-zinc-800'
+                      }`}
                   >
                     <View style={tw`w-4 h-4`}><CategoryIcon category={catId} /></View>
                     <Text style={tw`text-sm font-medium ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{catDef.label}</Text>
@@ -290,11 +292,10 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                 <TouchableOpacity
                   key={item.type}
                   onPress={() => setRecurrenceType(item.type as RecurrenceType)}
-                  style={tw`py-3 px-4 rounded-2xl flex-row items-center justify-center gap-2 border ${
-                    recurrenceType === item.type
-                      ? 'bg-indigo-600 border-indigo-500'
-                      : 'bg-zinc-950 border-zinc-800'
-                  }`}
+                  style={tw`py-3 px-4 rounded-2xl flex-row items-center justify-center gap-2 border ${recurrenceType === item.type
+                    ? 'bg-indigo-600 border-indigo-500'
+                    : 'bg-zinc-950 border-zinc-800'
+                    }`}
                 >
                   <Text style={tw`text-lg`}>{item.icon}</Text>
                   <Text style={tw`text-sm font-medium ${recurrenceType === item.type ? 'text-white' : 'text-zinc-400'}`}>{item.label}</Text>
@@ -329,11 +330,10 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                     <TouchableOpacity
                       key={w.val}
                       onPress={() => toggleWeekday(w.val)}
-                      style={tw`w-11 h-11 rounded-xl text-sm font-bold transition flex items-center justify-center ${
-                        isSelected
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
-                      }`}
+                      style={tw`w-11 h-11 rounded-xl text-sm font-bold transition flex items-center justify-center ${isSelected
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
+                        }`}
                     >
                       <Text style={tw`${isSelected ? 'text-white' : 'text-zinc-500'}`}>{w.label[0]}</Text>
                     </TouchableOpacity>
@@ -388,9 +388,9 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                   style={tw`flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white`}
                 />
                 <TouchableOpacity onPress={handleAddCustomDate} style={tw`px-3 py-1.5 rounded-xl bg-indigo-600 flex-row items-center gap-1`}>
-     <Plus size={14} color={tw.color('white')} />
-     <Text style={tw`text-xs font-semibold text-white`}>Add Date</Text>
-   </TouchableOpacity>
+                  <Plus size={14} color={tw.color('white')} />
+                  <Text style={tw`text-xs font-semibold text-white`}>Add Date</Text>
+                </TouchableOpacity>
               </View>
 
               <View style={tw`flex flex-wrap gap-1.5 pt-1`}>
@@ -401,7 +401,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                   >
                     <Text>{d}</Text>
                     <TouchableOpacity
-                      
+
                       onPress={() => handleRemoveCustomDate(d)}
                       style={tw`text-zinc-500 hover:text-red-400`}
                     >
@@ -422,12 +422,12 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                   <Text style={tw`text-[10px] text-zinc-400`}>Triggers on this date every month</Text>
                 </View>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1.5`}>
-    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-      <TouchableOpacity key={d} onPress={() => setDayOfMonth(d)} style={tw`px-3 py-1.5 rounded-xl border ${dayOfMonth === d ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-900 border-zinc-700'}`}>
-        <Text style={tw`text-xs ${dayOfMonth === d ? 'text-white' : 'text-zinc-400'}`}>{d}</Text>
-      </TouchableOpacity>
-    ))}
-  </ScrollView>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <TouchableOpacity key={d} onPress={() => setDayOfMonth(d)} style={tw`px-3 py-1.5 rounded-xl border ${dayOfMonth === d ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-900 border-zinc-700'}`}>
+                      <Text style={tw`text-xs ${dayOfMonth === d ? 'text-white' : 'text-zinc-400'}`}>{d}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
 
               <View>
@@ -440,11 +440,11 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                     return (
                       <TouchableOpacity
                         key={m.val}
-                        
+
                         onPress={() => toggleMonth(m.val)}
                         style={tw`py-1 px-2 rounded-lg border ${isSelected ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-900 border-zinc-800'}`}>
-     <Text style={tw`text-[11px] ${isSelected ? 'text-white' : 'text-zinc-500'}`}>{m.label}</Text>
-   </TouchableOpacity>
+                        <Text style={tw`text-[11px] ${isSelected ? 'text-white' : 'text-zinc-500'}`}>{m.label}</Text>
+                      </TouchableOpacity>
                     );
                   })}
                 </ScrollView>
@@ -538,7 +538,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                 </View>
                 {recurringConflict.conflictResult.suggestions.length > 0 && (
                   <TouchableOpacity
-                    
+
                     onPress={() => {
                       const sug = recurringConflict.conflictResult.suggestions[0];
                       setTimeOfDay(sug.formattedTime);
@@ -563,7 +563,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             <Text style={tw`text-sm font-bold text-zinc-300`}>Cancel</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleSubmit({ preventDefault: () => {} } as any)}
+            onPress={() => handleSubmit({ preventDefault: () => { } } as any)}
             style={tw`flex-1 py-4 px-5 rounded-2xl bg-indigo-600 active:bg-indigo-500 flex-row items-center justify-center gap-2 shadow-lg shadow-indigo-900/30`}
           >
             <CheckCircle2 size={18} color={tw.color('white')} />
@@ -571,6 +571,6 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
