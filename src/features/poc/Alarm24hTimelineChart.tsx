@@ -8,16 +8,6 @@ import {
   resolveAlarmCategory
 } from '../../domain/alarm';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  ReferenceLine
-} from 'recharts';
-import {
   Pill,
   Dumbbell,
   Bell,
@@ -77,6 +67,7 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
   onTriggerAlarmDirectly
 }) => {
   const [selectedFilterCategory, setSelectedFilterCategory] = useState<AlarmCategory | 'all'>('all');
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
   const next24hEnd = currentTimeMs + 24 * 60 * 60 * 1000;
 
@@ -243,100 +234,116 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
         </ScrollView>
       </View>
 
-      {/* Recharts Visual Timeline Bar Chart */}
-      <View style={tw`h-44 w-full pt-1`}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={timelineData}
-            margin={{ top: 12, right: 8, left: -24, bottom: 0 }}
-          >
-            <XAxis
-              dataKey="hourLabel"
-              stroke="#71717A"
-              fontSize={10}
-              tickLine={false}
-              axisLine={{ stroke: '#27272A' }}
-            />
-            <YAxis
-              allowDecimals={false}
-              stroke="#71717A"
-              fontSize={10}
-              tickLine={false}
-              axisLine={{ stroke: '#27272A' }}
-              domain={[0, (dataMax: number) => Math.max(3, dataMax + 1)]}
-            />
-            <Tooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload as TimelineHourSlot;
+      {/* Native Visual Timeline Bar Chart */}
+      <View style={tw`bg-zinc-950/70 border border-zinc-800/80 rounded-2xl p-3.5`}>
+        <View style={tw`flex-row items-center justify-between mb-2`}>
+          <Text style={tw`text-xs font-semibold text-zinc-300`}>2-Hour Event Density</Text>
+          <Text style={tw`text-[10px] text-zinc-500`}>Tap a bar to inspect</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-end gap-2 px-1 pt-2 pb-1`}>
+          {timelineData.map((slot, idx) => {
+            const isSelected = selectedSlotIndex === idx;
+            const hasAlarms = slot.alarmCount > 0;
+            const maxVal = Math.max(3, ...timelineData.map((s) => s.alarmCount));
+            const barHeight = hasAlarms ? Math.max(16, Math.min(76, (slot.alarmCount / maxVal) * 76)) : 6;
+
+            return (
+              <TouchableOpacity
+                key={slot.hourLabel}
+                onPress={() => setSelectedSlotIndex(isSelected ? null : idx)}
+                activeOpacity={0.7}
+                style={tw`items-center justify-end w-11`}
+              >
+                <View style={tw`h-5 justify-center items-center mb-1`}>
+                  {hasAlarms ? (
+                    <View style={[tw`px-1.5 py-0.5 rounded-full`, { backgroundColor: `${slot.categoryColor}30` }]}>
+                      <Text style={[tw`text-[10px] font-bold`, { color: slot.categoryColor }]}>
+                        {slot.alarmCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View
+                  style={[
+                    tw`w-7 rounded-t-lg`,
+                    {
+                      height: barHeight,
+                      backgroundColor: hasAlarms ? slot.categoryColor : '#27272A',
+                      opacity: isSelected ? 1 : hasAlarms ? 0.85 : 0.4,
+                      borderWidth: isSelected ? 2 : 0,
+                      borderColor: '#FFFFFF'
+                    }
+                  ]}
+                />
+
+                <Text style={tw`text-[10px] font-mono mt-2 ${isSelected ? 'text-white font-bold' : 'text-zinc-500'}`}>
+                  {slot.hourLabel}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Selected Slot Inspector Card */}
+        {selectedSlotIndex !== null && timelineData[selectedSlotIndex] && (
+          <View style={tw`mt-3 p-3 rounded-xl bg-zinc-900 border border-zinc-700/70`}>
+            <View style={tw`flex-row items-center justify-between border-b border-zinc-800 pb-2 mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Clock size={12} color={tw.color('indigo-400')} />
+                <Text style={tw`text-xs font-bold text-white`}>
+                  Window: {timelineData[selectedSlotIndex].hourLabel}
+                </Text>
+              </View>
+              <Text style={tw`text-[10px] font-semibold text-zinc-400`}>
+                {timelineData[selectedSlotIndex].alarmCount} {timelineData[selectedSlotIndex].alarmCount === 1 ? 'alarm' : 'alarms'}
+              </Text>
+            </View>
+
+            {timelineData[selectedSlotIndex].alarmCount === 0 ? (
+              <Text style={tw`text-xs text-zinc-500 italic py-1`}>
+                No alarms scheduled in this 2-hour window.
+              </Text>
+            ) : (
+              <View style={tw`gap-1.5`}>
+                {timelineData[selectedSlotIndex].alarms.map((a) => {
+                  const cat = resolveAlarmCategory(a);
                   return (
-                    <View style={tw`rounded-xl bg-zinc-950 border border-zinc-800 p-2.5 shadow-2xl text-xs max-w-xs text-white`}>
-                      <View style={tw`font-semibold text-indigo-400 mb-1.5 flex items-center justify-between gap-3 border-b border-zinc-800 pb-1`}>
-                        <Text>Time Slot: {data.hourLabel}</Text>
-                        <Text style={tw`text-[10px] text-zinc-400`}>
-                          {data.alarmCount} {data.alarmCount === 1 ? 'event' : 'events'}
-                        </Text>
+                    <View
+                      key={a.id}
+                      style={tw`flex-row items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800`}
+                    >
+                      <View style={tw`flex-row items-center gap-2 flex-1`}>
+                        <View style={[tw`p-1 rounded-md`, { backgroundColor: `${cat.color}20` }]}>
+                          <View style={tw`w-3.5 h-3.5`}>
+                            <CategoryIcon category={cat.id} />
+                          </View>
+                        </View>
+                        <View style={tw`flex-1`}>
+                          <Text style={tw`text-xs font-bold text-white`} numberOfLines={1}>
+                            {a.title}
+                          </Text>
+                          <Text style={tw`text-[10px] text-zinc-400`}>
+                            {new Date(a.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {getRelativeTimeString(a.triggerTimeMs)}
+                          </Text>
+                        </View>
                       </View>
-                      {data.alarmCount === 0 ? (
-                        <View style={tw`text-[11px] text-zinc-500 italic py-0.5`}>
-                          No alarms in this 2-hour window.
-                        </View>
-                      ) : (
-                        <View style={tw`space-y-1.5`}>
-                          {data.alarms.map((a) => {
-                            const cat = resolveAlarmCategory(a);
-                            return (
-                              <View
-                                key={a.id}
-                                style={tw`text-[11px] text-zinc-300 p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 flex items-start gap-2`}
-                              >
-                                <Text
-                                  style={[tw`p-1 rounded-md shrink-0 mt-0.5`, { backgroundColor: `${cat.color}20`, color: cat.color }]}
-                                >
-                                  <View style={tw`w-3 h-3`}><CategoryIcon category={cat.id}  /></View>
-                                </Text>
-                                <View style={tw`min-w-0 flex-1`}>
-                                  <Text style={tw`font-semibold text-white truncate`}>{a.title}</Text>
-                                  <View style={tw`text-[10px] text-zinc-400 flex items-center gap-1.5`}>
-                                    <Text style={[tw`font-medium`, { color: cat.color }]}>
-                                      {cat.label}
-                                    </Text>
-                                    <Text>•</Text>
-                                    <Text style={tw`font-mono text-zinc-300`}>
-                                      {new Date(a.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </Text>
-                                    <Text>•</Text>
-                                    <Text style={tw`text-amber-400 font-mono`}>
-                                      {getRelativeTimeString(a.triggerTimeMs)}
-                                    </Text>
-                                  </View>
-                                </View>
-                              </View>
-                            );
-                          })}
-                        </View>
+                      {onTriggerAlarmDirectly && (
+                        <TouchableOpacity
+                          onPress={() => onTriggerAlarmDirectly(a)}
+                          style={tw`p-1.5 rounded-lg bg-zinc-800 active:bg-zinc-700`}
+                        >
+                          <Play size={12} color={tw.color('emerald-400')} />
+                        </TouchableOpacity>
                       )}
                     </View>
                   );
-                }
-                return null;
-              }}
-            />
-            <ReferenceLine y={0} stroke="#3F3F46" />
-            <Bar dataKey="alarmCount" radius={[6, 6, 0, 0]}>
-              {timelineData.map((entry, index) => {
-                const color = entry.alarmCount > 0 ? entry.categoryColor : '#27272A';
-                return (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={color}
-                    opacity={entry.alarmCount > 0 ? 0.95 : 0.25}
-                  />
-                );
-              })}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+                })}
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Visual Category Legend */}

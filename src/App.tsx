@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import tw from 'twrnc';
+import appIcon from '../assets/icon.png';
 import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
 import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
@@ -96,13 +97,15 @@ export function App() {
       {/* App Bar (Fixed at top) */}
         <View style={tw`shrink-0 px-5 py-3 border-b border-zinc-800/80 flex-row items-center justify-between bg-zinc-900/95 z-20`}>
           <View>
-            <View style={tw`flex-row items-center gap-2`}>
-              <View style={tw`w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center`}>
-                <Text style={tw`text-white text-xs font-bold`}>LT</Text>
-              </View>
+            <View style={tw`flex-row items-center gap-2.5`}>
+              <Image
+                source={typeof appIcon === 'string' ? { uri: appIcon } : appIcon}
+                style={tw`w-7 h-7 rounded-lg border border-zinc-700/60`}
+                resizeMode="cover"
+              />
               <Text style={tw`text-base font-bold text-white tracking-tight`}>LifeTrack</Text>
             </View>
-            <Text style={tw`text-[10px] text-zinc-400 mt-0.5`}>Phase 0: Alarm Reliability PoC</Text>
+            <Text style={tw`text-[10px] text-zinc-400 mt-0.5`}>Offline Health & Life Tracker</Text>
           </View>
 
           <View style={tw`flex-row items-center gap-1.5`}>
