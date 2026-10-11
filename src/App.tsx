@@ -9,6 +9,7 @@ import { getCurrentLanguage, SUPPORTED_LANGUAGES } from './i18n';
 import appIcon from '../assets/icon.png';
 import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
 import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
+import { ProfileSettingsScreen } from './features/poc/ProfileSettingsScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
 import { NotificationToneSettingsModal } from './features/poc/NotificationToneSettingsModal';
 
@@ -22,13 +23,14 @@ import {
   Sun,
   Moon,
   Globe,
-  Volume2
+  Volume2,
+  User
 } from 'lucide-react-native';
 
 function AppContent() {
   const { t } = useTranslation();
   const { colors, isDark, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'poc_test' | 'health_check'>('poc_test');
+  const [activeTab, setActiveTab] = useState<'poc_test' | 'health_check' | 'profile_settings'>('poc_test');
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showToneModal, setShowToneModal] = useState(false);
@@ -244,6 +246,25 @@ function AppContent() {
               <Moon size={16} color="#6366f1" />
             )}
           </TouchableOpacity>
+
+          {/* Profile & Settings Button (Top Right Icon) */}
+          <TouchableOpacity
+            onPress={() => setActiveTab('profile_settings')}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('accessibility.profileSettingsButton')}
+            style={[
+              tw`p-2 rounded-xl border flex-row items-center justify-center min-h-10 min-w-10`,
+              activeTab === 'profile_settings'
+                ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                : { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+            ]}
+          >
+            <User
+              size={16}
+              color={activeTab === 'profile_settings' ? '#ffffff' : colors.primary}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -257,11 +278,17 @@ function AppContent() {
             onTriggerAlarmDirectly={handleTriggerAlarmDirectly}
             onOpenHealthCheck={() => setActiveTab('health_check')}
           />
-        ) : (
+        ) : activeTab === 'health_check' ? (
           <HealthCheckScreen
             onBack={() => setActiveTab('poc_test')}
             onSendTestAlarmInOneMinute={handleSendTestAlarmInOneMinute}
             onOpenToneSettings={() => setShowToneModal(true)}
+          />
+        ) : (
+          <ProfileSettingsScreen
+            onBack={() => setActiveTab('poc_test')}
+            onOpenToneSettings={() => setShowToneModal(true)}
+            onOpenHealthCheck={() => setActiveTab('health_check')}
           />
         )}
       </ScrollView>
@@ -329,16 +356,28 @@ function AppContent() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          disabled
+          onPress={() => setActiveTab('profile_settings')}
           accessible={true}
           accessibilityRole="tab"
-          accessibilityState={{ disabled: true }}
-          accessibilityLabel={t('accessibility.tabToday')}
-          style={tw`flex flex-col items-center gap-1 py-1 px-3 opacity-40 min-w-16 min-h-11 justify-center`}
+          accessibilityState={{ selected: activeTab === 'profile_settings' }}
+          accessibilityLabel={t('tabs.profile')}
+          style={[
+            tw`flex flex-col items-center gap-1 py-1 px-3 rounded-xl min-w-16 min-h-11 justify-center`,
+            activeTab === 'profile_settings' ? { backgroundColor: colors.primaryBg } : {}
+          ]}
         >
-          <Activity size={18} color={colors.textSubtle} />
-          <Text style={[tw`text-[11px]`, { color: colors.textSubtle }]}>
-            {t('tabs.today')}
+          <User
+            size={18}
+            color={activeTab === 'profile_settings' ? colors.primary : colors.textSubtle}
+          />
+          <Text
+            style={[
+              tw`text-[11px] font-medium`,
+              { color: activeTab === 'profile_settings' ? colors.primaryText : colors.textSubtle },
+              activeTab === 'profile_settings' ? tw`font-bold` : {}
+            ]}
+          >
+            {t('tabs.profile')}
           </Text>
         </TouchableOpacity>
 

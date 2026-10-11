@@ -7,7 +7,8 @@
     "alarms": "अलार्म",
     "healthCheck": "आरोग्य तपासणी",
     "today": "आज",
-    "health": "आरोग्य"
+    "health": "आरोग्य",
+    "profile": "प्रोफाइल"
   },
   "theme": {
     "light": "लाइट",
@@ -209,7 +210,8 @@
     "categoryBadge": "{{category}} वर्ग, {{count}} अलार्म",
     "timeSlot": "वेळ अंतराल {{time}}, {{count}} अलार्म",
     "alarmItem": "{{title}}, {{time}} वेळी शेड्यूल, {{countdown}} बाकी",
-    "soundSettingsButton": "ध्वनी आणि सूचना टोन सेटिंग्ज उघडा"
+    "soundSettingsButton": "ध्वनी आणि सूचना टोन सेटिंग्ज उघडा",
+    "profileSettingsButton": "प्रोफाइल आणि सेटिंग्ज उघडा"
   },
   "soundSettings": {
     "title": "अलार्म आणि सूचना टोन सेटिंग्ज",
@@ -258,6 +260,38 @@
     "restoreFailed": "अवैध बॅकअप डेटा स्वरूप",
     "restorePlaceholder": "वेळापत्रक, अलार्म आणि सेटिंग्ज पुनर्संचयित करण्यासाठी निर्यात केलेला बॅकअप JSON येथे पेस्ट करा",
     "modalTitle": "स्टोरेज बॅकअप आणि पुनर्संचयित",
-    "close": "बंद करा"
+    "close": "बंद करा",
+    "localDbEngineTitle": "स्थानिक रिलेशनल डेटाबेस",
+    "localDbDescription": "रिलेशनल टेबल्स, फॉरेन की कॅस्केड आणि स्कीमा मायग्रेशनसह फोनवर कायमस्वरूपी SQLite / अनुक्रमित स्टोरेज."
+  },
+  "profileSettings": {
+    "title": "प्रोफाइल आणि सेटिंग्ज",
+    "screenLabel": "वापरकर्ता प्रोफाइल आणि ॲप सेटिंग्ज स्क्रीन",
+    "backButton": "मागे",
+    "editProfile": "प्रोफाइल संपादित करा",
+    "emergencyContact": "आपत्कालीन संपर्क",
+    "dailyRoutine": "दैनिक दिनचर्या",
+    "viewLogs": "ऑडिट नोंदी पहा",
+    "recordedEvents": "नोंदवलेले प्रसंग",
+    "optimizeDb": "डेटाबेस अनुकूलित करा",
+    "alarmPreferencesHeader": "आवाज आणि इशारा प्राधान्ये",
+    "changeTone": "रिंगटोन बदला",
+    "fullScreenOverlayTitle": "फुल-स्क्रीन लॉकस्क्रीन इशारा",
+    "fullScreenOverlaySubtitle": "स्क्रीन लॉक असतानाही फोन चालू करा आणि फुल-स्क्रीन अलार्म दाखवा",
+    "defaultSnoozeTitle": "डीफॉल्ट स्नूझ कालावधी",
+    "defaultSnoozeSubtitle": "सक्रिय स्मरणपत्रांसाठी जलद स्नूझ वेळ",
+    "vibrationTitle": "हॅप्टिक कंपन",
+    "vibrationSubtitle": "अलार्म वाजत असताना फोनचे तीव्र कंपन सुरू ठेवा",
+    "themeAndLanguageHeader": "डिस्प्ले आणि भाषा",
+    "themeModeLabel": "थीम पद्धत",
+    "languageLabel": "ॲपची भाषा",
+    "nameLabel": "पूर्ण नाव",
+    "phoneLabel": "मोबाईल नंबर",
+    "bloodGroupLabel": "रक्तगट",
+    "emergencyContactNameLabel": "आपत्कालीन संपर्काचे नाव / नाते",
+    "emergencyContactPhoneLabel": "आपत्कालीन संपर्काचा फोन नंबर",
+    "conditionsLabel": "आरोग्य समस्या / वैद्यकीय नोंदी",
+    "wakeTimeLabel": "उठण्याची नियोजित वेळ",
+    "sleepTimeLabel": "झोपण्याची नियोजित वेळ"
   }
 }

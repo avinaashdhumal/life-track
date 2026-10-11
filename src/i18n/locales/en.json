@@ -7,7 +7,8 @@
     "alarms": "Alarms",
     "healthCheck": "Health Check",
     "today": "Today",
-    "health": "Health"
+    "health": "Health",
+    "profile": "Profile"
   },
   "theme": {
     "light": "Light",
@@ -209,7 +210,8 @@
     "categoryBadge": "{{category}} category, {{count}} alarms",
     "timeSlot": "Time slot {{time}}, {{count}} alarms",
     "alarmItem": "{{title}}, scheduled at {{time}}, {{countdown}} remaining",
-    "soundSettingsButton": "Open sound and notification tone settings"
+    "soundSettingsButton": "Open sound and notification tone settings",
+    "profileSettingsButton": "Open profile and application settings"
   },
   "soundSettings": {
     "title": "Alarm & Notification Tone Settings",
@@ -258,6 +260,38 @@
     "restoreFailed": "Invalid backup data format",
     "restorePlaceholder": "Paste exported backup JSON here to restore schedules, alarms and settings",
     "modalTitle": "Storage Backup & Restore",
-    "close": "Close"
+    "close": "Close",
+    "localDbEngineTitle": "Local Relational Database",
+    "localDbDescription": "Persistent SQLite / indexed mobile storage partition with relational tables, foreign key cascade, and schema migrations."
+  },
+  "profileSettings": {
+    "title": "Profile & Settings",
+    "screenLabel": "User profile and application settings screen",
+    "backButton": "Back",
+    "editProfile": "Edit Profile",
+    "emergencyContact": "Emergency Contact",
+    "dailyRoutine": "Daily Routine",
+    "viewLogs": "Audit Logs Explorer",
+    "recordedEvents": "recorded events",
+    "optimizeDb": "Optimize DB",
+    "alarmPreferencesHeader": "Sound & Alert Preferences",
+    "changeTone": "Change Ringtone",
+    "fullScreenOverlayTitle": "Full-Screen Lockscreen Alert",
+    "fullScreenOverlaySubtitle": "Wake up device and display full-screen action screen even when locked",
+    "defaultSnoozeTitle": "Default Snooze Duration",
+    "defaultSnoozeSubtitle": "Quick snooze intervals for active reminders",
+    "vibrationTitle": "Haptic Vibration",
+    "vibrationSubtitle": "Vibrate device strongly during alarm firing",
+    "themeAndLanguageHeader": "Display & Language",
+    "themeModeLabel": "Theme Mode",
+    "languageLabel": "Application Language",
+    "nameLabel": "Full Name",
+    "phoneLabel": "Mobile Number",
+    "bloodGroupLabel": "Blood Group",
+    "emergencyContactNameLabel": "Emergency Contact Name / Relationship",
+    "emergencyContactPhoneLabel": "Emergency Contact Phone Number",
+    "conditionsLabel": "Chronic Medical Conditions / Notes",
+    "wakeTimeLabel": "Target Wake Time",
+    "sleepTimeLabel": "Target Sleep Time"
   }
 }

@@ -264,6 +264,18 @@ class AppStorageService {
     return DEFAULT_APP_SETTINGS[key];
   }
 
+  public getSyncSettings(): AppSettings {
+    const raw = this.inMemoryCache.get(STORAGE_KEYS.SETTINGS);
+    if (raw) {
+      try {
+        return { ...DEFAULT_APP_SETTINGS, ...JSON.parse(raw) };
+      } catch {
+        // Fallback
+      }
+    }
+    return DEFAULT_APP_SETTINGS;
+  }
+
   // --- RECURRING SCHEDULES CRUD ---
 
   /**

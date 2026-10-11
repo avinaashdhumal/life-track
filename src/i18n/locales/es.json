@@ -7,7 +7,8 @@
     "alarms": "Alarmas",
     "healthCheck": "Control de salud",
     "today": "Hoy",
-    "health": "Salud"
+    "health": "Salud",
+    "profile": "Perfil"
   },
   "theme": {
     "light": "Claro",
@@ -209,7 +210,8 @@
     "categoryBadge": "Categoría {{category}}, {{count}} alarmas",
     "timeSlot": "Intervalo de tiempo {{time}}, {{count}} alarmas",
     "alarmItem": "{{title}}, programada a las {{time}}, {{countdown}} restante",
-    "soundSettingsButton": "Abrir configuración de sonidos y tonos de notificación"
+    "soundSettingsButton": "Abrir configuración de sonidos y tonos de notificación",
+    "profileSettingsButton": "Abrir perfil y ajustes de la aplicación"
   },
   "soundSettings": {
     "title": "Configuración de tonos y alarmas",
@@ -258,6 +260,38 @@
     "restoreFailed": "Formato de copia de seguridad no válido",
     "restorePlaceholder": "Pegue el JSON exportado aquí para restaurar horarios, alarmas y configuraciones",
     "modalTitle": "Copia de seguridad y restauración de almacenamiento",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "localDbEngineTitle": "Base de datos relacional local",
+    "localDbDescription": "Partición de almacenamiento móvil SQLite persistente con tablas relacionales, eliminación en cascada y migraciones de esquemas."
+  },
+  "profileSettings": {
+    "title": "Perfil y ajustes",
+    "screenLabel": "Pantalla de perfil de usuario y configuración de la aplicación",
+    "backButton": "Volver",
+    "editProfile": "Editar perfil",
+    "emergencyContact": "Contacto de emergencia",
+    "dailyRoutine": "Rutina diaria",
+    "viewLogs": "Explorador de registros",
+    "recordedEvents": "eventos registrados",
+    "optimizeDb": "Optimizar BD",
+    "alarmPreferencesHeader": "Preferencias de sonido y alertas",
+    "changeTone": "Cambiar tono de llamada",
+    "fullScreenOverlayTitle": "Alerta a pantalla completa en bloqueo",
+    "fullScreenOverlaySubtitle": "Despierta el dispositivo y muestra pantalla completa de acción incluso bloqueado",
+    "defaultSnoozeTitle": "Duración de posposición predeterminada",
+    "defaultSnoozeSubtitle": "Intervalos de posposición rápida para recordatorios activos",
+    "vibrationTitle": "Vibración háptica",
+    "vibrationSubtitle": "Vibrar el dispositivo con fuerza durante el sonido de la alarma",
+    "themeAndLanguageHeader": "Pantalla e idioma",
+    "themeModeLabel": "Modo de tema",
+    "languageLabel": "Idioma de la aplicación",
+    "nameLabel": "Nombre completo",
+    "phoneLabel": "Número de teléfono",
+    "bloodGroupLabel": "Grupo sanguíneo",
+    "emergencyContactNameLabel": "Nombre / Parentesco del contacto de emergencia",
+    "emergencyContactPhoneLabel": "Teléfono del contacto de emergencia",
+    "conditionsLabel": "Condiciones médicas crónicas / Notas",
+    "wakeTimeLabel": "Hora objetivo para despertar",
+    "sleepTimeLabel": "Hora objetivo para dormir"
   }
 }

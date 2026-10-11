@@ -7,7 +7,8 @@
     "alarms": "अलार्म",
     "healthCheck": "स्वास्थ्य जाँच",
     "today": "आज",
-    "health": "स्वास्थ्य"
+    "health": "स्वास्थ्य",
+    "profile": "प्रोफ़ाइल"
   },
   "theme": {
     "light": "लाइट",
@@ -209,7 +210,8 @@
     "categoryBadge": "{{category}} श्रेणी, {{count}} अलार्म",
     "timeSlot": "समय अंतराल {{time}}, {{count}} अलार्म",
     "alarmItem": "{{title}}, {{time}} पर शेड्यूल, {{countdown}} बाकी",
-    "soundSettingsButton": "ध्वनि और नोटिफिकेशन टोन सेटिंग्स खोलें"
+    "soundSettingsButton": "ध्वनि और नोटिफिकेशन टोन सेटिंग्स खोलें",
+    "profileSettingsButton": "प्रोफ़ाइल और सेटिंग्स खोलें"
   },
   "soundSettings": {
     "title": "अलार्म और नोटिफिकेशन टोन सेटिंग्स",
@@ -258,6 +260,38 @@
     "restoreFailed": "अमान्य बैकअप डेटा प्रारूप",
     "restorePlaceholder": "शेड्यूल, अलार्म और सेटिंग्स पुनर्स्थापित करने के लिए निर्यात किया गया बैकअप JSON यहाँ पेस्ट करें",
     "modalTitle": "स्टोरेज बैकअप और पुनर्स्थापना",
-    "close": "बंद करें"
+    "close": "बंद करें",
+    "localDbEngineTitle": "स्थानीय रिलेशनल डेटाबेस",
+    "localDbDescription": "रिलेशनल तालिकाओं, विदेशी कुंजी कैस्केड और स्कीमा माइग्रेशन के साथ फोन पर स्थायी SQLite / अनुक्रमित स्टोरेज।"
+  },
+  "profileSettings": {
+    "title": "प्रोफ़ाइल और सेटिंग्स",
+    "screenLabel": "उपयोगकर्ता प्रोफ़ाइल और एप्लिकेशन सेटिंग्स स्क्रीन",
+    "backButton": "वापस",
+    "editProfile": "प्रोफ़ाइल संपादित करें",
+    "emergencyContact": "आपातकालीन संपर्क",
+    "dailyRoutine": "दैनिक दिनचर्या",
+    "viewLogs": "ऑडिट लॉग्स देखें",
+    "recordedEvents": "दर्ज कार्यक्रम",
+    "optimizeDb": "डेटाबेस अनुकूलित करें",
+    "alarmPreferencesHeader": "ध्वनि और अलर्ट प्राथमिकताएं",
+    "changeTone": "रिंगटोन बदलें",
+    "fullScreenOverlayTitle": "फुल-स्क्रीन लॉकस्क्रीन अलर्ट",
+    "fullScreenOverlaySubtitle": "फोन लॉक होने पर भी स्क्रीन चालू करें और फुल-स्क्रीन अलार्म दिखाएं",
+    "defaultSnoozeTitle": "डिफ़ॉल्ट स्नूज़ अवधि",
+    "defaultSnoozeSubtitle": "सक्रिय रिमाइंडर्स के लिए त्वरित स्नूज़ अंतराल",
+    "vibrationTitle": "हैप्टिक कंपन",
+    "vibrationSubtitle": "अलार्म बजने के दौरान मजबूत कंपन सक्रिय करें",
+    "themeAndLanguageHeader": "डिस्प्ले और भाषा",
+    "themeModeLabel": "थीम मोड",
+    "languageLabel": "एप्लिकेशन भाषा",
+    "nameLabel": "पूरा नाम",
+    "phoneLabel": "मोबाइल नंबर",
+    "bloodGroupLabel": "ब्लड ग्रुप",
+    "emergencyContactNameLabel": "आपातकालीन संपर्क नाम / संबंध",
+    "emergencyContactPhoneLabel": "आपातकालीन संपर्क फोन नंबर",
+    "conditionsLabel": "स्वास्थ्य स्थितियां / चिकित्सा टिप्पणियां",
+    "wakeTimeLabel": "जागने का लक्ष्य समय",
+    "sleepTimeLabel": "सोने का लक्ष्य समय"
   }
 }
