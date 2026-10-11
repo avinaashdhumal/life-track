@@ -12,11 +12,7 @@ import {
   Bell,
   Activity,
   Heart,
-  Calendar,
-  Settings,
-  ShieldCheck,
-  Smartphone,
-  Info
+  ShieldCheck
 } from 'lucide-react-native';
 
 export function App() {
@@ -107,25 +103,6 @@ export function App() {
             </View>
             <Text style={tw`text-[10px] text-zinc-400 mt-0.5`}>Offline Health & Life Tracker</Text>
           </View>
-
-          <View style={tw`flex-row items-center gap-1.5`}>
-            <TouchableOpacity
-              onPress={() => setShowCodeInspector(true)}
-              style={tw`p-2 rounded-xl bg-zinc-800`}
-            >
-              <Smartphone size={16} color={tw.color('zinc-300')} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab(activeTab === 'health_check' ? 'poc_test' : 'health_check')}
-              style={tw`p-2 rounded-xl ${
-                activeTab === 'health_check'
-                  ? 'bg-indigo-600'
-                  : 'bg-zinc-800'
-              }`}
-            >
-              <ShieldCheck size={16} color={activeTab === 'health_check' ? tw.color('white') : tw.color('zinc-300')} />
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Main Content Area (Independently Scrollable Above Fixed Navigation) */}
@@ -134,7 +111,6 @@ export function App() {
             <AlarmTestScreen
               onTriggerAlarmDirectly={handleTriggerAlarmDirectly}
               onOpenHealthCheck={() => setActiveTab('health_check')}
-              onOpenCodeInspector={() => setShowCodeInspector(true)}
             />
           ) : (
             <HealthCheckScreen
@@ -178,13 +154,6 @@ export function App() {
             <Text style={tw`text-[10px] text-zinc-500`}>Health</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setShowCodeInspector(true)}
-            style={tw`flex flex-col items-center gap-1 py-1 px-3`}
-          >
-            <Smartphone size={16} color={tw.color('zinc-500')} />
-            <Text style={tw`text-[10px] text-zinc-500`}>Native Code</Text>
-          </TouchableOpacity>
         </View>
 
       {/* Full-Screen Alarm Modal Overlay (Lockscreen Simulation) */}

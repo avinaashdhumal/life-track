@@ -26,7 +26,6 @@ import {
   Trash2,
   ShieldCheck,
   Zap,
-  Smartphone,
   Repeat,
   Plus,
   Calendar,
@@ -38,13 +37,11 @@ import {
 interface AlarmTestScreenProps {
   onTriggerAlarmDirectly: (alarm: AlarmItem) => void;
   onOpenHealthCheck: () => void;
-  onOpenCodeInspector: () => void;
 }
 
 export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   onTriggerAlarmDirectly,
-  onOpenHealthCheck,
-  onOpenCodeInspector
+  onOpenHealthCheck
 }) => {
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
   const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>([]);
@@ -285,13 +282,6 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
             </Text>
             <Text style={tw`text-sm font-medium text-zinc-400`}>Alarm Scheduler</Text>
           </View>
-          <TouchableOpacity
-            onPress={onOpenCodeInspector}
-            style={tw`flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20`}
-          >
-            <Smartphone size={14} color={tw.color('indigo-400')} />
-            <Text style={tw`text-xs font-semibold text-indigo-400`}>Android Code</Text>
-          </TouchableOpacity>
         </View>
         <Text style={tw`text-sm text-zinc-400 leading-relaxed`}>
           Supports <Text style={tw`font-bold text-zinc-200`}>Recurring Alarms</Text> (Daily, Weekly, Every 2 Days, Selected Dates, Monthly) across all channels with native <Text style={tw`text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded-lg font-mono text-xs`}>AlarmManager</Text>.
