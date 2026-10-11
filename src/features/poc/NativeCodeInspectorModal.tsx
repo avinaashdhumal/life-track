@@ -30,6 +30,12 @@ export const NativeCodeInspectorModal: React.FC<NativeCodeInspectorModalProps> =
       path: 'modules/alarm-engine/android/src/main/java/expo/modules/alarmengine/AlarmFullScreenActivity.kt',
       summary: 'Renders over lockscreen with setShowWhenLocked(true) & setTurnScreenOn(true), plays MediaPlayer ringtone and vibrates.'
     },
+    'AlarmForegroundService.kt': {
+      title: 'Background Foreground Service & Audio',
+      language: 'kotlin',
+      path: 'modules/alarm-engine/android/src/main/java/expo/modules/alarmengine/AlarmForegroundService.kt',
+      summary: 'Maintains process execution when app is closed/killed, plays channel sound or system alarm tone in loop, and provides continuous vibration.'
+    },
     'BootReceiver.kt': {
       title: 'Reboot & Time Zone Rescheduler',
       language: 'kotlin',

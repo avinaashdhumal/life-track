@@ -98,7 +98,8 @@ const filesToCheck = [
   'src/features/poc/HealthCheckScreen.tsx',
   'src/features/poc/FullScreenAlarmModal.tsx',
   'src/features/poc/AlarmConflictModal.tsx',
-  'src/features/poc/LanguageThemeModal.tsx'
+  'src/features/poc/LanguageThemeModal.tsx',
+  'src/features/poc/NotificationToneSettingsModal.tsx'
 ];
 
 for (const file of filesToCheck) {

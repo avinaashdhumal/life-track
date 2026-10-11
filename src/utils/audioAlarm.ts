@@ -9,7 +9,9 @@ let sirenOscillator2: OscillatorNode | null = null;
 let sirenGainNode: GainNode | null = null;
 let isPlaying = false;
 
-export function startAlarmSound() {
+export type AlarmToneType = 'default_siren' | 'gentle_chime' | 'medical_beep';
+
+export function startAlarmSound(toneType: AlarmToneType = 'default_siren') {
   if (isPlaying) return;
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -21,19 +23,43 @@ export function startAlarmSound() {
     }
 
     sirenGainNode = audioCtx.createGain();
-    sirenGainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    sirenGainNode.gain.setValueAtTime(0.18, audioCtx.currentTime);
     sirenGainNode.connect(audioCtx.destination);
 
-    // Osc 1: fundamental alarm beep (880Hz / A5)
-    sirenOscillator1 = audioCtx.createOscillator();
-    sirenOscillator1.type = 'sawtooth';
-    sirenOscillator1.frequency.setValueAtTime(880, audioCtx.currentTime);
+    if (toneType === 'gentle_chime') {
+      sirenOscillator1 = audioCtx.createOscillator();
+      sirenOscillator1.type = 'sine';
+      sirenOscillator1.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
 
-    // Frequency modulation for classic pulsed alarm
-    const now = audioCtx.currentTime;
-    for (let i = 0; i < 60; i += 0.5) {
-      sirenOscillator1.frequency.setValueAtTime(750, now + i);
-      sirenOscillator1.frequency.setValueAtTime(950, now + i + 0.25);
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 60; i += 1.0) {
+        sirenOscillator1.frequency.setValueAtTime(523.25, now + i);
+        sirenOscillator1.frequency.setValueAtTime(659.25, now + i + 0.3); // E5
+        sirenOscillator1.frequency.setValueAtTime(783.99, now + i + 0.6); // G5
+      }
+    } else if (toneType === 'medical_beep') {
+      sirenOscillator1 = audioCtx.createOscillator();
+      sirenOscillator1.type = 'triangle';
+      sirenOscillator1.frequency.setValueAtTime(1046.5, audioCtx.currentTime); // C6
+
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 60; i += 0.8) {
+        sirenGainNode.gain.setValueAtTime(0.2, now + i);
+        sirenGainNode.gain.setValueAtTime(0.01, now + i + 0.15);
+        sirenGainNode.gain.setValueAtTime(0.2, now + i + 0.25);
+        sirenGainNode.gain.setValueAtTime(0.01, now + i + 0.4);
+      }
+    } else {
+      // default_siren (880Hz / A5 modulated)
+      sirenOscillator1 = audioCtx.createOscillator();
+      sirenOscillator1.type = 'sawtooth';
+      sirenOscillator1.frequency.setValueAtTime(880, audioCtx.currentTime);
+
+      const now = audioCtx.currentTime;
+      for (let i = 0; i < 60; i += 0.5) {
+        sirenOscillator1.frequency.setValueAtTime(750, now + i);
+        sirenOscillator1.frequency.setValueAtTime(950, now + i + 0.25);
+      }
     }
 
     sirenOscillator1.connect(sirenGainNode);
@@ -47,6 +73,18 @@ export function startAlarmSound() {
   } catch (e) {
     console.warn('Audio alarm playback not allowed or supported:', e);
   }
+}
+
+export function previewTone(toneType: AlarmToneType = 'default_siren', durationMs: number = 3000) {
+  stopAlarmSound();
+  startAlarmSound(toneType);
+  setTimeout(() => {
+    stopAlarmSound();
+  }, durationMs);
+}
+
+export function isAudioPlaying(): boolean {
+  return isPlaying;
 }
 
 export function stopAlarmSound() {

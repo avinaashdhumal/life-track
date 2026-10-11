@@ -61,6 +61,7 @@ object AlarmNotificationHelper {
             enableLights(true)
             lightColor = Color.BLUE
             enableVibration(true)
+            setSound(defaultAlarmSound, audioAttributes)
             lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
 
@@ -72,24 +73,38 @@ object AlarmNotificationHelper {
         ).apply {
             description = "Wake up, sleep, wind-down, and routine milestones"
             enableVibration(true)
+            setSound(defaultAlarmSound, audioAttributes)
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
 
         // 4. Exercise
+        val defaultNotifSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        val notifAudioAttributes = AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+            .build()
+
         val exerciseChannel = NotificationChannel(
             CHANNEL_EXERCISE,
             "Exercise & Fitness",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Workouts, yoga, meditation, and physical activity"
+            enableVibration(true)
+            setSound(defaultNotifSound, notifAudioAttributes)
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
 
         // 5. Water & Meals
         val waterMealsChannel = NotificationChannel(
             CHANNEL_WATER_MEALS,
             "Water & Meals",
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Hydration intervals and meal timing"
+            enableVibration(true)
+            setSound(defaultNotifSound, notifAudioAttributes)
+            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
         }
 
         // 6. Habits
@@ -99,6 +114,8 @@ object AlarmNotificationHelper {
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = "Habit check-ins and streaks"
+            enableVibration(true)
+            setSound(defaultNotifSound, notifAudioAttributes)
         }
 
         // 7. Summaries
@@ -121,6 +138,51 @@ object AlarmNotificationHelper {
                 summaryChannel
             )
         )
+    }
+
+    /**
+     * Resolves the sound URI configured for this channel in Android system settings.
+     * If the user customized the tone in system settings, channel.sound returns their selected URI.
+     * Otherwise falls back to system default alarm or notification tone.
+     */
+    fun getChannelSoundUri(context: Context, channelId: String): android.net.Uri {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val channel = manager?.getNotificationChannel(channelId)
+            val soundUri = channel?.sound
+            if (soundUri != null && soundUri.toString().isNotEmpty()) {
+                return soundUri
+            }
+        }
+        return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+    }
+
+    /**
+     * Returns metadata of all LifeTrack notification channels for UI inspection
+     * and direct deep-linking to system settings.
+     */
+    fun getChannelsInfo(context: Context): List<Map<String, Any>> {
+        createChannels(context)
+        val list = mutableListOf<Map<String, Any>>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            val channels = manager?.notificationChannels ?: emptyList()
+            for (ch in channels) {
+                val soundUri = ch.sound?.toString() ?: "Default System Sound"
+                list.add(
+                    mapOf(
+                        "id" to ch.id,
+                        "name" to ch.name.toString(),
+                        "description" to (ch.description ?: ""),
+                        "importance" to ch.importance,
+                        "soundUri" to soundUri,
+                        "hasCustomSound" to (ch.sound != null)
+                    )
+                )
+            }
+        }
+        return list
     }
 
     fun buildAlarmNotification(

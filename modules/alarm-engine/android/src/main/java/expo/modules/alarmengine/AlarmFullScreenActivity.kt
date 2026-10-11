@@ -32,10 +32,11 @@ class AlarmFullScreenActivity : AppCompatActivity() {
         alarmId = intent.getStringExtra("ALARM_ID") ?: ""
         val title = intent.getStringExtra("ALARM_TITLE") ?: "LifeTrack Reminder"
         val message = intent.getStringExtra("ALARM_MESSAGE") ?: "Time for your scheduled reminder."
+        val channelId = intent.getStringExtra("ALARM_CHANNEL") ?: AlarmNotificationHelper.CHANNEL_MEDICINES
         val isFull = intent.getBooleanExtra("ALARM_IS_FULL", true)
 
         if (isFull) {
-            startAlarmSoundAndVibration()
+            startAlarmSoundAndVibration(channelId)
         }
 
         // Programmatic UI layout so no external layout XML is needed
@@ -64,10 +65,9 @@ class AlarmFullScreenActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
-    private fun startAlarmSoundAndVibration() {
+    private fun startAlarmSoundAndVibration(channelId: String) {
         try {
-            val alertUri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val alertUri: Uri = AlarmNotificationHelper.getChannelSoundUri(this, channelId)
 
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(applicationContext, alertUri)
@@ -107,6 +107,7 @@ class AlarmFullScreenActivity : AppCompatActivity() {
     }
 
     private fun stopSoundAndVibration() {
+        AlarmForegroundService.stopAlarm(this)
         try {
             mediaPlayer?.stop()
             mediaPlayer?.release()

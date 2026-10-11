@@ -69,6 +69,32 @@ function withAlarmEnginePermissions(config) {
         });
       }
 
+      // Foreground Service
+      if (!application.service) {
+        application.service = [];
+      }
+      const existingServices = new Set(
+        application.service.map((s) => s.$ && s.$['android:name'])
+      );
+
+      if (!existingServices.has('expo.modules.alarmengine.AlarmForegroundService')) {
+        application.service.push({
+          $: {
+            'android:name': 'expo.modules.alarmengine.AlarmForegroundService',
+            'android:exported': 'false',
+            'android:foregroundServiceType': 'specialUse'
+          },
+          property: [
+            {
+              $: {
+                'android:name': 'android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE',
+                'android:value': 'LifeTrack scheduled alarms and reminders'
+              }
+            }
+          ]
+        });
+      }
+
       if (!application.receiver) {
         application.receiver = [];
       }

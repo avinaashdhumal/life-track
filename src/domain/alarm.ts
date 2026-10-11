@@ -226,6 +226,15 @@ export interface ReminderLogEntry {
   note?: string;
 }
 
+export interface ChannelToneInfo {
+  id: NotificationChannelId;
+  name: string;
+  description: string;
+  importance: number;
+  soundUri: string;
+  hasCustomSound: boolean;
+}
+
 export interface HealthCheckStatus {
   exactAlarmsAllowed: boolean;
   notificationsAllowed: boolean;
@@ -233,6 +242,8 @@ export interface HealthCheckStatus {
   manufacturer: string;
   scheduledCount: number;
   nextScheduledTimeMs?: number;
+  foregroundServiceActive?: boolean;
+  notificationChannelsCount?: number;
   lastFiredAlarm?: {
     id: string;
     title: string;

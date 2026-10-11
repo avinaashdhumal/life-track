@@ -101,6 +101,93 @@ export async function openAutostartSettings(): Promise<boolean> {
   return false;
 }
 
+export interface NativeChannelInfo {
+  id: string;
+  name: string;
+  description: string;
+  importance: number;
+  soundUri: string;
+  hasCustomSound: boolean;
+}
+
+export async function openChannelNotificationSettings(channelId: string): Promise<boolean> {
+  if (NativeAlarmModule?.openChannelNotificationSettings) {
+    return NativeAlarmModule.openChannelNotificationSettings(channelId);
+  }
+  return false;
+}
+
+export async function openAppNotificationSettings(): Promise<boolean> {
+  if (NativeAlarmModule?.openAppNotificationSettings) {
+    return NativeAlarmModule.openAppNotificationSettings();
+  }
+  return false;
+}
+
+export async function getNotificationChannels(): Promise<NativeChannelInfo[]> {
+  if (NativeAlarmModule?.getNotificationChannels) {
+    return NativeAlarmModule.getNotificationChannels();
+  }
+  return [
+    {
+      id: 'medicines',
+      name: 'Medicines & Prescriptions',
+      description: 'Critical medicine reminders and dose schedules',
+      importance: 4,
+      soundUri: 'System Default Alarm',
+      hasCustomSound: false
+    },
+    {
+      id: 'appointments',
+      name: 'Appointments & Visits',
+      description: 'Doctor visits, clinic appointments, and lab tests',
+      importance: 4,
+      soundUri: 'System Default Alarm',
+      hasCustomSound: false
+    },
+    {
+      id: 'routine',
+      name: 'Daily Routine',
+      description: 'Wake up, sleep, wind-down, and routine milestones',
+      importance: 4,
+      soundUri: 'System Default Alarm',
+      hasCustomSound: false
+    },
+    {
+      id: 'exercise',
+      name: 'Exercise & Fitness',
+      description: 'Workouts, yoga, meditation, and physical activity',
+      importance: 4,
+      soundUri: 'System Default Notification',
+      hasCustomSound: false
+    },
+    {
+      id: 'water_meals',
+      name: 'Water & Meals',
+      description: 'Hydration intervals and meal timing',
+      importance: 4,
+      soundUri: 'System Default Notification',
+      hasCustomSound: false
+    },
+    {
+      id: 'habits',
+      name: 'Daily Habits',
+      description: 'Habit check-ins and streaks',
+      importance: 3,
+      soundUri: 'System Default Notification',
+      hasCustomSound: false
+    },
+    {
+      id: 'summaries',
+      name: 'Summaries & Reports',
+      description: 'Weekly insights and health summaries',
+      importance: 2,
+      soundUri: 'Silent / Low',
+      hasCustomSound: false
+    }
+  ];
+}
+
 export async function getLastFiredAlarm(): Promise<NativeAlarmInfo | null> {
   if (NativeAlarmModule?.getLastFiredAlarm) {
     return NativeAlarmModule.getLastFiredAlarm();

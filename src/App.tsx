@@ -10,6 +10,7 @@ import appIcon from '../assets/icon.png';
 import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
 import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
+import { NotificationToneSettingsModal } from './features/poc/NotificationToneSettingsModal';
 
 import { AlarmItem } from './domain/alarm';
 import { reminderService } from './services/AlarmEngineService';
@@ -20,7 +21,8 @@ import {
   ShieldCheck,
   Sun,
   Moon,
-  Globe
+  Globe,
+  Volume2
 } from 'lucide-react-native';
 
 function AppContent() {
@@ -29,9 +31,51 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<'poc_test' | 'health_check'>('poc_test');
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showToneModal, setShowToneModal] = useState(false);
 
   const currentLangCode = getCurrentLanguage();
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
+
+  // Global background and foreground alarm engine loop
+  React.useEffect(() => {
+    reminderService.requestBrowserNotificationPermission();
+
+    const checkAlarms = async () => {
+      const list = await reminderService.getScheduledAlarms();
+      const now = Date.now();
+      for (const item of list) {
+        if (item.triggerTimeMs <= now) {
+          await reminderService.cancelAlarm(item.id);
+          await reminderService.logAction({
+            profileId: 'default',
+            alarmId: item.id,
+            action: 'FIRED',
+            timestampMs: now,
+            scheduledTimeMs: item.triggerTimeMs,
+            note: 'Alarm triggered (foreground/background engine)'
+          });
+
+          // Browser notification if app/tab is in background
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification(item.title, {
+                body: item.message || t('fullScreenAlarm.defaultMessage'),
+                icon: typeof appIcon === 'string' ? appIcon : undefined
+              });
+            } catch {
+              // Ignore notification fallback error
+            }
+          }
+
+          setRingingAlarm(item);
+          break;
+        }
+      }
+    };
+
+    const interval = setInterval(checkAlarms, 1000);
+    return () => clearInterval(interval);
+  }, [t]);
 
   const handleTriggerAlarmDirectly = (alarm: AlarmItem) => {
     setRingingAlarm(alarm);
@@ -84,17 +128,21 @@ function AppContent() {
     setRingingAlarm(null);
   };
 
-  const handleSendTestAlarmInOneMinute = async () => {
-    const targetMs = Date.now() + 60 * 1000;
+  const handleScheduleQuickTestAlarm = async (secondsAhead: number = 5) => {
+    const targetMs = Date.now() + secondsAhead * 1000;
     await reminderService.scheduleAlarm({
-      id: `health_test_${Date.now()}`,
+      id: `test_${Date.now()}`,
       triggerTimeMs: targetMs,
-      title: 'Health Check 1-Min Test',
-      message: 'Verifying AlarmManager setAlarmClock reliability',
+      title: t('soundSettings.quickTestAlarmTitle'),
+      message: t('soundSettings.quickTestAlarmMessage', { seconds: secondsAhead }),
       channelId: 'medicines',
       isFullAlarm: true,
       snoozeIntervalMinutes: 5
     });
+  };
+
+  const handleSendTestAlarmInOneMinute = async () => {
+    await handleScheduleQuickTestAlarm(60);
     setActiveTab('poc_test');
   };
 
@@ -137,8 +185,25 @@ function AppContent() {
           </View>
         </View>
 
-        {/* Right Action Icons: Language & Theme Controls */}
+        {/* Right Action Icons: Sound, Language & Theme Controls */}
         <View style={tw`flex-row items-center gap-2`}>
+          {/* Sound & Notification Tone Settings Button */}
+          <TouchableOpacity
+            onPress={() => setShowToneModal(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('accessibility.soundSettingsButton')}
+            style={[
+              tw`p-2 rounded-xl border`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <Volume2 size={16} color="#f59e0b" />
+          </TouchableOpacity>
+
           {/* Language Selector Button */}
           <TouchableOpacity
             onPress={() => setShowSettingsModal(true)}
@@ -196,6 +261,7 @@ function AppContent() {
           <HealthCheckScreen
             onBack={() => setActiveTab('poc_test')}
             onSendTestAlarmInOneMinute={handleSendTestAlarmInOneMinute}
+            onOpenToneSettings={() => setShowToneModal(true)}
           />
         )}
       </ScrollView>
@@ -301,6 +367,13 @@ function AppContent() {
       <LanguageThemeModal
         visible={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
+      />
+
+      {/* Sound & Notification Tone Settings Modal */}
+      <NotificationToneSettingsModal
+        visible={showToneModal}
+        onClose={() => setShowToneModal(false)}
+        onScheduleQuickTestAlarm={handleScheduleQuickTestAlarm}
       />
     </SafeAreaView>
   );

@@ -115,5 +115,17 @@ class AlarmEngineModule : Module() {
                 null
             }
         }
+
+        AsyncFunction("openChannelNotificationSettings") { channelId: String ->
+            ManufacturerAutostartHelper.openChannelNotificationSettings(context, channelId)
+        }
+
+        AsyncFunction("openAppNotificationSettings") { ->
+            ManufacturerAutostartHelper.openAppNotificationSettings(context)
+        }
+
+        AsyncFunction("getNotificationChannels") { ->
+            AlarmNotificationHelper.getChannelsInfo(context)
+        }
     }
 }

@@ -29,6 +29,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     val notifId = intent.getIntExtra("NOTIFICATION_ID", alarmId.hashCode())
                     AlarmStorage.logEvent(context, alarmId, "NOTIFICATION_TAKEN", System.currentTimeMillis())
                     AlarmStorage.removeAlarm(context, alarmId)
+                    AlarmForegroundService.stopAlarm(context)
                     cancelNotification(context, notifId)
                 }
                 AlarmNotificationHelper.ACTION_SNOOZE -> {
@@ -36,6 +37,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     val notifId = intent.getIntExtra("NOTIFICATION_ID", alarmId.hashCode())
                     val snoozeMinutes = intent.getIntExtra("SNOOZE_MINUTES", 10)
                     AlarmStorage.logEvent(context, alarmId, "NOTIFICATION_SNOOZED_${snoozeMinutes}M", System.currentTimeMillis())
+                    AlarmForegroundService.stopAlarm(context)
                     cancelNotification(context, notifId)
 
                     // Reschedule natively
@@ -57,6 +59,7 @@ class AlarmReceiver : BroadcastReceiver() {
                     val notifId = intent.getIntExtra("NOTIFICATION_ID", alarmId.hashCode())
                     AlarmStorage.logEvent(context, alarmId, "NOTIFICATION_SKIPPED", System.currentTimeMillis())
                     AlarmStorage.removeAlarm(context, alarmId)
+                    AlarmForegroundService.stopAlarm(context)
                     cancelNotification(context, notifId)
                 }
             }
@@ -97,8 +100,10 @@ class AlarmReceiver : BroadcastReceiver() {
             e.printStackTrace()
         }
 
-        // If Full Alarm, also directly launch the FullScreenActivity
+        // Start Foreground Service for unstoppable audio playback & process persistence
         if (isFullAlarm) {
+            AlarmForegroundService.startAlarm(context, alarm)
+
             val fullScreenIntent = Intent(context, AlarmFullScreenActivity::class.java).apply {
                 putExtra("ALARM_ID", alarm.id)
                 putExtra("ALARM_TITLE", alarm.title)
@@ -112,7 +117,11 @@ class AlarmReceiver : BroadcastReceiver() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
                 )
             }
-            context.startActivity(fullScreenIntent)
+            try {
+                context.startActivity(fullScreenIntent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

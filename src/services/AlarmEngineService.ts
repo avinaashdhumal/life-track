@@ -269,6 +269,8 @@ export class AlarmEngineService implements IReminderService {
 
     const nextUpcoming = alarms.filter((a) => a.triggerTimeMs >= Date.now())[0];
 
+    const channels = await this.getNotificationChannels();
+
     return {
       exactAlarmsAllowed: exactAllowed,
       notificationsAllowed: true,
@@ -276,6 +278,8 @@ export class AlarmEngineService implements IReminderService {
       manufacturer: manufacturer || 'Android Device',
       scheduledCount: alarms.length,
       nextScheduledTimeMs: nextUpcoming?.triggerTimeMs,
+      foregroundServiceActive: true,
+      notificationChannelsCount: channels.length,
       lastFiredAlarm: lastFired
         ? {
             id: lastFired.id,
@@ -308,6 +312,30 @@ export class AlarmEngineService implements IReminderService {
 
   async openAutostartSettings(): Promise<boolean> {
     return NativeAlarmEngine.openAutostartSettings();
+  }
+
+  async openChannelNotificationSettings(channelId: string): Promise<boolean> {
+    return NativeAlarmEngine.openChannelNotificationSettings(channelId);
+  }
+
+  async openAppNotificationSettings(): Promise<boolean> {
+    return NativeAlarmEngine.openAppNotificationSettings();
+  }
+
+  async getNotificationChannels(): Promise<any[]> {
+    return NativeAlarmEngine.getNotificationChannels();
+  }
+
+  async requestBrowserNotificationPermission(): Promise<boolean> {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+      } catch {
+        return false;
+      }
+    }
+    return true;
   }
 
   async logAction(entry: Omit<ReminderLogEntry, 'id'>): Promise<void> {

@@ -21,11 +21,13 @@ import {
 interface HealthCheckScreenProps {
   onBack: () => void;
   onSendTestAlarmInOneMinute: () => void;
+  onOpenToneSettings?: () => void;
 }
 
 export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
   onBack,
-  onSendTestAlarmInOneMinute
+  onSendTestAlarmInOneMinute,
+  onOpenToneSettings
 }) => {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -57,6 +59,14 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
 
   const handleOpenAutostartSettings = async () => {
     await reminderService.openAutostartSettings();
+  };
+
+  const handleOpenToneSettings = () => {
+    if (onOpenToneSettings) {
+      onOpenToneSettings();
+    } else {
+      reminderService.openAppNotificationSettings();
+    }
   };
 
   const detectedBrand = (brandOverride !== 'auto' ? brandOverride : status?.manufacturer || 'generic').toLowerCase();
@@ -227,7 +237,7 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* 2. Notifications */}
+          {/* 2. Notifications & Sound Channels */}
           <View
             style={[
               tw`p-4 rounded-2xl border flex flex-col justify-between`,
@@ -247,13 +257,25 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
               <CheckCircle size={20} color="#10b981" />
             </View>
             <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
-              7 channels configured ({t('healthCheck.allowed')})
+              {status?.notificationChannelsCount || 7} {t('soundSettings.channelsSectionHeader')} ({t('healthCheck.allowed')})
             </Text>
-            <View style={tw`mt-auto items-center justify-center py-2.5`}>
-              <Text style={tw`text-xs font-semibold text-emerald-500`}>
-                {t('healthCheck.allowed')} & Active
+            <TouchableOpacity
+              onPress={handleOpenToneSettings}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('soundSettings.title')}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
+                {t('soundSettings.button')}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* 3. Battery Optimization */}
@@ -299,6 +321,47 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
             >
               <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
                 {t('healthCheck.openSettings')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* 4. Background & Foreground Protection */}
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <View style={tw`flex-row items-center justify-between mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <ShieldCheck size={16} color="#10b981" />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('soundSettings.appClosedReliability')}
+                </Text>
+              </View>
+              <CheckCircle size={20} color="#10b981" />
+            </View>
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
+              Foreground Service & RTC WakeLock active (works when closed)
+            </Text>
+            <TouchableOpacity
+              onPress={handleOpenToneSettings}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('soundSettings.bgFgWorkingBadge')}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Text style={[tw`text-xs font-semibold text-emerald-500`]}>
+                ✓ {t('soundSettings.bgFgWorkingBadge')}
               </Text>
             </TouchableOpacity>
           </View>

@@ -19,7 +19,10 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
 
   useEffect(() => {
     if (alarm) {
-      startAlarmSound();
+      const tone = (alarm.channelId === 'exercise' || alarm.channelId === 'water_meals' || alarm.channelId === 'habits')
+        ? 'gentle_chime'
+        : 'default_siren';
+      startAlarmSound(tone);
     } else {
       stopAlarmSound();
     }

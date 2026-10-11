@@ -10,8 +10,8 @@ coverage/
 *.lock
 bun.lock
 bun.lockb
-android/
-ios/
+/android/
+/ios/
 .expo/
 .expo
 *.apk
