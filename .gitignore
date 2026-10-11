@@ -12,4 +12,6 @@ bun.lock
 bun.lockb
 android/
 ios/
+.expo/
+.expo
 

@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "lifetrack",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1C1B1F"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lifetrack.app"
@@ -22,7 +17,6 @@
         "backgroundColor": "#1C1B1F"
       },
       "package": "com.lifetrack.app",
-      "newArchEnabled": true,
       "permissions": [
         "RECEIVE_BOOT_COMPLETED",
         "WAKE_LOCK",
