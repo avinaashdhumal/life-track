@@ -6,3 +6,10 @@ coverage/
 *.log
 .env*
 !.env.example
+.gradle/
+*.lock
+bun.lock
+bun.lockb
+android/
+ios/
+

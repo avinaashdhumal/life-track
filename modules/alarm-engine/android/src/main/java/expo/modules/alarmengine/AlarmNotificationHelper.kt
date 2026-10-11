@@ -140,10 +140,10 @@ object AlarmNotificationHelper {
             putExtra("ALARM_CHANNEL", alarm.channelId)
             putExtra("ALARM_IS_FULL", alarm.isFullAlarm)
             putExtra("ALARM_PAYLOAD", alarm.payloadJson)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            setFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
@@ -153,7 +153,7 @@ object AlarmNotificationHelper {
             context,
             notificationId,
             fullScreenIntent,
-            flags
+            pendingFlags
         )
 
         // Action: Taken / Done
@@ -166,7 +166,7 @@ object AlarmNotificationHelper {
             context,
             notificationId + 1,
             takenIntent,
-            flags
+            pendingFlags
         )
 
         // Action: Snooze
@@ -180,7 +180,7 @@ object AlarmNotificationHelper {
             context,
             notificationId + 2,
             snoozeIntent,
-            flags
+            pendingFlags
         )
 
         // Action: Skip
@@ -193,7 +193,7 @@ object AlarmNotificationHelper {
             context,
             notificationId + 3,
             skipIntent,
-            flags
+            pendingFlags
         )
 
         val builder = NotificationCompat.Builder(context, channelId)

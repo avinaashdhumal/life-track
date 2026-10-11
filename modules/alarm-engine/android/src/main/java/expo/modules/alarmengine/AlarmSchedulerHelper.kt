@@ -31,7 +31,7 @@ object AlarmSchedulerHelper {
             putExtra("TRIGGER_TIME", alarm.triggerTimeMs)
         }
 
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
@@ -41,7 +41,7 @@ object AlarmSchedulerHelper {
             context,
             alarm.id.hashCode(),
             intent,
-            flags
+            pendingFlags
         )
 
         // Save natively in SharedPreferences so it persists across reboots/kills
@@ -52,13 +52,13 @@ object AlarmSchedulerHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             val showIntent = Intent(context, AlarmFullScreenActivity::class.java).apply {
                 putExtra("ALARM_ID", alarm.id)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             val showPendingIntent = PendingIntent.getActivity(
                 context,
                 alarm.id.hashCode() + 999,
                 showIntent,
-                flags
+                pendingFlags
             )
             val clockInfo = AlarmManager.AlarmClockInfo(alarm.triggerTimeMs, showPendingIntent)
             alarmManager.setAlarmClock(clockInfo, pendingIntent)
@@ -82,7 +82,7 @@ object AlarmSchedulerHelper {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "expo.modules.alarmengine.ALARM_TRIGGER"
         }
-        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
@@ -91,7 +91,7 @@ object AlarmSchedulerHelper {
             context,
             alarmId.hashCode(),
             intent,
-            flags
+            pendingFlags
         )
 
         alarmManager.cancel(pendingIntent)

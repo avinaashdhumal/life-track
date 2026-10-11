@@ -106,9 +106,11 @@ class AlarmReceiver : BroadcastReceiver() {
                 putExtra("ALARM_CHANNEL", alarm.channelId)
                 putExtra("ALARM_IS_FULL", true)
                 putExtra("ALARM_PAYLOAD", alarm.payloadJson)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
+                setFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                )
             }
             context.startActivity(fullScreenIntent)
         }
