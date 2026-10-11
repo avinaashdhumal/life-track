@@ -7,7 +7,8 @@ import {
   TextInput,
   Alert,
   Modal,
-  RefreshControl
+  RefreshControl,
+  Platform
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ import {
   HelpCircle,
   RefreshCw,
   Edit3,
+  Trash2,
   Calendar,
   Sparkles,
   ChevronRight
@@ -74,13 +76,51 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
   };
 
   const handleSaveMedicine = async (data: Partial<Medicine> & { name: string }) => {
-    await medicinesRepository.upsert(data);
-    await loadData();
+    try {
+      await medicinesRepository.upsert(data);
+      await loadData();
+    } catch (err: any) {
+      Alert.alert(t('common.error', 'Error'), err?.message || 'Failed to save medicine');
+      throw err;
+    }
   };
 
   const handleDeleteMedicine = async (id: string) => {
-    await medicinesRepository.delete(id);
-    await loadData();
+    try {
+      await medicinesRepository.delete(id);
+      await loadData();
+    } catch (err: any) {
+      Alert.alert(t('common.error', 'Error'), err?.message || 'Failed to delete medicine');
+      throw err;
+    }
+  };
+
+  const confirmDeleteMedicine = (med: Medicine) => {
+    const message = `${t('medicines.deleteConfirm', 'Are you sure you want to delete this medicine and its history?')}\n(${med.name})`;
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window !== 'undefined' && window.confirm
+          ? window.confirm(message)
+          : true;
+      if (confirmed) {
+        handleDeleteMedicine(med.id);
+      }
+      return;
+    }
+
+    Alert.alert(
+      t('medicines.deleteTitle', 'Delete Medicine'),
+      message,
+      [
+        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        {
+          text: t('common.delete', 'Delete'),
+          style: 'destructive',
+          onPress: () => handleDeleteMedicine(med.id)
+        }
+      ]
+    );
   };
 
   const handleTakeDose = async (medicine: Medicine) => {
@@ -348,21 +388,36 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
                     </Text>
                   </View>
 
-                  <TouchableOpacity
-                    onPress={() => {
-                      setSelectedMedicine(med);
-                      setIsFormOpen(true);
-                    }}
-                    style={[
-                      tw`p-2 rounded-xl`,
-                      { backgroundColor: isDark ? '#27272a' : '#f1f5f9' }
-                    ]}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Edit ${med.name}`}
-                  >
-                    <Edit3 size={15} color={colors.text} />
-                  </TouchableOpacity>
+                  <View style={tw`flex-row items-center gap-1.5`}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSelectedMedicine(med);
+                        setIsFormOpen(true);
+                      }}
+                      style={[
+                        tw`p-2 rounded-xl`,
+                        { backgroundColor: isDark ? '#27272a' : '#f1f5f9' }
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Edit ${med.name}`}
+                    >
+                      <Edit3 size={15} color={colors.text} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => confirmDeleteMedicine(med)}
+                      style={[
+                        tw`p-2 rounded-xl`,
+                        { backgroundColor: isDark ? '#450a0a30' : '#fee2e250' }
+                      ]}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Delete ${med.name}`}
+                    >
+                      <Trash2 size={15} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {/* Schedule info row */}
@@ -497,7 +552,10 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
       <MedicineFormModal
         visible={isFormOpen}
         medicine={selectedMedicine}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedMedicine(null);
+        }}
         onSave={handleSaveMedicine}
         onDelete={handleDeleteMedicine}
       />

@@ -1,4 +1,18 @@
 import assert from 'node:assert';
+
+// Ensure AsyncStorage web fallback works cleanly in Node.js test environment
+if (typeof (globalThis as any).window === 'undefined') {
+  const store = new Map<string, string>();
+  (globalThis as any).window = {
+    localStorage: {
+      getItem: (key: string) => store.get(key) || null,
+      setItem: (key: string, val: string) => store.set(key, String(val)),
+      removeItem: (key: string) => store.delete(key),
+      clear: () => store.clear()
+    }
+  };
+}
+
 import {
   MedicineSchema,
   checkMinimumDoseGap,
@@ -108,6 +122,48 @@ const log: DoseLogEntry = {
 const slotsWithLog = generateTodayDoseSlots(sampleMed, todayStr, [log]);
 assert.strictEqual(slotsWithLog[0].status, 'taken');
 assert.strictEqual(slotsWithLog[1].status, 'pending');
-console.log('✅ Today dose slots generator merges schedules and logs correctly');
+import { medicinesRepository } from '../../data/medicinesRepository';
 
-console.log('🎉 ALL MEDICINE DOMAIN TESTS PASSED!\n');
+// 6. Repository CRUD: Edit and Delete
+async function testRepositoryCrud() {
+  const newMed = await medicinesRepository.upsert({
+    name: 'Amoxicillin',
+    form: 'capsule',
+    strength: '250 mg',
+    stockCount: 20,
+    refillThreshold: 4,
+    timesOfDay: ['09:00', '21:00']
+  });
+  assert.strictEqual(newMed.name, 'Amoxicillin');
+  assert.strictEqual(newMed.stockCount, 20);
+
+  // Edit medicine
+  const editedMed = await medicinesRepository.upsert({
+    id: newMed.id,
+    name: 'Amoxicillin Clavulanate',
+    strength: '500 mg',
+    stockCount: 18,
+    timesOfDay: ['08:00', '16:00', '00:00']
+  });
+  assert.strictEqual(editedMed.id, newMed.id);
+  assert.strictEqual(editedMed.name, 'Amoxicillin Clavulanate');
+  assert.strictEqual(editedMed.strength, '500 mg');
+  assert.strictEqual(editedMed.stockCount, 18);
+  assert.strictEqual(editedMed.createdAt, newMed.createdAt);
+  assert(editedMed.updatedAt >= newMed.updatedAt);
+
+  // Verify retrieved by getById
+  const retrieved = await medicinesRepository.getById(newMed.id);
+  assert.strictEqual(retrieved?.name, 'Amoxicillin Clavulanate');
+
+  // Delete medicine
+  const deleted = await medicinesRepository.delete(newMed.id);
+  assert.strictEqual(deleted, true);
+  const afterDelete = await medicinesRepository.getById(newMed.id);
+  assert.strictEqual(afterDelete, null);
+  console.log('✅ Medicine CRUD: Edit and Delete successfully verified in local persistent repository');
+}
+
+await testRepositoryCrud();
+
+console.log('🎉 ALL MEDICINE DOMAIN & REPOSITORY TESTS PASSED!\n');

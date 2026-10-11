@@ -112,7 +112,19 @@ class LocalDatabaseService {
   private lastOptimizedMs: number = Date.now();
 
   constructor() {
+    for (const table of Object.values(DB_TABLES)) {
+      this.memoryCache.set(table, new Map());
+    }
     this.initTables();
+  }
+
+  private getTableMap(tableName: DbTableName): Map<string, any> {
+    let map = this.memoryCache.get(tableName);
+    if (!map) {
+      map = new Map();
+      this.memoryCache.set(tableName, map);
+    }
+    return map;
   }
 
   private async initTables(): Promise<void> {
@@ -122,26 +134,26 @@ class LocalDatabaseService {
         if (!this.memoryCache.has(table)) {
           this.memoryCache.set(table, new Map());
         }
-        const storageKey = `${DB_PREFIX}${table}`;
-        const raw = await AsyncStorage.getItem(storageKey);
-        if (raw) {
-          try {
+        try {
+          const storageKey = `${DB_PREFIX}${table}`;
+          const raw = await AsyncStorage.getItem(storageKey);
+          if (raw) {
             const parsed: Record<string, any>[] = JSON.parse(raw);
-            const tableMap = this.memoryCache.get(table)!;
+            const tableMap = this.getTableMap(table);
             for (const row of parsed) {
               const primaryKey = row.id || row.key || row.name;
               if (primaryKey) {
                 tableMap.set(String(primaryKey), row);
               }
             }
-          } catch {
-            // Ignore parse error
           }
+        } catch {
+          // Ignore individual table load error
         }
       }
 
       // Initialize default user profile if empty
-      const profileMap = this.memoryCache.get(DB_TABLES.USER_PROFILE)!;
+      const profileMap = this.getTableMap(DB_TABLES.USER_PROFILE);
       if (profileMap.size === 0) {
         profileMap.set(DEFAULT_USER_PROFILE.id, DEFAULT_USER_PROFILE);
         await this.persistTable(DB_TABLES.USER_PROFILE);
@@ -160,8 +172,7 @@ class LocalDatabaseService {
   }
 
   private async persistTable(tableName: DbTableName): Promise<void> {
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) return;
+    const tableMap = this.getTableMap(tableName);
     const records = Array.from(tableMap.values());
     const storageKey = `${DB_PREFIX}${tableName}`;
     try {
@@ -175,8 +186,7 @@ class LocalDatabaseService {
 
   async insert<T extends Record<string, any>>(tableName: DbTableName, record: T): Promise<T> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) throw new Error(`Table ${tableName} not found in database`);
+    const tableMap = this.getTableMap(tableName);
 
     const pk = String(record.id || record.key || `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
     const savedRecord = { ...record, id: record.id || pk };
@@ -187,8 +197,7 @@ class LocalDatabaseService {
 
   async insertBatch<T extends Record<string, any>>(tableName: DbTableName, records: T[]): Promise<void> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) throw new Error(`Table ${tableName} not found in database`);
+    const tableMap = this.getTableMap(tableName);
 
     for (const record of records) {
       const pk = String(record.id || record.key || `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`);
@@ -199,30 +208,27 @@ class LocalDatabaseService {
 
   async selectById<T = any>(tableName: DbTableName, id: string): Promise<T | null> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) return null;
+    const tableMap = this.getTableMap(tableName);
     return (tableMap.get(id) as T) || null;
   }
 
   async selectAll<T = any>(tableName: DbTableName): Promise<T[]> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) return [];
+    const tableMap = this.getTableMap(tableName);
     return Array.from(tableMap.values()) as T[];
   }
 
   async query<T = any>(tableName: DbTableName, predicate: (record: T) => boolean): Promise<T[]> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap) return [];
+    const tableMap = this.getTableMap(tableName);
     const all = Array.from(tableMap.values()) as T[];
     return all.filter(predicate);
   }
 
   async update<T extends Record<string, any>>(tableName: DbTableName, id: string, updates: Partial<T>): Promise<T | null> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap || !tableMap.has(id)) return null;
+    const tableMap = this.getTableMap(tableName);
+    if (!tableMap.has(id)) return null;
 
     const existing = tableMap.get(id);
     const updated = { ...existing, ...updates, updatedAt: Date.now() };
@@ -233,8 +239,8 @@ class LocalDatabaseService {
 
   async delete(tableName: DbTableName, id: string): Promise<boolean> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (!tableMap || !tableMap.has(id)) return false;
+    const tableMap = this.getTableMap(tableName);
+    if (!tableMap.has(id)) return false;
 
     tableMap.delete(id);
     await this.persistTable(tableName);
@@ -243,17 +249,15 @@ class LocalDatabaseService {
 
   async clearTable(tableName: DbTableName): Promise<void> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    if (tableMap) {
-      tableMap.clear();
-      await this.persistTable(tableName);
-    }
+    const tableMap = this.getTableMap(tableName);
+    tableMap.clear();
+    await this.persistTable(tableName);
   }
 
   async count(tableName: DbTableName): Promise<number> {
     await this.ensureInitialized();
-    const tableMap = this.memoryCache.get(tableName);
-    return tableMap ? tableMap.size : 0;
+    const tableMap = this.getTableMap(tableName);
+    return tableMap.size;
   }
 
   // --- Specific Domain Entities ---

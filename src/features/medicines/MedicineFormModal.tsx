@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -67,10 +67,10 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
 
   // Safety rules
   const [minGapMinutes, setMinGapMinutes] = useState<string>(
-    medicine?.minGapMinutes ? String(medicine.minGapMinutes) : '240'
+    medicine?.minGapMinutes !== undefined ? String(medicine.minGapMinutes) : '240'
   );
   const [maxDailyDoses, setMaxDailyDoses] = useState<string>(
-    medicine?.maxDailyDoses ? String(medicine.maxDailyDoses) : '4'
+    medicine?.maxDailyDoses !== undefined ? String(medicine.maxDailyDoses) : '4'
   );
 
   // Inventory
@@ -90,6 +90,60 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
   const [instructions, setInstructions] = useState<string>(medicine?.instructions || '');
   const [isActive, setIsActive] = useState<boolean>(medicine?.isActive ?? true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  // Synchronize form fields whenever modal opens or selected medicine changes
+  useEffect(() => {
+    if (visible) {
+      if (medicine) {
+        setName(medicine.name || '');
+        setForm(medicine.form || 'tablet');
+        setStrength(medicine.strength || '');
+        setFoodRelation(medicine.foodRelation || 'with');
+        setScheduleType(medicine.scheduleType || 'fixed_time');
+        setTimesOfDay(
+          medicine.timesOfDay && medicine.timesOfDay.length > 0
+            ? [...medicine.timesOfDay]
+            : ['08:00']
+        );
+        setMinGapMinutes(
+          medicine.minGapMinutes !== undefined ? String(medicine.minGapMinutes) : '240'
+        );
+        setMaxDailyDoses(
+          medicine.maxDailyDoses !== undefined ? String(medicine.maxDailyDoses) : '4'
+        );
+        setStockCount(String(medicine.stockCount ?? 30));
+        setRefillThreshold(String(medicine.refillThreshold ?? 5));
+        setUnit(medicine.unit || 'tablets');
+        setMissedDoseAdvice(
+          medicine.missedDoseAdvice ||
+            'Take as soon as remembered unless close to the next scheduled dose. Never take a double dose.'
+        );
+        setInstructions(medicine.instructions || '');
+        setIsActive(medicine.isActive ?? true);
+      } else {
+        setName('');
+        setForm('tablet');
+        setStrength('');
+        setFoodRelation('with');
+        setScheduleType('fixed_time');
+        setTimesOfDay(['08:00']);
+        setMinGapMinutes('240');
+        setMaxDailyDoses('4');
+        setStockCount('30');
+        setRefillThreshold('5');
+        setUnit('tablets');
+        setMissedDoseAdvice(
+          'Take as soon as remembered unless close to the next scheduled dose. Never take a double dose.'
+        );
+        setInstructions('');
+        setIsActive(true);
+      }
+      setNewTimeInput('20:00');
+      setIsSaving(false);
+      setIsDeleting(false);
+    }
+  }, [visible, medicine]);
 
   const formOptions: { value: MedicineForm; label: string; icon: string }[] = [
     { value: 'tablet', label: t('medicines.formTablet', 'Tablet'), icon: '💊' },
@@ -161,6 +215,9 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
         unit: unit.trim() || 'tablets',
         missedDoseAdvice: missedDoseAdvice.trim() || undefined,
         instructions: instructions.trim() || undefined,
+        color: medicine?.color,
+        icon: medicine?.icon,
+        createdAt: medicine?.createdAt,
         isActive
       });
       onClose();
@@ -171,8 +228,35 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
     }
   };
 
+  const executeDelete = async () => {
+    if (!medicine?.id || !onDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(medicine.id);
+      onClose();
+    } catch (err: any) {
+      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not delete medicine');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleDelete = () => {
     if (!medicine?.id || !onDelete) return;
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window !== 'undefined' && window.confirm
+          ? window.confirm(
+              t('medicines.deleteConfirm', 'Are you sure you want to delete this medicine and its history?')
+            )
+          : true;
+      if (confirmed) {
+        executeDelete();
+      }
+      return;
+    }
+
     Alert.alert(
       t('medicines.deleteTitle', 'Delete Medicine'),
       t('medicines.deleteConfirm', 'Are you sure you want to delete this medicine and its history?'),
@@ -181,10 +265,7 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
         {
           text: t('common.delete', 'Delete'),
           style: 'destructive',
-          onPress: async () => {
-            await onDelete(medicine.id);
-            onClose();
-          }
+          onPress: executeDelete
         }
       ]
     );
@@ -711,9 +792,13 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
             {isEditing && (
               <TouchableOpacity
                 onPress={handleDelete}
+                disabled={isDeleting || isSaving}
                 style={[
                   tw`py-3.5 rounded-xl items-center justify-center flex-row border border-red-500/30`,
-                  { backgroundColor: isDark ? '#450a0a30' : '#fee2e250' }
+                  {
+                    backgroundColor: isDark ? '#450a0a30' : '#fee2e250',
+                    opacity: isDeleting ? 0.6 : 1
+                  }
                 ]}
                 accessible={true}
                 accessibilityRole="button"
@@ -721,7 +806,9 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
               >
                 <Trash2 size={16} color="#ef4444" style={tw`mr-2`} />
                 <Text style={tw`text-red-500 font-bold text-sm`}>
-                  {t('medicines.deleteMedicine', 'Delete Medicine')}
+                  {isDeleting
+                    ? t('common.deleting', 'Deleting...')
+                    : t('medicines.deleteMedicine', 'Delete Medicine')}
                 </Text>
               </TouchableOpacity>
             )}

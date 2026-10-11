@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { databaseService, DB_TABLES } from '../services/DatabaseService';
 import {
   Medicine,
@@ -96,11 +97,15 @@ export class MedicinesRepository {
   private async ensureSeed(): Promise<void> {
     if (this.seeded) return;
     try {
-      const existing = await databaseService.selectAll<Medicine>(DB_TABLES.MEDICINES);
-      if (existing.length === 0) {
-        for (const med of DEFAULT_SAMPLE_MEDICINES) {
-          await databaseService.insert(DB_TABLES.MEDICINES, med);
+      const hasSeeded = await AsyncStorage.getItem('@lifetrack:medicines_seeded');
+      if (!hasSeeded) {
+        const existing = await databaseService.selectAll<Medicine>(DB_TABLES.MEDICINES);
+        if (existing.length === 0) {
+          for (const med of DEFAULT_SAMPLE_MEDICINES) {
+            await databaseService.insert(DB_TABLES.MEDICINES, med);
+          }
         }
+        await AsyncStorage.setItem('@lifetrack:medicines_seeded', 'true');
       }
       this.seeded = true;
     } catch {
@@ -134,29 +139,43 @@ export class MedicinesRepository {
   async upsert(medicineData: Partial<Medicine> & { name: string }): Promise<Medicine> {
     await this.ensureSeed();
     const now = Date.now();
+    const existing = medicineData.id ? await this.getById(medicineData.id) : null;
     const id = medicineData.id || `med_${now}_${Math.random().toString(36).substring(2, 7)}`;
 
     const candidate: Medicine = {
       id,
-      profileId: medicineData.profileId || 'default',
+      profileId: medicineData.profileId || existing?.profileId || 'default',
       name: medicineData.name.trim(),
-      form: medicineData.form || 'tablet',
-      strength: medicineData.strength || '',
-      foodRelation: medicineData.foodRelation || 'no_relation',
-      scheduleType: medicineData.scheduleType || 'fixed_time',
-      timesOfDay: medicineData.timesOfDay || ['08:00'],
-      intervalHours: medicineData.intervalHours,
-      minGapMinutes: medicineData.minGapMinutes,
-      maxDailyDoses: medicineData.maxDailyDoses,
-      stockCount: medicineData.stockCount !== undefined ? Math.max(0, medicineData.stockCount) : 30,
-      refillThreshold: medicineData.refillThreshold !== undefined ? Math.max(0, medicineData.refillThreshold) : 5,
-      unit: medicineData.unit || 'tablets',
-      missedDoseAdvice: medicineData.missedDoseAdvice,
-      instructions: medicineData.instructions,
-      color: medicineData.color || '#10b981',
-      icon: medicineData.icon || 'pill',
-      isActive: medicineData.isActive !== undefined ? medicineData.isActive : true,
-      createdAt: medicineData.createdAt || now,
+      form: medicineData.form || existing?.form || 'tablet',
+      strength: medicineData.strength !== undefined ? medicineData.strength : (existing?.strength || ''),
+      foodRelation: medicineData.foodRelation || existing?.foodRelation || 'no_relation',
+      scheduleType: medicineData.scheduleType || existing?.scheduleType || 'fixed_time',
+      timesOfDay: medicineData.timesOfDay || existing?.timesOfDay || ['08:00'],
+      intervalHours: medicineData.intervalHours ?? existing?.intervalHours,
+      minGapMinutes:
+        medicineData.minGapMinutes !== undefined ? medicineData.minGapMinutes : existing?.minGapMinutes,
+      maxDailyDoses:
+        medicineData.maxDailyDoses !== undefined ? medicineData.maxDailyDoses : existing?.maxDailyDoses,
+      stockCount:
+        medicineData.stockCount !== undefined
+          ? Math.max(0, medicineData.stockCount)
+          : (existing?.stockCount ?? 30),
+      refillThreshold:
+        medicineData.refillThreshold !== undefined
+          ? Math.max(0, medicineData.refillThreshold)
+          : (existing?.refillThreshold ?? 5),
+      unit: medicineData.unit || existing?.unit || 'tablets',
+      missedDoseAdvice:
+        medicineData.missedDoseAdvice !== undefined
+          ? medicineData.missedDoseAdvice
+          : existing?.missedDoseAdvice,
+      instructions:
+        medicineData.instructions !== undefined ? medicineData.instructions : existing?.instructions,
+      color: medicineData.color || existing?.color || '#10b981',
+      icon: medicineData.icon || existing?.icon || 'pill',
+      isActive:
+        medicineData.isActive !== undefined ? medicineData.isActive : (existing?.isActive ?? true),
+      createdAt: existing?.createdAt || medicineData.createdAt || now,
       updatedAt: now
     };
 
