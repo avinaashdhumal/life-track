@@ -65,73 +65,13 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
   id: 'default',
-  name: 'Primary User',
-  notes: 'LifeTrack Health Profile',
+  name: '',
+  notes: '',
   updatedAt: Date.now()
 };
 
 // Initial default starter schedules for first run
-export const DEFAULT_STARTER_SCHEDULES: RecurringSchedule[] = [
-  {
-    id: 'rec_daily_metformin',
-    profileId: 'default',
-    category: 'medicine',
-    title: 'Morning Medicine (Metformin 500mg)',
-    message: 'Take 1 tablet with breakfast',
-    channelId: 'medicines',
-    style: 'full_alarm',
-    recurrenceType: 'daily',
-    timeOfDay: '08:00',
-    snoozeIntervalMinutes: 10,
-    isEnabled: true,
-    createdAt: 1728633600000
-  },
-  {
-    id: 'rec_every_2_days_dressing',
-    profileId: 'default',
-    category: 'reminder',
-    title: 'Wound Dressing & Inspection',
-    message: 'Every 2 days antiseptic check & clean dressing',
-    channelId: 'routine',
-    style: 'full_alarm',
-    recurrenceType: 'every_n_days',
-    intervalDays: 2,
-    timeOfDay: '11:00',
-    snoozeIntervalMinutes: 15,
-    isEnabled: true,
-    createdAt: 1728633600000
-  },
-  {
-    id: 'rec_weekly_workout',
-    profileId: 'default',
-    category: 'exercise',
-    title: 'Yoga & Pranayama Session',
-    message: 'Mon, Wed, Fri morning routine',
-    channelId: 'exercise',
-    style: 'notification',
-    recurrenceType: 'weekly',
-    weekdays: [1, 3, 5],
-    timeOfDay: '06:30',
-    snoozeIntervalMinutes: 10,
-    isEnabled: true,
-    createdAt: 1728633600000
-  },
-  {
-    id: 'rec_monthly_doctor',
-    profileId: 'default',
-    category: 'appointment',
-    title: 'Monthly Vitals & BP Audit',
-    message: 'Review monthly BP and blood sugar logs with doctor',
-    channelId: 'appointments',
-    style: 'full_alarm',
-    recurrenceType: 'monthly',
-    dayOfMonth: 1,
-    timeOfDay: '10:00',
-    snoozeIntervalMinutes: 30,
-    isEnabled: true,
-    createdAt: 1728633600000
-  }
-];
+export const DEFAULT_STARTER_SCHEDULES: RecurringSchedule[] = [];
 
 type StorageChangeListener = (key: string) => void;
 

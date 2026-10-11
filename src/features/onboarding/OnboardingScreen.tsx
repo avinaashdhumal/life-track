@@ -30,10 +30,10 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
   const { colors, isDark } = useTheme();
 
   const [step, setStep] = useState<number>(1);
-  const [name, setName] = useState<string>('Avinash Dhumal');
-  const [bloodGroup, setBloodGroup] = useState<string>('O+');
-  const [emergencyContact, setEmergencyContact] = useState<string>('Family Contact');
-  const [emergencyPhone, setEmergencyPhone] = useState<string>('+91 98765 43210');
+  const [name, setName] = useState<string>('');
+  const [bloodGroup, setBloodGroup] = useState<string>('');
+  const [emergencyContact, setEmergencyContact] = useState<string>('');
+  const [emergencyPhone, setEmergencyPhone] = useState<string>('');
   const [shiftChoice, setShiftChoice] = useState<ShiftChoice>('no');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -335,7 +335,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <TextInput
                 value={name}
                 onChangeText={setName}
-                placeholder="e.g. Avinash Dhumal"
+                placeholder="Your name"
                 placeholderTextColor={colors.textSecondary}
                 style={[
                   tw`p-3.5 rounded-xl border text-sm font-medium`,

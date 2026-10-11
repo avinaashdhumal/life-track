@@ -22,95 +22,11 @@ export interface LogDoseResult {
   isLowStock: boolean;
 }
 
-const DEFAULT_SAMPLE_MEDICINES: Medicine[] = [
-  {
-    id: 'med_metformin_500',
-    profileId: 'default',
-    name: 'Metformin',
-    form: 'tablet',
-    strength: '500 mg',
-    foodRelation: 'with',
-    scheduleType: 'fixed_time',
-    timesOfDay: ['08:30', '20:30'],
-    minGapMinutes: 360,
-    maxDailyDoses: 2,
-    stockCount: 28,
-    refillThreshold: 8,
-    unit: 'tablets',
-    missedDoseAdvice: 'Take with next meal. Do not take two doses at the same time to make up for a missed dose.',
-    instructions: 'Take with water during or immediately after meals.',
-    color: '#0284c7', // Sky 600
-    icon: 'pill',
-    isActive: true,
-    createdAt: Date.now() - 86400000 * 5,
-    updatedAt: Date.now() - 86400000 * 5
-  },
-  {
-    id: 'med_atorvastatin_20',
-    profileId: 'default',
-    name: 'Atorvastatin',
-    form: 'tablet',
-    strength: '20 mg',
-    foodRelation: 'after',
-    scheduleType: 'fixed_time',
-    timesOfDay: ['21:30'],
-    minGapMinutes: 720,
-    maxDailyDoses: 1,
-    stockCount: 6, // Low stock demo!
-    refillThreshold: 7,
-    unit: 'tablets',
-    missedDoseAdvice: 'Take it as soon as you remember. Skip if it is within 12 hours of the next dose.',
-    instructions: 'Take once daily at bedtime.',
-    color: '#8b5cf6', // Violet 500
-    icon: 'shield-alert',
-    isActive: true,
-    createdAt: Date.now() - 86400000 * 4,
-    updatedAt: Date.now() - 86400000 * 4
-  },
-  {
-    id: 'med_paracetamol_prn',
-    profileId: 'default',
-    name: 'Paracetamol',
-    form: 'tablet',
-    strength: '650 mg',
-    foodRelation: 'after',
-    scheduleType: 'prn_as_needed',
-    timesOfDay: [],
-    minGapMinutes: 240, // 4 hours min gap
-    maxDailyDoses: 4, // Max 4 per 24 hours
-    stockCount: 16,
-    refillThreshold: 6,
-    unit: 'tablets',
-    missedDoseAdvice: 'As needed for fever or headache. Never exceed 4 tablets in 24 hours.',
-    instructions: 'Leave at least 4 to 6 hours between doses.',
-    color: '#10b981', // Emerald 500
-    icon: 'activity',
-    isActive: true,
-    createdAt: Date.now() - 86400000 * 3,
-    updatedAt: Date.now() - 86400000 * 3
-  }
-];
-
 export class MedicinesRepository {
   private seeded: boolean = false;
 
   private async ensureSeed(): Promise<void> {
-    if (this.seeded) return;
-    try {
-      const hasSeeded = await AsyncStorage.getItem('@lifetrack:medicines_seeded');
-      if (!hasSeeded) {
-        const existing = await databaseService.selectAll<Medicine>(DB_TABLES.MEDICINES);
-        if (existing.length === 0) {
-          for (const med of DEFAULT_SAMPLE_MEDICINES) {
-            await databaseService.insert(DB_TABLES.MEDICINES, med);
-          }
-        }
-        await AsyncStorage.setItem('@lifetrack:medicines_seeded', 'true');
-      }
-      this.seeded = true;
-    } catch {
-      this.seeded = true;
-    }
+    this.seeded = true;
   }
 
   async getAll(profileId: string = 'default'): Promise<Medicine[]> {

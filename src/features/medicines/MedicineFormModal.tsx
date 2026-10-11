@@ -341,7 +341,7 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Metformin, Paracetamol"
+              placeholder="Enter medicine name"
               placeholderTextColor={colors.textSecondary}
               style={[
                 tw`p-3.5 rounded-xl border text-sm font-medium`,

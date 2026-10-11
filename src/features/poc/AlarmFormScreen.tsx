@@ -141,7 +141,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
 
   // Live preview of next 5 planned occurrences
   const previewOccurrences = useMemo(() => {
-    const mockSchedule: RecurringSchedule = {
+    const previewSchedule: RecurringSchedule = {
       id: 'preview_schedule',
       profileId: 'default',
       category,
@@ -161,7 +161,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
       isEnabled: true,
       createdAt: Date.now()
     };
-    return planOccurrencesForRecurringSchedule(mockSchedule, Date.now(), 5, 90);
+    return planOccurrencesForRecurringSchedule(previewSchedule, Date.now(), 5, 90);
   }, [
     category,
     title,

@@ -53,8 +53,8 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<AlarmCategory>('medicine');
   const [selectedChannel, setSelectedChannel] = useState<NotificationChannelId>('medicines');
   const [isFullAlarm, setIsFullAlarm] = useState(true);
-  const [title, setTitle] = useState('Metformin 500mg');
-  const [message, setMessage] = useState('Take 1 tablet with warm water');
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
   const [now, setNow] = useState(Date.now());
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
@@ -82,28 +82,6 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     const catDef = ALARM_CATEGORIES[catId];
     setSelectedChannel(catDef.defaultChannel);
     setIsFullAlarm(catDef.defaultStyle === 'full_alarm');
-    if (catId === 'medicine') {
-      setTitle('Metformin 500mg');
-      setMessage('Take 1 tablet with breakfast');
-    } else if (catId === 'exercise') {
-      setTitle('Morning Yoga & Cardio');
-      setMessage('30-minute session');
-    } else if (catId === 'reminder') {
-      setTitle('Inspect Wound Dressing');
-      setMessage('Check clean dressing');
-    } else if (catId === 'appointment') {
-      setTitle('Doctor Clinic Visit');
-      setMessage('Bring recent blood tests report');
-    } else if (catId === 'hydration') {
-      setTitle('Drink 500ml Water');
-      setMessage('Hydration milestone');
-    } else if (catId === 'habit') {
-      setTitle('Evening Meditation');
-      setMessage('10 min breath awareness');
-    } else if (catId === 'vitals') {
-      setTitle('Check Blood Pressure');
-      setMessage('Log systolic and diastolic values');
-    }
   };
 
   // Refresh clock every second for live countdown

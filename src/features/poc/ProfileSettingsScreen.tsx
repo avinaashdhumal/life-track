@@ -109,10 +109,10 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
 
   const handleSaveProfile = async () => {
     const updated = await databaseService.updateUserProfile({
-      name: formName.trim() || 'Avinash Dhumal',
+      name: formName.trim() || 'User',
       phone: formPhone.trim(),
       email: formEmail.trim(),
-      bloodGroup: formBloodGroup.trim() || 'O+',
+      bloodGroup: formBloodGroup.trim(),
       emergencyContact: formEmergencyContact.trim(),
       emergencyContactPhone: formEmergencyPhone.trim(),
       medicalConditions: formConditions.split(',').map((c) => c.trim()).filter(Boolean),
@@ -263,17 +263,19 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             <View style={tw`flex-1 min-w-0`}>
               <View style={tw`flex-row items-center gap-1.5 flex-wrap`}>
                 <Text style={[tw`text-base font-bold`, { color: colors.text }]} numberOfLines={1}>
-                  {profile?.name || 'Avinash Dhumal'}
+                  {profile?.name || 'User'}
                 </Text>
-                <View style={tw`flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30`}>
-                  <Heart size={9} color="#ef4444" fill="#ef4444" />
-                  <Text style={tw`text-[10px] font-bold text-red-500`}>
-                    {profile?.bloodGroup || 'O+'}
-                  </Text>
-                </View>
+                {profile?.bloodGroup ? (
+                  <View style={tw`flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30`}>
+                    <Heart size={9} color="#ef4444" fill="#ef4444" />
+                    <Text style={tw`text-[10px] font-bold text-red-500`}>
+                      {profile.bloodGroup}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <Text style={[tw`text-xs mt-0.5`, { color: colors.textMuted }]} numberOfLines={1}>
-                {profile?.email || 'avinash@example.com'}
+                {profile?.email || 'No email configured'}
               </Text>
             </View>
           </View>
@@ -313,10 +315,10 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             </View>
             <View style={tw`flex-row items-center justify-between flex-wrap gap-1`}>
               <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
-                {profile?.emergencyContact || 'Family Doctor / Guardian'}
+                {profile?.emergencyContact || 'Not configured'}
               </Text>
               <Text style={tw`text-xs font-bold text-red-500 font-mono`}>
-                {profile?.emergencyContactPhone || '+91 91234 56789'}
+                {profile?.emergencyContactPhone || '--'}
               </Text>
             </View>
           </View>
