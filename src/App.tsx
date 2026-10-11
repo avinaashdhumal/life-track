@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
@@ -7,11 +7,15 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageThemeModal } from './features/poc/LanguageThemeModal';
 import { getCurrentLanguage, SUPPORTED_LANGUAGES } from './i18n';
 import appIcon from '../assets/icon.png';
+import { TodayScreen } from './features/today/TodayScreen';
+import { MedicineListScreen } from './features/medicines/MedicineListScreen';
 import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
 import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
 import { ProfileSettingsScreen } from './features/poc/ProfileSettingsScreen';
+import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
 import { NotificationToneSettingsModal } from './features/poc/NotificationToneSettingsModal';
+import { profileRepository } from './data/profileRepository';
 
 import { AlarmItem } from './domain/alarm';
 import { reminderService } from './services/AlarmEngineService';
@@ -27,23 +31,42 @@ import {
   User,
   MoreVertical,
   X,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  Package,
+  RotateCcw
 } from 'lucide-react-native';
+
+export type MainTabType = 'today' | 'medicines' | 'poc_test' | 'health_check' | 'profile_settings';
 
 function AppContent() {
   const { t } = useTranslation();
   const { colors, isDark, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'poc_test' | 'health_check' | 'profile_settings'>('poc_test');
+  const [activeTab, setActiveTab] = useState<MainTabType>('today');
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showToneModal, setShowToneModal] = useState(false);
   const [showTopMenu, setShowTopMenu] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
   const currentLangCode = getCurrentLanguage();
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
 
+  // Load onboarding completion status
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const completed = await profileRepository.hasCompletedOnboarding();
+        setHasCompletedOnboarding(completed);
+      } catch {
+        setHasCompletedOnboarding(true);
+      }
+    };
+    checkOnboarding();
+  }, []);
+
   // Global background and foreground alarm engine loop
-  React.useEffect(() => {
+  useEffect(() => {
     reminderService.requestBrowserNotificationPermission();
 
     const checkAlarms = async () => {
@@ -152,6 +175,21 @@ function AppContent() {
     setActiveTab('poc_test');
   };
 
+  // If first launch and onboarding not completed, display OnboardingScreen
+  if (hasCompletedOnboarding === false) {
+    return (
+      <SafeAreaView style={[tw`flex-1`, { backgroundColor: colors.bg }]}>
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.statusBarBg} />
+        <OnboardingScreen
+          onComplete={() => {
+            setHasCompletedOnboarding(true);
+            setActiveTab('today');
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[tw`flex-1`, { backgroundColor: colors.bg }]}>
       <StatusBar
@@ -211,41 +249,117 @@ function AppContent() {
         </TouchableOpacity>
       </View>
 
-      {/* Main Content Area (Independently Scrollable Above Fixed Navigation) */}
-      <ScrollView
-        style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === 'poc_test' ? (
-          <AlarmTestScreen
-            onTriggerAlarmDirectly={handleTriggerAlarmDirectly}
-            onOpenHealthCheck={() => setActiveTab('health_check')}
+      {/* Main Content Area */}
+      <View style={[tw`flex-1 min-h-0`, { backgroundColor: colors.bg }]}>
+        {activeTab === 'today' ? (
+          <TodayScreen
+            onNavigateToMedicines={() => setActiveTab('medicines')}
+            onNavigateToAlarms={() => setActiveTab('poc_test')}
           />
+        ) : activeTab === 'medicines' ? (
+          <MedicineListScreen
+            onOpenPOCAlarms={() => setActiveTab('poc_test')}
+          />
+        ) : activeTab === 'poc_test' ? (
+          <ScrollView
+            style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
+            showsVerticalScrollIndicator={false}
+          >
+            <AlarmTestScreen
+              onTriggerAlarmDirectly={handleTriggerAlarmDirectly}
+              onOpenHealthCheck={() => setActiveTab('health_check')}
+            />
+          </ScrollView>
         ) : activeTab === 'health_check' ? (
-          <HealthCheckScreen
-            onBack={() => setActiveTab('poc_test')}
-            onSendTestAlarmInOneMinute={handleSendTestAlarmInOneMinute}
-            onOpenToneSettings={() => setShowToneModal(true)}
-          />
+          <ScrollView
+            style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
+            showsVerticalScrollIndicator={false}
+          >
+            <HealthCheckScreen
+              onBack={() => setActiveTab('today')}
+              onSendTestAlarmInOneMinute={handleSendTestAlarmInOneMinute}
+              onOpenToneSettings={() => setShowToneModal(true)}
+            />
+          </ScrollView>
         ) : (
-          <ProfileSettingsScreen
-            onBack={() => setActiveTab('poc_test')}
-            onOpenToneSettings={() => setShowToneModal(true)}
-            onOpenHealthCheck={() => setActiveTab('health_check')}
-          />
+          <ScrollView
+            style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
+            showsVerticalScrollIndicator={false}
+          >
+            <ProfileSettingsScreen
+              onBack={() => setActiveTab('today')}
+              onOpenToneSettings={() => setShowToneModal(true)}
+              onOpenHealthCheck={() => setActiveTab('health_check')}
+            />
+          </ScrollView>
         )}
-      </ScrollView>
+      </View>
 
-      {/* Bottom Tab Navigation (Fixed at Bottom) */}
+      {/* Bottom Tab Navigation (Fixed at Bottom with 5 core tabs) */}
       <View
         style={[
-          tw`shrink-0 border-t px-2 py-2 flex-row items-center justify-around z-30 shadow-sm`,
+          tw`shrink-0 border-t px-1 py-2 flex-row items-center justify-around z-30 shadow-sm`,
           {
             backgroundColor: colors.tabBarBg,
             borderTopColor: colors.tabBarBorder
           }
         ]}
       >
+        {/* TAB 1: Today */}
+        <TouchableOpacity
+          onPress={() => setActiveTab('today')}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'today' }}
+          accessibilityLabel={t('accessibility.tabToday')}
+          style={[
+            tw`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl min-w-15 min-h-11 justify-center`,
+            activeTab === 'today' ? { backgroundColor: colors.primaryBg } : {}
+          ]}
+        >
+          <Calendar
+            size={18}
+            color={activeTab === 'today' ? colors.primary : colors.textSubtle}
+          />
+          <Text
+            style={[
+              tw`text-[10px] font-medium`,
+              { color: activeTab === 'today' ? colors.primaryText : colors.textSubtle },
+              activeTab === 'today' ? tw`font-bold` : {}
+            ]}
+          >
+            {t('tabs.today')}
+          </Text>
+        </TouchableOpacity>
+
+        {/* TAB 2: Medicines */}
+        <TouchableOpacity
+          onPress={() => setActiveTab('medicines')}
+          accessible={true}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: activeTab === 'medicines' }}
+          accessibilityLabel={t('accessibility.tabMedicines')}
+          style={[
+            tw`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl min-w-15 min-h-11 justify-center`,
+            activeTab === 'medicines' ? { backgroundColor: colors.primaryBg } : {}
+          ]}
+        >
+          <Package
+            size={18}
+            color={activeTab === 'medicines' ? colors.primary : colors.textSubtle}
+          />
+          <Text
+            style={[
+              tw`text-[10px] font-medium`,
+              { color: activeTab === 'medicines' ? colors.primaryText : colors.textSubtle },
+              activeTab === 'medicines' ? tw`font-bold` : {}
+            ]}
+          >
+            {t('tabs.medicines')}
+          </Text>
+        </TouchableOpacity>
+
+        {/* TAB 3: Alarms & Routines */}
         <TouchableOpacity
           onPress={() => setActiveTab('poc_test')}
           accessible={true}
@@ -253,7 +367,7 @@ function AppContent() {
           accessibilityState={{ selected: activeTab === 'poc_test' }}
           accessibilityLabel={t('accessibility.tabAlarms')}
           style={[
-            tw`flex flex-col items-center gap-1 py-1 px-3 rounded-xl min-w-16 min-h-11 justify-center`,
+            tw`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl min-w-15 min-h-11 justify-center`,
             activeTab === 'poc_test' ? { backgroundColor: colors.primaryBg } : {}
           ]}
         >
@@ -263,7 +377,7 @@ function AppContent() {
           />
           <Text
             style={[
-              tw`text-[11px] font-medium`,
+              tw`text-[10px] font-medium`,
               { color: activeTab === 'poc_test' ? colors.primaryText : colors.textSubtle },
               activeTab === 'poc_test' ? tw`font-bold` : {}
             ]}
@@ -272,6 +386,7 @@ function AppContent() {
           </Text>
         </TouchableOpacity>
 
+        {/* TAB 4: Health Check */}
         <TouchableOpacity
           onPress={() => setActiveTab('health_check')}
           accessible={true}
@@ -279,7 +394,7 @@ function AppContent() {
           accessibilityState={{ selected: activeTab === 'health_check' }}
           accessibilityLabel={t('accessibility.tabHealthCheck')}
           style={[
-            tw`flex flex-col items-center gap-1 py-1 px-3 rounded-xl min-w-16 min-h-11 justify-center`,
+            tw`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl min-w-15 min-h-11 justify-center`,
             activeTab === 'health_check' ? { backgroundColor: colors.primaryBg } : {}
           ]}
         >
@@ -289,7 +404,7 @@ function AppContent() {
           />
           <Text
             style={[
-              tw`text-[11px] font-medium`,
+              tw`text-[10px] font-medium`,
               { color: activeTab === 'health_check' ? colors.primaryText : colors.textSubtle },
               activeTab === 'health_check' ? tw`font-bold` : {}
             ]}
@@ -298,6 +413,7 @@ function AppContent() {
           </Text>
         </TouchableOpacity>
 
+        {/* TAB 5: Profile */}
         <TouchableOpacity
           onPress={() => setActiveTab('profile_settings')}
           accessible={true}
@@ -305,7 +421,7 @@ function AppContent() {
           accessibilityState={{ selected: activeTab === 'profile_settings' }}
           accessibilityLabel={t('tabs.profile')}
           style={[
-            tw`flex flex-col items-center gap-1 py-1 px-3 rounded-xl min-w-16 min-h-11 justify-center`,
+            tw`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl min-w-15 min-h-11 justify-center`,
             activeTab === 'profile_settings' ? { backgroundColor: colors.primaryBg } : {}
           ]}
         >
@@ -315,26 +431,12 @@ function AppContent() {
           />
           <Text
             style={[
-              tw`text-[11px] font-medium`,
+              tw`text-[10px] font-medium`,
               { color: activeTab === 'profile_settings' ? colors.primaryText : colors.textSubtle },
               activeTab === 'profile_settings' ? tw`font-bold` : {}
             ]}
           >
             {t('tabs.profile')}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          disabled
-          accessible={true}
-          accessibilityRole="tab"
-          accessibilityState={{ disabled: true }}
-          accessibilityLabel={t('accessibility.tabHealth')}
-          style={tw`flex flex-col items-center gap-1 py-1 px-3 opacity-40 min-w-16 min-h-11 justify-center`}
-        >
-          <Heart size={18} color={colors.textSubtle} />
-          <Text style={[tw`text-[11px]`, { color: colors.textSubtle }]}>
-            {t('tabs.health')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -562,6 +664,37 @@ function AppContent() {
                   </Text>
                   <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
                     AlarmManager & Doze Diagnostics
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Menu Item 6: Test / Re-run Onboarding */}
+            <TouchableOpacity
+              onPress={async () => {
+                setShowTopMenu(false);
+                await profileRepository.setCompletedOnboarding(false);
+                setHasCompletedOnboarding(false);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Re-run onboarding flow"
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-sky-500/10 items-center justify-center border border-sky-500/20 shrink-0`}>
+                  <RotateCcw size={16} color="#0284c7" />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('onboarding.welcomeTitle', 'Re-run Onboarding')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    Permissions, Routine & Shift Setup
                   </Text>
                 </View>
               </View>

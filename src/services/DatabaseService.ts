@@ -77,7 +77,9 @@ export const DB_TABLES = {
   SCHEDULED_ALARMS: 'scheduled_alarms',
   REMINDER_LOGS: 'reminder_logs',
   APP_SETTINGS: 'app_settings',
-  USER_PROFILE: 'user_profile'
+  USER_PROFILE: 'user_profile',
+  MEDICINES: 'medicines',
+  MEDICINE_DOSES: 'medicine_doses'
 } as const;
 
 export type DbTableName = (typeof DB_TABLES)[keyof typeof DB_TABLES];
@@ -341,7 +343,9 @@ class LocalDatabaseService {
       [DB_TABLES.SCHEDULED_ALARMS]: 'Exact upcoming Android alarm instances (next 14 days)',
       [DB_TABLES.REMINDER_LOGS]: 'Audit trail of fired, taken, and snoozed alerts',
       [DB_TABLES.APP_SETTINGS]: 'Persistent user preferences, theme, tone & language',
-      [DB_TABLES.USER_PROFILE]: 'Personal health info, blood group & emergency contact'
+      [DB_TABLES.USER_PROFILE]: 'Personal health info, blood group & emergency contact',
+      [DB_TABLES.MEDICINES]: 'Active and archived medications, dosages & inventory stock',
+      [DB_TABLES.MEDICINE_DOSES]: 'Dose consumption history and real-time intake logs'
     };
 
     const tables: TableStats[] = [];
@@ -413,6 +417,14 @@ class LocalDatabaseService {
       }
       if (lower.startsWith('select * from app_settings')) {
         const rows = await this.selectAll(DB_TABLES.APP_SETTINGS);
+        return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
+      }
+      if (lower.startsWith('select * from medicines')) {
+        const rows = await this.selectAll(DB_TABLES.MEDICINES);
+        return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
+      }
+      if (lower.startsWith('select * from medicine_doses')) {
+        const rows = await this.selectAll(DB_TABLES.MEDICINE_DOSES);
         return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
       }
 

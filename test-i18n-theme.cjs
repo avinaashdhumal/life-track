@@ -100,7 +100,11 @@ const filesToCheck = [
   'src/features/poc/AlarmConflictModal.tsx',
   'src/features/poc/LanguageThemeModal.tsx',
   'src/features/poc/NotificationToneSettingsModal.tsx',
-  'src/features/poc/ProfileSettingsScreen.tsx'
+  'src/features/poc/ProfileSettingsScreen.tsx',
+  'src/features/onboarding/OnboardingScreen.tsx',
+  'src/features/medicines/MedicineListScreen.tsx',
+  'src/features/medicines/MedicineFormModal.tsx',
+  'src/features/today/TodayScreen.tsx'
 ];
 
 for (const file of filesToCheck) {
