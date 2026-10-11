@@ -97,10 +97,33 @@ export interface IReminderService {
   /**
    * Log a reminder action (Taken, Snoozed, Skipped, etc.).
    */
+  /**
+   * Update an existing recurring schedule and re-plan occurrences.
+   */
+  updateRecurringSchedule(id: string, updates: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>): Promise<RecurringSchedule | null>;
+
+  /**
+   * Get a single recurring schedule by id.
+   */
+  getRecurringScheduleById(id: string): Promise<RecurringSchedule | null>;
+
+  /**
+   * Log a reminder action (Taken, Snoozed, Skipped, etc.).
+   */
   logAction(entry: Omit<ReminderLogEntry, 'id'>): Promise<void>;
 
   /**
    * Retrieve logged reminder events.
    */
   getLogs(): Promise<ReminderLogEntry[]>;
+
+  /**
+   * Clear all reminder event logs.
+   */
+  clearLogs(): Promise<void>;
+
+  /**
+   * Delete a specific event log by id.
+   */
+  deleteLog(id: string): Promise<boolean>;
 }

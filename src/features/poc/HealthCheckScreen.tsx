@@ -15,7 +15,8 @@ import {
   Smartphone,
   ExternalLink,
   ChevronLeft,
-  RefreshCw
+  RefreshCw,
+  Database
 } from 'lucide-react-native';
 
 interface HealthCheckScreenProps {
@@ -364,6 +365,46 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
                 ✓ {t('soundSettings.bgFgWorkingBadge')}
               </Text>
             </TouchableOpacity>
+          </View>
+
+          {/* 5. On-Phone Persistent Storage Engine */}
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <View style={tw`flex-row items-center justify-between mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Database size={16} color="#10b981" />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('storage.title')}
+                </Text>
+              </View>
+              <CheckCircle size={20} color="#10b981" />
+            </View>
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
+              {t('storage.persistedBadge')} • SQLite
+            </Text>
+            <View
+              accessible={true}
+              accessibilityRole="text"
+              accessibilityLabel={t('storage.persistedBadge')}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Text style={[tw`text-xs font-semibold text-emerald-500`]}>
+                ✓ {t('storage.crudStatus')}
+              </Text>
+            </View>
           </View>
         </View>
 

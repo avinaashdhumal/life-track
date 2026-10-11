@@ -6,6 +6,8 @@ import { AlarmItem } from '../../domain/alarm';
 import { startAlarmSound, stopAlarmSound } from '../../utils/audioAlarm';
 import { Bell, CheckCircle, Clock, XCircle, Volume2, ShieldAlert } from 'lucide-react-native';
 
+import { storageService } from '../../services/StorageService';
+
 interface FullScreenAlarmModalProps {
   alarm: AlarmItem | null;
   onAction: (action: 'TAKEN' | 'SNOOZE_10' | 'DISMISS') => void;
@@ -19,9 +21,10 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
 
   useEffect(() => {
     if (alarm) {
+      const userTone = storageService.getSyncSetting('alarmTone') || 'default_siren';
       const tone = (alarm.channelId === 'exercise' || alarm.channelId === 'water_meals' || alarm.channelId === 'habits')
         ? 'gentle_chime'
-        : 'default_siren';
+        : userTone;
       startAlarmSound(tone);
     } else {
       stopAlarmSound();

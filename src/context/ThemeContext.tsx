@@ -98,11 +98,19 @@ const ThemeContext = createContext<ThemeContextValue>({
   setThemeMode: () => {}
 });
 
+import { storageService } from '../services/StorageService';
+
 const THEME_STORAGE_KEY = 'lifetrack_theme_mode';
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const systemColorScheme = useNativeColorScheme();
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() => {
+    // 1. Check storageService synchronous memory cache (immediate on render)
+    const cachedSetting = storageService.getSyncSetting('themeMode');
+    if (cachedSetting && ['light', 'dark', 'system'].includes(cachedSetting)) {
+      return cachedSetting;
+    }
+    // 2. Check window.localStorage fallback
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const saved = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
@@ -115,6 +123,17 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }
     return 'dark'; // Default to dark as per existing theme
   });
+
+  // Async hydration from persistent phone storage (AsyncStorage)
+  useEffect(() => {
+    storageService.getSettings().then((settings) => {
+      if (settings.themeMode && ['light', 'dark', 'system'].includes(settings.themeMode)) {
+        setThemeModeState(settings.themeMode);
+      }
+    }).catch(() => {
+      // Ignore initial hydration errors
+    });
+  }, []);
 
   const isDark = useMemo(() => {
     if (themeMode === 'system') {
@@ -136,6 +155,10 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);
+    // Persist to phone persistent storage
+    storageService.updateSettings({ themeMode: mode }).catch((err) => {
+      console.warn('[ThemeContext] Failed to persist themeMode:', err);
+    });
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         window.localStorage.setItem(THEME_STORAGE_KEY, mode);

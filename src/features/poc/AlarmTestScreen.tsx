@@ -30,7 +30,11 @@ import {
   Plus,
   ToggleLeft,
   ToggleRight,
-  Tag
+  Tag,
+  Pencil,
+  Database,
+  X,
+  RefreshCw
 } from 'lucide-react-native';
 
 interface AlarmTestScreenProps {
@@ -55,6 +59,10 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const [message, setMessage] = useState('Take 1 tablet with warm water');
   const [now, setNow] = useState(Date.now());
   const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [backupText, setBackupText] = useState('');
+  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [, setJustScheduledId] = useState<string | null>(null);
   const [pendingConflict, setPendingConflict] = useState<{
     candidate: {
@@ -216,6 +224,22 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const handleSaveRecurring = async (newSchedule: Omit<RecurringSchedule, 'id' | 'createdAt'>) => {
     await reminderService.createRecurringSchedule(newSchedule);
     setShowRecurringModal(false);
+    setEditingSchedule(null);
+    await refreshData();
+  };
+
+  const handleOpenEditRecurring = (schedule: RecurringSchedule) => {
+    setEditingSchedule(schedule);
+    setShowRecurringModal(true);
+  };
+
+  const handleUpdateRecurring = async (
+    id: string,
+    updates: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>
+  ) => {
+    await reminderService.updateRecurringSchedule(id, updates);
+    setShowRecurringModal(false);
+    setEditingSchedule(null);
     await refreshData();
   };
 
@@ -227,6 +251,38 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const handleDeleteRecurring = async (id: string) => {
     await reminderService.deleteRecurringSchedule(id);
     await refreshData();
+  };
+
+  const handleClearLogs = async () => {
+    await reminderService.clearLogs();
+    await refreshData();
+  };
+
+  const handleDeleteLog = async (id: string) => {
+    await reminderService.deleteLog(id);
+    await refreshData();
+  };
+
+  const handleOpenBackup = async () => {
+    const dataStr = await reminderService.exportAllData();
+    setBackupText(dataStr);
+    setImportStatus(null);
+    setShowBackupModal(true);
+  };
+
+  const handleImportBackup = async () => {
+    try {
+      const ok = await reminderService.importAllData(backupText);
+      if (ok) {
+        setImportStatus(t('storage.restoreSuccess'));
+        await refreshData();
+        setTimeout(() => setShowBackupModal(false), 1200);
+      } else {
+        setImportStatus(t('storage.restoreFailed'));
+      }
+    } catch {
+      setImportStatus(t('storage.restoreFailed'));
+    }
   };
 
   const handleCancel = async (id: string) => {
@@ -300,6 +356,124 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
         <Text style={[tw`text-sm leading-relaxed`, { color: colors.textSecondary }]}>
           {t('alarm.supportsRecurring')}
         </Text>
+      </View>
+
+      {/* Persistent Storage on Phone Card */}
+      <View
+        style={[
+          tw`rounded-3xl p-4 sm:p-5 shadow-sm border flex flex-col gap-3`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <View style={tw`flex-row items-center justify-between flex-wrap gap-2`}>
+          <View style={tw`flex-row items-center gap-2.5 flex-1 min-w-0`}>
+            <View
+              style={[
+                tw`w-9 h-9 rounded-xl border items-center justify-center shrink-0`,
+                {
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                  borderColor: 'rgba(16, 185, 129, 0.3)'
+                }
+              ]}
+            >
+              <Database size={18} color="#10b981" />
+            </View>
+            <View style={tw`flex-1 min-w-0`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Text style={[tw`text-sm sm:text-base font-bold`, { color: colors.text }]} numberOfLines={1}>
+                  {t('storage.title')}
+                </Text>
+                <View style={tw`w-2 h-2 rounded-full bg-emerald-500`} />
+              </View>
+              <Text style={[tw`text-[11px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                {t('storage.persistedBadge')}
+              </Text>
+            </View>
+          </View>
+
+          <View style={tw`px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/25 shrink-0`}>
+            <Text style={tw`text-[10px] sm:text-xs font-bold text-emerald-500`}>
+              {t('storage.crudStatus')}
+            </Text>
+          </View>
+        </View>
+
+        {/* Metrics Pills: Schedules, Alarms, Logs */}
+        <View style={tw`flex-row items-center gap-2 flex-wrap`}>
+          <View
+            style={[
+              tw`px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <Repeat size={12} color={colors.primary} />
+            <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
+              {t('storage.schedulesCount', { count: recurringSchedules.length })}
+            </Text>
+          </View>
+          <View
+            style={[
+              tw`px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <Bell size={12} color="#f59e0b" />
+            <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
+              {t('storage.alarmsCount', { count: alarms.length })}
+            </Text>
+          </View>
+          <View
+            style={[
+              tw`px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <Clock size={12} color="#10b981" />
+            <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
+              {t('storage.logsCount', { count: logs.length })}
+            </Text>
+          </View>
+        </View>
+
+        {/* Storage Actions */}
+        <View style={tw`flex-row items-center gap-2 mt-1 flex-wrap`}>
+          <TouchableOpacity
+            onPress={handleOpenBackup}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('accessibility.backupData')}
+            style={[
+              tw`flex-1 py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 min-h-10`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+            ]}
+          >
+            <Database size={14} color={colors.primary} />
+            <Text style={[tw`text-xs font-bold`, { color: colors.primary }]}>
+              {t('storage.backupData')}
+            </Text>
+          </TouchableOpacity>
+
+          {logs.length > 0 && (
+            <TouchableOpacity
+              onPress={handleClearLogs}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.clearLogs')}
+              style={[
+                tw`py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 min-h-10`,
+                { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.25)' }
+              ]}
+            >
+              <Trash2 size={13} color="#ef4444" />
+              <Text style={tw`text-xs font-bold text-red-500`}>
+                {t('storage.clearLogs')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Recurring Alarm Scheduler Hub Card */}
@@ -438,15 +612,27 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
                   </View>
                 </View>
 
-                <TouchableOpacity
-                  onPress={() => handleDeleteRecurring(schedule.id)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('accessibility.deleteSchedule')}
-                  style={tw`p-2.5 rounded-full bg-red-500/10 shrink-0 min-w-10 min-h-10 items-center justify-center`}
-                >
-                  <Trash2 size={16} color="#ef4444" />
-                </TouchableOpacity>
+                <View style={tw`flex-row items-center gap-1.5 shrink-0`}>
+                  <TouchableOpacity
+                    onPress={() => handleOpenEditRecurring(schedule)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('accessibility.editSchedule')}
+                    style={tw`p-2 rounded-full bg-blue-500/10 min-w-10 min-h-10 items-center justify-center`}
+                  >
+                    <Pencil size={15} color="#3b82f6" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => handleDeleteRecurring(schedule.id)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('accessibility.deleteSchedule')}
+                    style={tw`p-2 rounded-full bg-red-500/10 min-w-10 min-h-10 items-center justify-center`}
+                  >
+                    <Trash2 size={16} color="#ef4444" />
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })}
@@ -1028,13 +1214,126 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
         visible={showRecurringModal}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setShowRecurringModal(false)}
+        onRequestClose={() => {
+          setShowRecurringModal(false);
+          setEditingSchedule(null);
+        }}
       >
         <AlarmFormScreen
           existingAlarms={alarms}
-          onClose={() => setShowRecurringModal(false)}
+          initialSchedule={editingSchedule}
+          onClose={() => {
+            setShowRecurringModal(false);
+            setEditingSchedule(null);
+          }}
           onSave={handleSaveRecurring}
+          onUpdate={handleUpdateRecurring}
         />
+      </Modal>
+
+      {/* Phone Storage Backup & Restore Modal */}
+      <Modal
+        visible={showBackupModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowBackupModal(false)}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/75 p-3 sm:p-4`}>
+          <View
+            style={[
+              tw`w-full max-w-lg max-h-[85%] rounded-3xl border flex flex-col overflow-hidden shadow-2xl`,
+              { backgroundColor: colors.card, borderColor: colors.border }
+            ]}
+          >
+            {/* Header */}
+            <View
+              style={[
+                tw`flex-row items-center justify-between px-4 py-3.5 border-b`,
+                { backgroundColor: colors.bgHeader, borderBottomColor: colors.border }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-2.5`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center`}>
+                  <Database size={16} color="#10b981" />
+                </View>
+                <Text style={[tw`text-base font-bold`, { color: colors.text }]}>
+                  {t('storage.modalTitle')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowBackupModal(false)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={t('storage.close')}
+                style={tw`p-2 rounded-full min-w-10 min-h-10 items-center justify-center`}
+              >
+                <X size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Content */}
+            <ScrollView style={tw`p-4`} contentContainerStyle={tw`gap-3`}>
+              <Text style={[tw`text-xs leading-relaxed`, { color: colors.textSecondary }]}>
+                {t('storage.restorePlaceholder')}
+              </Text>
+
+              {importStatus && (
+                <View style={tw`p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30`}>
+                  <Text style={tw`text-xs font-semibold text-emerald-500 text-center`}>
+                    {importStatus}
+                  </Text>
+                </View>
+              )}
+
+              <TextInput
+                value={backupText}
+                onChangeText={setBackupText}
+                multiline={true}
+                numberOfLines={10}
+                style={[
+                  tw`p-3 rounded-xl border text-xs font-mono max-h-60`,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.inputBorder,
+                    color: colors.text
+                  }
+                ]}
+                placeholder={t('storage.restorePlaceholder')}
+                placeholderTextColor={colors.textSubtle}
+              />
+
+              <View style={tw`flex-row gap-2 mt-2`}>
+                <TouchableOpacity
+                  onPress={handleImportBackup}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('accessibility.restoreData')}
+                  style={[
+                    tw`flex-1 py-3 px-4 rounded-xl items-center justify-center min-h-11`,
+                    { backgroundColor: colors.primary }
+                  ]}
+                >
+                  <Text style={tw`text-xs font-bold text-white`}>
+                    {t('storage.restoreData')}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleOpenBackup}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('accessibility.backupData')}
+                  style={[
+                    tw`py-3 px-4 rounded-xl border items-center justify-center min-h-11`,
+                    { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+                  ]}
+                >
+                  <RefreshCw size={14} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       {/* Alarm Conflict Detection Modal (5-Minute Window) */}

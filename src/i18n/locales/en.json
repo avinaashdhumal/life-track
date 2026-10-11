@@ -140,6 +140,8 @@
     "conflictsDetected": "{{count}} potential conflicts detected!",
     "conflictWith": "Conflict with \"{{title}}\" at {{time}}",
     "save": "Save Recurring Alarm",
+    "editSchedule": "Edit Recurring Alarm",
+    "updateSchedule": "Update Recurring Alarm",
     "snoozeInterval": "Snooze Interval"
   },
   "conflict": {
@@ -194,6 +196,10 @@
     "scheduleAlarm": "Schedule an alarm",
     "cancelAlarm": "Cancel this alarm",
     "deleteSchedule": "Delete this recurring schedule",
+    "editSchedule": "Edit this recurring schedule",
+    "clearLogs": "Clear all event logs",
+    "backupData": "Backup persistent storage data",
+    "restoreData": "Restore persistent storage data",
     "toggleSchedule": "Toggle this recurring schedule on or off",
     "testAlarm": "Test this alarm immediately",
     "takenAction": "Mark as taken or done",
@@ -235,5 +241,23 @@
     "doneButton": "Done",
     "quickTestAlarmTitle": "Quick Reliability Test Alarm",
     "quickTestAlarmMessage": "Alarm fired after {{seconds}} seconds (Verifying background audio & wakeup)"
+  },
+  "storage": {
+    "title": "On-Device Storage Engine",
+    "persistedBadge": "Persistent On Phone (AsyncStorage / SQLite)",
+    "crudStatus": "Full Local CRUD Active",
+    "schedulesCount": "{{count}} Recurring Schedules",
+    "alarmsCount": "{{count}} Active Alarms",
+    "logsCount": "{{count}} Audit Logs",
+    "backupData": "Backup Data (JSON)",
+    "restoreData": "Restore Data",
+    "clearLogs": "Clear Logs",
+    "clearAllData": "Reset All Storage",
+    "backupSuccess": "Storage backup generated successfully",
+    "restoreSuccess": "Persistent data restored successfully",
+    "restoreFailed": "Invalid backup data format",
+    "restorePlaceholder": "Paste exported backup JSON here to restore schedules, alarms and settings",
+    "modalTitle": "Storage Backup & Restore",
+    "close": "Close"
   }
 }

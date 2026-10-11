@@ -23,6 +23,8 @@ import {
   X
 } from 'lucide-react-native';
 
+import { storageService } from '../../services/StorageService';
+
 interface NotificationToneSettingsModalProps {
   visible: boolean;
   onClose: () => void;
@@ -39,12 +41,19 @@ export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsMod
 
   const [channels, setChannels] = useState<ChannelToneInfo[]>([]);
   const [playingTone, setPlayingTone] = useState<AlarmToneType | null>(null);
-  const [selectedInAppTone, setSelectedInAppTone] = useState<AlarmToneType>('default_siren');
+  const [selectedInAppTone, setSelectedInAppTone] = useState<AlarmToneType>(() => storageService.getSyncSetting('alarmTone') || 'default_siren');
   const [backgroundProtected, setBackgroundProtected] = useState(true);
 
   useEffect(() => {
     if (visible) {
       loadChannels();
+      storageService.getSettings().then((s) => {
+        if (s.alarmTone) {
+          setSelectedInAppTone(s.alarmTone);
+        }
+      }).catch(() => {
+        // ignore
+      });
     } else {
       stopAlarmSound();
       setPlayingTone(null);
@@ -61,6 +70,11 @@ export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsMod
     } catch {
       // Fallback
     }
+  };
+
+  const handleSelectInAppTone = async (tone: AlarmToneType) => {
+    setSelectedInAppTone(tone);
+    await storageService.updateSettings({ alarmTone: tone });
   };
 
   const handleTogglePlayTone = (tone: AlarmToneType) => {

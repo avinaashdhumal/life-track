@@ -3,119 +3,32 @@ import { AlarmItem, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } fro
 import { IReminderService, ScheduleAlarmParams } from './ReminderService';
 import { planOccurrencesForRecurringSchedule } from '../domain/reminderPlanner';
 import * as NativeAlarmEngine from '../../modules/alarm-engine';
+import { storageService, StorageInfo } from './StorageService';
 
 export class AlarmEngineService implements IReminderService {
-  private localLogs: ReminderLogEntry[] = [];
-  private fallbackAlarms: Map<string, AlarmItem> = new Map();
-  private recurringSchedules: Map<string, RecurringSchedule> = new Map();
+  private isInitialized = false;
 
   constructor() {
-    this.loadInitialRecurringSchedules();
+    this.initialize();
   }
 
-  private loadInitialRecurringSchedules() {
+  private async initialize() {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const saved = window.localStorage.getItem('lifetrack_recurring_schedules');
-        if (saved) {
-          const list: RecurringSchedule[] = JSON.parse(saved);
-          list.forEach((s) => this.recurringSchedules.set(s.id, s));
-          this.replanRecurringSchedules();
-          return;
-        }
-      }
-    } catch {
-      // Fallback
-    }
-
-    // Default starter recurring schedules showcasing versatility
-    const defaultSchedules: RecurringSchedule[] = [
-      {
-        id: 'rec_daily_metformin',
-        profileId: 'default',
-        category: 'medicine',
-        title: 'Morning Medicine (Metformin 500mg)',
-        message: 'Take 1 tablet with breakfast',
-        channelId: 'medicines',
-        style: 'full_alarm',
-        recurrenceType: 'daily',
-        timeOfDay: '08:00',
-        snoozeIntervalMinutes: 10,
-        isEnabled: true,
-        createdAt: Date.now()
-      },
-      {
-        id: 'rec_every_2_days_dressing',
-        profileId: 'default',
-        category: 'reminder',
-        title: 'Wound Dressing & Inspection',
-        message: 'Every 2 days antiseptic check & clean dressing',
-        channelId: 'routine',
-        style: 'full_alarm',
-        recurrenceType: 'every_n_days',
-        intervalDays: 2,
-        timeOfDay: '11:00',
-        snoozeIntervalMinutes: 15,
-        isEnabled: true,
-        createdAt: Date.now()
-      },
-      {
-        id: 'rec_weekly_workout',
-        profileId: 'default',
-        category: 'exercise',
-        title: 'Yoga & Pranayama Session',
-        message: 'Mon, Wed, Fri morning routine',
-        channelId: 'exercise',
-        style: 'notification',
-        recurrenceType: 'weekly',
-        weekdays: [1, 3, 5], // Mon, Wed, Fri
-        timeOfDay: '06:30',
-        snoozeIntervalMinutes: 10,
-        isEnabled: true,
-        createdAt: Date.now()
-      },
-      {
-        id: 'rec_monthly_doctor',
-        profileId: 'default',
-        category: 'appointment',
-        title: 'Monthly Vitals & BP Audit',
-        message: 'Review monthly BP and blood sugar logs with doctor',
-        channelId: 'appointments',
-        style: 'full_alarm',
-        recurrenceType: 'monthly',
-        dayOfMonth: 1, // 1st of every month
-        timeOfDay: '10:00',
-        snoozeIntervalMinutes: 30,
-        isEnabled: true,
-        createdAt: Date.now()
-      }
-    ];
-
-    defaultSchedules.forEach((s) => this.recurringSchedules.set(s.id, s));
-    this.saveRecurringToStorage();
-    this.replanRecurringSchedules();
-  }
-
-  private saveRecurringToStorage() {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const list = Array.from(this.recurringSchedules.values());
-        window.localStorage.setItem('lifetrack_recurring_schedules', JSON.stringify(list));
-      }
-    } catch {
-      // Storage error ignored
+      // Ensure recurring schedules exist and plan occurrences
+      await this.replanRecurringSchedules();
+    } catch (err) {
+      console.warn('[AlarmEngineService] Error during persistent initialization:', err);
     }
   }
 
-  async createRecurringSchedule(schedule: Omit<RecurringSchedule, 'id' | 'createdAt'>): Promise<RecurringSchedule> {
-    const fullSchedule: RecurringSchedule = {
-      ...schedule,
-      id: `rec_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      createdAt: Date.now()
-    };
-    this.recurringSchedules.set(fullSchedule.id, fullSchedule);
-    this.saveRecurringToStorage();
-    await this.replanRecurringSchedules();
+  // --- RECURRING SCHEDULES (CRUD) ---
+
+  async createRecurringSchedule(
+    schedule: Omit<RecurringSchedule, 'id' | 'createdAt'>
+  ): Promise<RecurringSchedule> {
+    const fullSchedule = await storageService.createRecurringSchedule(schedule);
 
     await this.logAction({
       profileId: 'default',
@@ -126,33 +39,83 @@ export class AlarmEngineService implements IReminderService {
       note: `Created recurring schedule: ${fullSchedule.title} (${fullSchedule.recurrenceType})`
     });
 
+    await this.replanRecurringSchedules();
     return fullSchedule;
   }
 
   async getRecurringSchedules(): Promise<RecurringSchedule[]> {
-    return Array.from(this.recurringSchedules.values()).sort((a, b) => b.createdAt - a.createdAt);
+    return storageService.getRecurringSchedules();
+  }
+
+  async getRecurringScheduleById(id: string): Promise<RecurringSchedule | null> {
+    return storageService.getRecurringScheduleById(id);
+  }
+
+  async updateRecurringSchedule(
+    id: string,
+    updates: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>
+  ): Promise<RecurringSchedule | null> {
+    const updated = await storageService.updateRecurringSchedule(id, updates);
+    if (updated) {
+      // Clean up previous occurrences for this schedule before re-planning
+      const activeAlarms = await this.getScheduledAlarms();
+      for (const a of activeAlarms) {
+        if (a.scheduleId === id) {
+          await this.cancelAlarm(a.id);
+        }
+      }
+
+      await this.logAction({
+        profileId: 'default',
+        alarmId: id,
+        action: 'SCHEDULED',
+        timestampMs: Date.now(),
+        scheduledTimeMs: Date.now(),
+        note: `Updated schedule: ${updated.title}`
+      });
+
+      if (updated.isEnabled) {
+        await this.replanRecurringSchedules();
+      }
+    }
+    return updated;
   }
 
   async toggleRecurringSchedule(id: string, isEnabled: boolean): Promise<boolean> {
-    const schedule = this.recurringSchedules.get(id);
-    if (!schedule) return false;
-    schedule.isEnabled = isEnabled;
-    this.saveRecurringToStorage();
-    await this.replanRecurringSchedules();
-    return true;
-  }
-
-  async deleteRecurringSchedule(id: string): Promise<boolean> {
-    const deleted = this.recurringSchedules.delete(id);
-    if (deleted) {
-      // Also remove all upcoming occurrences belonging to this schedule
+    const success = await storageService.toggleRecurringSchedule(id, isEnabled);
+    if (!isEnabled) {
+      // Cancel upcoming occurrences for disabled schedule
       const alarms = await this.getScheduledAlarms();
       for (const a of alarms) {
         if (a.scheduleId === id) {
           await this.cancelAlarm(a.id);
         }
       }
-      this.saveRecurringToStorage();
+    } else {
+      await this.replanRecurringSchedules();
+    }
+    return success;
+  }
+
+  async deleteRecurringSchedule(id: string): Promise<boolean> {
+    // Remove all upcoming occurrences belonging to this schedule
+    const alarms = await this.getScheduledAlarms();
+    for (const a of alarms) {
+      if (a.scheduleId === id) {
+        await this.cancelAlarm(a.id);
+      }
+    }
+
+    const deleted = await storageService.deleteRecurringSchedule(id);
+    if (deleted) {
+      await this.logAction({
+        profileId: 'default',
+        alarmId: id,
+        action: 'SKIPPED',
+        timestampMs: Date.now(),
+        scheduledTimeMs: Date.now(),
+        note: `Deleted recurring schedule ${id}`
+      });
       await this.replanRecurringSchedules();
     }
     return deleted;
@@ -160,12 +123,16 @@ export class AlarmEngineService implements IReminderService {
 
   async replanRecurringSchedules(): Promise<void> {
     const nowMs = Date.now();
-    for (const schedule of this.recurringSchedules.values()) {
+    const schedules = await storageService.getRecurringSchedules();
+    const activeAlarms = await storageService.getScheduledAlarms();
+    const activeAlarmIds = new Set(activeAlarms.map((a) => a.id));
+
+    for (const schedule of schedules) {
       if (!schedule.isEnabled) continue;
       // Plan occurrences for next 14 days
       const occurrences = planOccurrencesForRecurringSchedule(schedule, nowMs, 5, 14);
       for (const occ of occurrences) {
-        if (!this.fallbackAlarms.has(occ.id)) {
+        if (!activeAlarmIds.has(occ.id)) {
           await this.scheduleAlarm({
             id: occ.id,
             scheduleId: schedule.id,
@@ -178,10 +145,13 @@ export class AlarmEngineService implements IReminderService {
             snoozeIntervalMinutes: occ.snoozeIntervalMinutes,
             payload: occ.payload
           });
+          activeAlarmIds.add(occ.id);
         }
       }
     }
   }
+
+  // --- SCHEDULED ALARMS (CRUD) ---
 
   async scheduleAlarm(params: ScheduleAlarmParams): Promise<boolean> {
     const nativeSuccess = await NativeAlarmEngine.scheduleAlarm({
@@ -195,7 +165,6 @@ export class AlarmEngineService implements IReminderService {
       payload: params.payload
     });
 
-    // In web preview or if native module is not linked in JS environment, keep in memory
     const alarmItem: AlarmItem = {
       id: params.id,
       scheduleId: params.scheduleId,
@@ -209,7 +178,9 @@ export class AlarmEngineService implements IReminderService {
       snoozeIntervalMinutes: params.snoozeIntervalMinutes ?? 10,
       payload: params.payload
     };
-    this.fallbackAlarms.set(params.id, alarmItem);
+
+    // Persist to phone storage
+    await storageService.saveScheduledAlarm(alarmItem);
 
     await this.logAction({
       profileId: 'default',
@@ -225,7 +196,8 @@ export class AlarmEngineService implements IReminderService {
 
   async cancelAlarm(id: string): Promise<boolean> {
     await NativeAlarmEngine.cancelAlarm(id);
-    this.fallbackAlarms.delete(id);
+    await storageService.deleteScheduledAlarm(id);
+
     await this.logAction({
       profileId: 'default',
       alarmId: id,
@@ -239,14 +211,14 @@ export class AlarmEngineService implements IReminderService {
 
   async cancelAll(): Promise<boolean> {
     await NativeAlarmEngine.cancelAll();
-    this.fallbackAlarms.clear();
+    await storageService.clearAllScheduledAlarms();
     return true;
   }
 
   async getScheduledAlarms(): Promise<AlarmItem[]> {
     const nativeAlarms = await NativeAlarmEngine.getScheduledAlarms();
     if (nativeAlarms && nativeAlarms.length > 0) {
-      return nativeAlarms.map((n) => ({
+      const mapped: AlarmItem[] = nativeAlarms.map((n) => ({
         id: n.id,
         profileId: 'default',
         title: n.title,
@@ -257,9 +229,33 @@ export class AlarmEngineService implements IReminderService {
         snoozeIntervalMinutes: n.snoozeIntervalMinutes,
         payload: n.payloadJson ? JSON.parse(n.payloadJson) : undefined
       }));
+      // Sync native alarms to persistent storage
+      await storageService.saveScheduledAlarms(mapped);
+      return mapped;
     }
-    return Array.from(this.fallbackAlarms.values()).sort((a, b) => a.triggerTimeMs - b.triggerTimeMs);
+
+    return storageService.getScheduledAlarms();
   }
+
+  // --- ACTION & AUDIT LOGS (CRUD) ---
+
+  async logAction(entry: Omit<ReminderLogEntry, 'id'>): Promise<void> {
+    await storageService.addLog(entry);
+  }
+
+  async getLogs(): Promise<ReminderLogEntry[]> {
+    return storageService.getLogs();
+  }
+
+  async clearLogs(): Promise<void> {
+    await storageService.clearLogs();
+  }
+
+  async deleteLog(id: string): Promise<boolean> {
+    return storageService.deleteLogById(id);
+  }
+
+  // --- HEALTH CHECK & DIAGNOSTICS ---
 
   async getHealthCheck(): Promise<HealthCheckStatus> {
     const exactAllowed = await this.canScheduleExactAlarms();
@@ -269,7 +265,6 @@ export class AlarmEngineService implements IReminderService {
     const lastFired = await NativeAlarmEngine.getLastFiredAlarm();
 
     const nextUpcoming = alarms.filter((a) => a.triggerTimeMs >= Date.now())[0];
-
     const channels = await this.getNotificationChannels();
 
     let notifsAllowed = true;
@@ -298,6 +293,28 @@ export class AlarmEngineService implements IReminderService {
           }
         : null
     };
+  }
+
+  async getStorageInfo(): Promise<StorageInfo> {
+    return storageService.getStorageInfo();
+  }
+
+  async exportAllData(): Promise<string> {
+    return storageService.exportAllData();
+  }
+
+  async importAllData(jsonString: string): Promise<boolean> {
+    const ok = await storageService.importAllData(jsonString);
+    if (ok) {
+      await this.replanRecurringSchedules();
+    }
+    return ok;
+  }
+
+  async clearAllData(): Promise<void> {
+    await this.cancelAll();
+    await storageService.clearAllData();
+    await this.replanRecurringSchedules();
   }
 
   async canScheduleExactAlarms(): Promise<boolean> {
@@ -357,22 +374,6 @@ export class AlarmEngineService implements IReminderService {
     }
     return true;
   }
-
-  async logAction(entry: Omit<ReminderLogEntry, 'id'>): Promise<void> {
-    const fullEntry: ReminderLogEntry = {
-      ...entry,
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-    };
-    this.localLogs.unshift(fullEntry);
-    if (this.localLogs.length > 200) {
-      this.localLogs.pop();
-    }
-  }
-
-  async getLogs(): Promise<ReminderLogEntry[]> {
-    return [...this.localLogs];
-  }
 }
 
 export const reminderService = new AlarmEngineService();
-

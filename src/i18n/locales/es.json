@@ -140,6 +140,8 @@
     "conflictsDetected": "¡{{count}} conflictos potenciales detectados!",
     "conflictWith": "Conflicto con \"{{title}}\" a las {{time}}",
     "save": "Guardar alarma recurrente",
+    "editSchedule": "Editar alarma recurrente",
+    "updateSchedule": "Actualizar alarma recurrente",
     "snoozeInterval": "Intervalo de aplazamiento"
   },
   "conflict": {
@@ -194,6 +196,10 @@
     "scheduleAlarm": "Programar una alarma",
     "cancelAlarm": "Cancelar esta alarma",
     "deleteSchedule": "Eliminar esta programación recurrente",
+    "editSchedule": "Editar esta programación recurrente",
+    "clearLogs": "Borrar todos los registros de eventos",
+    "backupData": "Hacer copia de seguridad del almacenamiento persistente",
+    "restoreData": "Restaurar datos del almacenamiento persistente",
     "toggleSchedule": "Activar o desactivar esta programación recurrente",
     "testAlarm": "Probar esta alarma inmediatamente",
     "takenAction": "Marcar como tomado o hecho",
@@ -235,5 +241,23 @@
     "doneButton": "Listo",
     "quickTestAlarmTitle": "Alarma de prueba rápida",
     "quickTestAlarmMessage": "Alarma activada tras {{seconds}} segundos (Verificando audio en segundo plano y activación)"
+  },
+  "storage": {
+    "title": "Motor de almacenamiento en el dispositivo",
+    "persistedBadge": "Persistente en el teléfono (AsyncStorage / SQLite)",
+    "crudStatus": "CRUD local completo activo",
+    "schedulesCount": "{{count}} programaciones recurrentes",
+    "alarmsCount": "{{count}} alarmas activas",
+    "logsCount": "{{count}} registros de auditoría",
+    "backupData": "Copia de seguridad (JSON)",
+    "restoreData": "Restaurar datos",
+    "clearLogs": "Borrar registros",
+    "clearAllData": "Restablecer almacenamiento",
+    "backupSuccess": "Copia de seguridad generada con éxito",
+    "restoreSuccess": "Datos persistentes restaurados con éxito",
+    "restoreFailed": "Formato de copia de seguridad no válido",
+    "restorePlaceholder": "Pegue el JSON exportado aquí para restaurar horarios, alarmas y configuraciones",
+    "modalTitle": "Copia de seguridad y restauración de almacenamiento",
+    "close": "Cerrar"
   }
 }

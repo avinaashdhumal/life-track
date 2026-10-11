@@ -30,36 +30,44 @@ import {
 
 interface AlarmFormScreenProps {
   existingAlarms?: AlarmItem[];
+  initialSchedule?: RecurringSchedule | null;
   onClose: () => void;
   onSave: (schedule: Omit<RecurringSchedule, 'id' | 'createdAt'>) => void;
+  onUpdate?: (id: string, schedule: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>) => void;
 }
 
 export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   existingAlarms = [],
+  initialSchedule = null,
   onClose,
-  onSave
+  onSave,
+  onUpdate
 }) => {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
 
-  const [category, setCategory] = useState<AlarmCategory>('medicine');
-  const [title, setTitle] = useState('Daily Insulin Dose');
-  const [message, setMessage] = useState('10 units before dinner');
-  const [channelId, setChannelId] = useState<NotificationChannelId>('medicines');
-  const [style, setStyle] = useState<AlarmStyle>('full_alarm');
-  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('daily');
-  const [timeOfDay, setTimeOfDay] = useState('19:30');
-  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]); // Mon-Fri
-  const [intervalDays, setIntervalDays] = useState<number>(2); // e.g. 2 days after
-  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [dayOfMonth, setDayOfMonth] = useState<number>(1);
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
-  const [customDates, setCustomDates] = useState<string[]>([
-    new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
-  ]);
+  const isEditing = Boolean(initialSchedule);
+
+  const [category, setCategory] = useState<AlarmCategory>(initialSchedule?.category || 'medicine');
+  const [title, setTitle] = useState(initialSchedule?.title || 'Daily Insulin Dose');
+  const [message, setMessage] = useState(initialSchedule?.message || '10 units before dinner');
+  const [channelId, setChannelId] = useState<NotificationChannelId>(initialSchedule?.channelId || 'medicines');
+  const [style, setStyle] = useState<AlarmStyle>(initialSchedule?.style || 'full_alarm');
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>(initialSchedule?.recurrenceType || 'daily');
+  const [timeOfDay, setTimeOfDay] = useState(initialSchedule?.timeOfDay || '19:30');
+  const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays || [1, 2, 3, 4, 5]); // Mon-Fri
+  const [intervalDays, setIntervalDays] = useState<number>(initialSchedule?.intervalDays || 2); // e.g. 2 days after
+  const [startDate, setStartDate] = useState<string>(() => initialSchedule?.startDate || new Date().toISOString().split('T')[0]);
+  const [dayOfMonth, setDayOfMonth] = useState<number>(initialSchedule?.dayOfMonth || 1);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(initialSchedule?.monthsOfYear || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const [customDates, setCustomDates] = useState<string[]>(
+    initialSchedule?.specificDates || [
+      new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0]
+    ]
+  );
   const [newCustomDate, setNewCustomDate] = useState<string>('');
-  const [snoozeIntervalMinutes, setSnoozeIntervalMinutes] = useState<number>(10);
+  const [snoozeIntervalMinutes, setSnoozeIntervalMinutes] = useState<number>(initialSchedule?.snoozeIntervalMinutes || 10);
 
   const getCategoryLabel = (catId: AlarmCategory): string => {
     return t(`categories.${catId}`) || ALARM_CATEGORIES[catId]?.label || catId;
@@ -189,7 +197,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   }, [previewOccurrences, existingAlarms]);
 
   const handleSubmit = () => {
-    onSave({
+    const payload = {
       profileId: 'default',
       category,
       title: title.trim() || 'Scheduled Reminder',
@@ -205,8 +213,14 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
       monthsOfYear: recurrenceType === 'monthly' ? selectedMonths : undefined,
       specificDates: recurrenceType === 'custom_dates' ? customDates : undefined,
       snoozeIntervalMinutes,
-      isEnabled: true
-    });
+      isEnabled: initialSchedule ? initialSchedule.isEnabled : true
+    };
+
+    if (isEditing && initialSchedule && onUpdate) {
+      onUpdate(initialSchedule.id, payload);
+    } else {
+      onSave(payload);
+    }
   };
 
   return (
@@ -239,7 +253,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             </View>
             <View>
               <Text style={[tw`text-lg font-bold tracking-tight`, { color: colors.text }]}>
-                {t('alarmForm.newSchedule')}
+                {isEditing ? t('alarmForm.editSchedule') : t('alarmForm.newSchedule')}
               </Text>
               <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
                 {t('alarm.recurringDescription')}
@@ -1016,7 +1030,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             onPress={handleSubmit}
             accessible={true}
             accessibilityRole="button"
-            accessibilityLabel={t('alarmForm.save')}
+            accessibilityLabel={isEditing ? t('alarmForm.updateSchedule') : t('alarmForm.save')}
             style={[
               tw`flex-1 py-3.5 px-5 rounded-2xl flex-row items-center justify-center gap-2 shadow-md min-h-12`,
               { backgroundColor: colors.primary }
@@ -1024,7 +1038,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
           >
             <CheckCircle2 size={18} color="#ffffff" />
             <Text style={tw`text-base font-bold text-white`}>
-              {t('alarmForm.save')}
+              {isEditing ? t('alarmForm.updateSchedule') : t('alarmForm.save')}
             </Text>
           </TouchableOpacity>
         </View>

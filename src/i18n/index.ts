@@ -21,10 +21,18 @@ export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' }
 ];
 
+import { storageService } from '../services/StorageService';
+
 const LANGUAGE_STORAGE_KEY = 'lifetrack_user_language';
 
 const getInitialLanguage = (): string => {
-  // Check localStorage if available in web / hybrid runtime
+  // 1. Check storageService synchronous memory cache
+  const cachedLang = storageService.getSyncSetting('language');
+  if (cachedLang && ['en', 'hi', 'mr', 'es'].includes(cachedLang)) {
+    return cachedLang;
+  }
+
+  // 2. Check localStorage if available in web / hybrid runtime
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -71,10 +79,25 @@ if (!i18n.isInitialized) {
       useSuspense: false
     }
   });
+
+  // Async hydration from persistent phone storage
+  storageService.getSettings().then((settings) => {
+    if (settings.language && ['en', 'hi', 'mr', 'es'].includes(settings.language)) {
+      if (i18n.language !== settings.language) {
+        i18n.changeLanguage(settings.language);
+      }
+    }
+  }).catch(() => {
+    // ignore
+  });
 }
 
 export const changeLanguage = async (langCode: 'en' | 'hi' | 'mr' | 'es') => {
   await i18n.changeLanguage(langCode);
+  // Persist to phone persistent storage
+  await storageService.updateSettings({ language: langCode }).catch((err) => {
+    console.warn('[i18n] Failed to persist language to storageService:', err);
+  });
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       window.localStorage.setItem(LANGUAGE_STORAGE_KEY, langCode);
