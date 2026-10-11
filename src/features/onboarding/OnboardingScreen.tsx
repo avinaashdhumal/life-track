@@ -415,7 +415,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
               <TextInput
                 value={emergencyPhone}
                 onChangeText={setEmergencyPhone}
-                placeholder="+91 98765 43210"
+                placeholder="Contact phone number"
                 keyboardType="phone-pad"
                 placeholderTextColor={colors.textSecondary}
                 style={[
