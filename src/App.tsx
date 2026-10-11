@@ -5,7 +5,7 @@ import appIcon from '../assets/icon.png';
 import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
 import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
-import { NativeCodeInspectorModal } from './features/poc/NativeCodeInspectorModal';
+
 import { AlarmItem } from './domain/alarm';
 import { reminderService } from './services/AlarmEngineService';
 import {
@@ -18,7 +18,6 @@ import {
 export function App() {
   const [activeTab, setActiveTab] = useState<'poc_test' | 'health_check'>('poc_test');
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
-  const [showCodeInspector, setShowCodeInspector] = useState(false);
 
   const handleTriggerAlarmDirectly = (alarm: AlarmItem) => {
     setRingingAlarm(alarm);
@@ -162,12 +161,7 @@ export function App() {
         onAction={handleModalAction}
       />
 
-      {/* Native Code and Device Testing Guide Inspector */}
-      {showCodeInspector && (
-        <NativeCodeInspectorModal
-          onClose={() => setShowCodeInspector(false)}
-        />
-      )}
+
     </SafeAreaView>
   );
 }
