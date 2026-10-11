@@ -1,7 +1,6 @@
 {
-  "name": "alarm-engine",
   "platforms": ["android"],
   "android": {
-    "package": "expo.modules.alarmengine"
+    "modules": ["expo.modules.alarmengine.AlarmEngineModule"]
   }
 }

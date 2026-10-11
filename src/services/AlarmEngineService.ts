@@ -1,3 +1,4 @@
+import { Platform, PermissionsAndroid } from 'react-native';
 import { AlarmItem, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } from '../domain/alarm';
 import { IReminderService, ScheduleAlarmParams } from './ReminderService';
 import { planOccurrencesForRecurringSchedule } from '../domain/reminderPlanner';
@@ -271,9 +272,18 @@ export class AlarmEngineService implements IReminderService {
 
     const channels = await this.getNotificationChannels();
 
+    let notifsAllowed = true;
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      try {
+        notifsAllowed = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      } catch {
+        notifsAllowed = true;
+      }
+    }
+
     return {
       exactAlarmsAllowed: exactAllowed,
-      notificationsAllowed: true,
+      notificationsAllowed: notifsAllowed,
       batteryOptimizationsIgnored: batteryIgnored,
       manufacturer: manufacturer || 'Android Device',
       scheduledCount: alarms.length,
@@ -327,6 +337,16 @@ export class AlarmEngineService implements IReminderService {
   }
 
   async requestBrowserNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === 'android' && Platform.Version >= 33) {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch {
+        return false;
+      }
+    }
     if (typeof window !== 'undefined' && 'Notification' in window) {
       try {
         const permission = await Notification.requestPermission();

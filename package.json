@@ -13,6 +13,7 @@
     "test": "node test-i18n-theme.cjs"
   },
   "dependencies": {
+    "alarm-engine": "file:./modules/alarm-engine",
     "@expo/metro-runtime": "^57.0.16",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",

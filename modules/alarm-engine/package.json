@@ -1,0 +1,13 @@
+{
+  "name": "alarm-engine",
+  "version": "1.0.0",
+  "description": "LifeTrack Native Alarm Engine for Android Foreground Service & AlarmManager",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {},
+  "keywords": [
+    "expo-module"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}

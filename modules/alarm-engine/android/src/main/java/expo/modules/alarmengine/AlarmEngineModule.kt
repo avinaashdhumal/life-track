@@ -5,7 +5,20 @@ import android.os.Build
 import android.os.PowerManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import expo.modules.kotlin.records.Field
+import expo.modules.kotlin.records.Record
 import org.json.JSONObject
+
+class ScheduleAlarmOptionsRecord : Record {
+    @Field var id: String = ""
+    @Field var triggerTimeMs: Long = 0L
+    @Field var title: String = "Reminder"
+    @Field var message: String = ""
+    @Field var channelId: String = AlarmNotificationHelper.CHANNEL_MEDICINES
+    @Field var isFullAlarm: Boolean = true
+    @Field var snoozeIntervalMinutes: Int = 10
+    @Field var payload: Map<String, Any?>? = null
+}
 
 class AlarmEngineModule : Module() {
 
@@ -20,24 +33,20 @@ class AlarmEngineModule : Module() {
             AlarmNotificationHelper.createChannels(context)
         }
 
-        AsyncFunction("scheduleAlarm") { options: Map<String, Any> ->
-            val id = options["id"] as? String ?: return@AsyncFunction false
-            val triggerTimeMs = (options["triggerTimeMs"] as? Number)?.toLong() ?: return@AsyncFunction false
-            val title = options["title"] as? String ?: "Reminder"
-            val message = options["message"] as? String ?: ""
-            val channelId = options["channelId"] as? String ?: AlarmNotificationHelper.CHANNEL_MEDICINES
-            val isFullAlarm = options["isFullAlarm"] as? Boolean ?: true
-            val snoozeIntervalMinutes = (options["snoozeIntervalMinutes"] as? Number)?.toInt() ?: 10
-            val payloadJson = (options["payload"] as? Map<*, *>)?.let { JSONObject(it).toString() } ?: "{}"
+        AsyncFunction("scheduleAlarm") { options: ScheduleAlarmOptionsRecord ->
+            if (options.id.isBlank() || options.triggerTimeMs <= 0L) {
+                return@AsyncFunction false
+            }
+            val payloadJson = options.payload?.let { JSONObject(it).toString() } ?: "{}"
 
             val alarm = NativeAlarm(
-                id = id,
-                triggerTimeMs = triggerTimeMs,
-                title = title,
-                message = message,
-                channelId = channelId,
-                isFullAlarm = isFullAlarm,
-                snoozeIntervalMinutes = snoozeIntervalMinutes,
+                id = options.id,
+                triggerTimeMs = options.triggerTimeMs,
+                title = options.title.ifBlank { "Reminder" },
+                message = options.message,
+                channelId = options.channelId.ifBlank { AlarmNotificationHelper.CHANNEL_MEDICINES },
+                isFullAlarm = options.isFullAlarm,
+                snoozeIntervalMinutes = options.snoozeIntervalMinutes,
                 payloadJson = payloadJson
             )
 

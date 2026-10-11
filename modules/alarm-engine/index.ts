@@ -33,7 +33,19 @@ try {
 
 export async function scheduleAlarm(options: NativeAlarmOptions): Promise<boolean> {
   if (NativeAlarmModule?.scheduleAlarm) {
-    return NativeAlarmModule.scheduleAlarm(options);
+    const sanitized: Record<string, unknown> = {
+      id: String(options.id || `alarm_${Date.now()}`),
+      triggerTimeMs: Number(options.triggerTimeMs || Date.now()),
+      title: String(options.title || 'Reminder'),
+      message: String(options.message || ''),
+      channelId: String(options.channelId || 'medicines'),
+      isFullAlarm: options.isFullAlarm !== false,
+      snoozeIntervalMinutes: Number(options.snoozeIntervalMinutes || 10)
+    };
+    if (options.payload && typeof options.payload === 'object') {
+      sanitized.payload = options.payload;
+    }
+    return NativeAlarmModule.scheduleAlarm(sanitized);
   }
   return false;
 }
