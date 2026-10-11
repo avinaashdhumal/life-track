@@ -33,7 +33,8 @@ import {
   Edit3,
   Activity,
   Layers,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react-native';
 
 interface ProfileSettingsScreenProps {
@@ -239,19 +240,20 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
           { backgroundColor: colors.card, borderColor: colors.border }
         ]}
       >
+        {/* Profile Header Row: Avatar + Info + Edit Button */}
         <View style={tw`flex-row items-center justify-between mb-4`}>
-          <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+          <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 mr-2`}>
             {/* Avatar with Initials */}
             <View
               style={[
-                tw`w-14 h-14 rounded-2xl items-center justify-center border`,
+                tw`w-12 h-12 rounded-2xl items-center justify-center border shrink-0`,
                 {
                   backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : 'rgba(99, 102, 241, 0.1)',
                   borderColor: 'rgba(99, 102, 241, 0.35)'
                 }
               ]}
             >
-              <Text style={tw`text-xl font-extrabold text-indigo-500`}>
+              <Text style={tw`text-lg font-black text-indigo-500`}>
                 {profile?.name
                   ? profile.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
                   : 'AD'}
@@ -259,11 +261,12 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             </View>
 
             <View style={tw`flex-1 min-w-0`}>
-              <View style={tw`flex-row items-center gap-2`}>
-                <Text style={[tw`text-lg font-bold`, { color: colors.text }]} numberOfLines={1}>
+              <View style={tw`flex-row items-center gap-1.5 flex-wrap`}>
+                <Text style={[tw`text-base font-bold`, { color: colors.text }]} numberOfLines={1}>
                   {profile?.name || 'Avinash Dhumal'}
                 </Text>
-                <View style={tw`px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30`}>
+                <View style={tw`flex-row items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/30`}>
+                  <Heart size={9} color="#ef4444" fill="#ef4444" />
                   <Text style={tw`text-[10px] font-bold text-red-500`}>
                     {profile?.bloodGroup || 'O+'}
                   </Text>
@@ -275,61 +278,90 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             </View>
           </View>
 
+          {/* Edit Profile Button - Compact & Clean */}
           <TouchableOpacity
             onPress={() => setShowEditProfileModal(true)}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={t('profileSettings.editProfile')}
             style={[
-              tw`flex-row items-center gap-1.5 px-3 py-2 rounded-xl border min-h-10`,
+              tw`flex-row items-center gap-1 px-2.5 py-1.5 rounded-xl border shrink-0 min-h-9`,
               { backgroundColor: colors.cardSecondary, borderColor: colors.border }
             ]}
           >
-            <Edit3 size={13} color={colors.primary} />
+            <Edit3 size={12} color={colors.primary} />
             <Text style={[tw`text-xs font-semibold`, { color: colors.primary }]}>
-              {t('profileSettings.editProfile')}
+              {t('common.edit')}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Emergency Contact & Routine Row */}
-        <View style={tw`flex-col gap-2.5 pt-3 border-t border-zinc-800/20`}>
-          <View style={tw`flex-row items-center justify-between`}>
-            <View style={tw`flex-row items-center gap-2`}>
-              <Phone size={14} color="#ef4444" />
-              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
-                {t('profileSettings.emergencyContact')}:
+        {/* Emergency Contact & Routine Details - Structured Cards */}
+        <View style={tw`flex-col gap-2.5 pt-3 border-t border-zinc-800/15`}>
+          {/* Emergency Contact Card */}
+          <View
+            style={[
+              tw`p-3 rounded-2xl border flex-col gap-1`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <View style={tw`flex-row items-center gap-1.5`}>
+              <Phone size={12} color="#ef4444" />
+              <Text style={tw`text-[10px] font-bold uppercase tracking-wider text-red-500`}>
+                {t('profileSettings.emergencyContact')}
               </Text>
             </View>
-            <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
-              {profile?.emergencyContact || 'Guardian'} ({profile?.emergencyContactPhone || '+91 91234 56789'})
-            </Text>
-          </View>
-
-          <View style={tw`flex-row items-center justify-between`}>
-            <View style={tw`flex-row items-center gap-2`}>
-              <Clock size={14} color={colors.primary} />
-              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
-                {t('profileSettings.dailyRoutine')}:
+            <View style={tw`flex-row items-center justify-between flex-wrap gap-1`}>
+              <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                {profile?.emergencyContact || 'Family Doctor / Guardian'}
+              </Text>
+              <Text style={tw`text-xs font-bold text-red-500 font-mono`}>
+                {profile?.emergencyContactPhone || '+91 91234 56789'}
               </Text>
             </View>
-            <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
-              Wake: {profile?.wakeTime || '07:00'} • Sleep: {profile?.sleepTime || '23:00'}
-            </Text>
           </View>
 
+          {/* Daily Routine Card */}
+          <View
+            style={[
+              tw`p-3 rounded-2xl border flex-col gap-1`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <View style={tw`flex-row items-center gap-1.5`}>
+              <Clock size={12} color={colors.primary} />
+              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider`, { color: colors.primary }]}>
+                {t('profileSettings.dailyRoutine')}
+              </Text>
+            </View>
+            <View style={tw`flex-row items-center gap-3`}>
+              <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
+                Wake: <Text style={tw`font-bold text-emerald-500 font-mono`}>{profile?.wakeTime || '07:00'}</Text>
+              </Text>
+              <Text style={[tw`text-xs`, { color: colors.textMuted }]}>•</Text>
+              <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
+                Sleep: <Text style={tw`font-bold text-indigo-400 font-mono`}>{profile?.sleepTime || '23:00'}</Text>
+              </Text>
+            </View>
+          </View>
+
+          {/* Medical Conditions Tags with Clean Lucide Activity Icon */}
           {profile?.medicalConditions && profile.medicalConditions.length > 0 && (
-            <View style={tw`flex-row items-center gap-1.5 flex-wrap mt-1`}>
+            <View style={tw`flex-row items-center gap-1.5 flex-wrap mt-0.5`}>
               {profile.medicalConditions.map((cond, idx) => (
                 <View
                   key={idx}
                   style={[
-                    tw`px-2.5 py-1 rounded-lg border`,
-                    { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+                    tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-xl border`,
+                    {
+                      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.08)',
+                      borderColor: 'rgba(16, 185, 129, 0.25)'
+                    }
                   ]}
                 >
-                  <Text style={[tw`text-[11px] font-medium`, { color: colors.textMuted }]}>
-                    ⚕ {cond}
+                  <Activity size={11} color="#10b981" />
+                  <Text style={tw`text-xs font-semibold text-emerald-500`}>
+                    {cond}
                   </Text>
                 </View>
               ))}
@@ -409,55 +441,69 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
           ))}
         </View>
 
-        {/* Database Management Action Buttons */}
-        <View style={tw`flex-row items-center gap-2 flex-wrap`}>
+        {/* Database Management Action Buttons - 2 Rows to prevent squishing */}
+        <View style={tw`flex-col gap-2`}>
+          {/* Row 1: Audit Logs Explorer (Full Width) */}
           <TouchableOpacity
             onPress={() => setShowLogsModal(true)}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={t('profileSettings.viewLogs')}
             style={[
-              tw`flex-1 py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 min-h-10`,
+              tw`w-full py-3 px-3.5 rounded-2xl border flex-row items-center justify-between min-h-12`,
               { backgroundColor: colors.cardSecondary, borderColor: colors.border }
             ]}
           >
-            <Activity size={14} color={colors.primary} />
-            <Text style={[tw`text-xs font-bold`, { color: colors.primary }]}>
-              {t('profileSettings.viewLogs')} ({logs.length})
-            </Text>
+            <View style={tw`flex-row items-center gap-2.5 flex-1 min-w-0 pr-2`}>
+              <View style={tw`w-8 h-8 rounded-xl bg-indigo-500/10 items-center justify-center border border-indigo-500/20 shrink-0`}>
+                <Activity size={16} color={colors.primary} />
+              </View>
+              <View style={tw`flex-1 min-w-0`}>
+                <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                  {t('profileSettings.viewLogs')}
+                </Text>
+                <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                  {logs.length} {t('profileSettings.recordedEvents')}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={16} color={colors.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleOptimizeDb}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('profileSettings.optimizeDb')}
-            style={[
-              tw`py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 min-h-10`,
-              { backgroundColor: colors.cardSecondary, borderColor: colors.border }
-            ]}
-          >
-            <Sparkles size={14} color="#10b981" />
-            <Text style={tw`text-xs font-bold text-emerald-500`}>
-              {t('profileSettings.optimizeDb')}
-            </Text>
-          </TouchableOpacity>
+          {/* Row 2: Two Equal Action Buttons (Optimize & Backup) */}
+          <View style={tw`flex-row items-center gap-2`}>
+            <TouchableOpacity
+              onPress={handleOptimizeDb}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('profileSettings.optimizeDb')}
+              style={[
+                tw`flex-1 py-3 px-3 rounded-2xl border flex-row items-center justify-center gap-1.5 min-h-11`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+              ]}
+            >
+              <Sparkles size={14} color="#10b981" />
+              <Text style={tw`text-xs font-bold text-emerald-500`}>
+                {t('profileSettings.optimizeDb')}
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={handleExportBackup}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('accessibility.backupData')}
-            style={[
-              tw`py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 min-h-10`,
-              { backgroundColor: colors.cardSecondary, borderColor: colors.border }
-            ]}
-          >
-            <Download size={14} color={colors.text} />
-            <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
-              {t('storage.backupData')}
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleExportBackup}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.backupData')}
+              style={[
+                tw`flex-1 py-3 px-3 rounded-2xl border flex-row items-center justify-center gap-1.5 min-h-11`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+              ]}
+            >
+              <Download size={14} color={colors.text} />
+              <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
+                {t('storage.backupData')}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -483,24 +529,27 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             { backgroundColor: colors.cardSecondary, borderColor: colors.border }
           ]}
         >
-          <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-8 h-8 rounded-full bg-amber-500/10 items-center justify-center`}>
+          <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+            <View style={tw`w-8 h-8 rounded-full bg-amber-500/10 items-center justify-center shrink-0`}>
               <Volume2 size={16} color="#f59e0b" />
             </View>
-            <View>
-              <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
+            <View style={tw`flex-1 min-w-0`}>
+              <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
                 {t('soundSettings.title')}
               </Text>
-              <Text style={[tw`text-[11px]`, { color: colors.textMuted }]}>
+              <Text style={[tw`text-[11px]`, { color: colors.textMuted }]} numberOfLines={1}>
                 {settings.alarmTone === 'gentle_chime'
                   ? t('soundSettings.toneGentleChime')
                   : t('soundSettings.toneDefaultSiren')}
               </Text>
             </View>
           </View>
-          <Text style={[tw`text-xs font-bold`, { color: colors.primary }]}>
-            {t('profileSettings.changeTone')} ›
-          </Text>
+          <View style={tw`flex-row items-center gap-1 shrink-0`}>
+            <Text style={[tw`text-xs font-bold`, { color: colors.primary }]}>
+              {t('profileSettings.changeTone')}
+            </Text>
+            <ChevronRight size={14} color={colors.primary} />
+          </View>
         </TouchableOpacity>
 
         {/* Full-Screen Lockscreen Alarm Toggle */}
@@ -714,22 +763,25 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
             { backgroundColor: colors.card, borderColor: colors.border }
           ]}
         >
-          <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-10 h-10 rounded-2xl bg-emerald-500/10 items-center justify-center border border-emerald-500/30`}>
-              <ShieldCheck size={20} color="#10b981" />
+          <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-3`}>
+            <View style={tw`w-11 h-11 rounded-2xl bg-emerald-500/10 items-center justify-center border border-emerald-500/30 shrink-0`}>
+              <ShieldCheck size={22} color="#10b981" />
             </View>
-            <View>
-              <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+            <View style={tw`flex-1 min-w-0`}>
+              <Text style={[tw`text-sm font-bold`, { color: colors.text }]} numberOfLines={1}>
                 {t('healthCheck.title')}
               </Text>
-              <Text style={[tw`text-[11px]`, { color: colors.textMuted }]}>
+              <Text style={[tw`text-[11px] mt-0.5`, { color: colors.textMuted }]} numberOfLines={1}>
                 {t('healthCheck.subtitle')}
               </Text>
             </View>
           </View>
-          <Text style={[tw`text-xs font-bold text-emerald-500`]}>
-            {t('healthCheck.button')} ›
-          </Text>
+          <View style={tw`flex-row items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shrink-0`}>
+            <Text style={tw`text-xs font-bold text-emerald-500`}>
+              {t('healthCheck.inspectButton')}
+            </Text>
+            <ChevronRight size={14} color="#10b981" />
+          </View>
         </TouchableOpacity>
       )}
 
@@ -979,7 +1031,7 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
               {logs.length === 0 ? (
                 <View style={tw`py-8 items-center`}>
                   <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
-                    {t('alarm.noLogs')}
+                    {t('logs.noLogs')}
                   </Text>
                 </View>
               ) : (

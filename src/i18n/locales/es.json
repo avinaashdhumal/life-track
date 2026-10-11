@@ -20,6 +20,14 @@
     "theme": "Tema",
     "selectLanguage": "Seleccionar idioma"
   },
+  "common": {
+    "enabled": "Activado",
+    "disabled": "Desactivado",
+    "save": "Guardar cambios",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "alarm": {
     "phaseReady": "FASE 0 LISTA",
     "scheduler": "Programador de alarmas",
@@ -95,7 +103,8 @@
     "none": "Ninguna",
     "sendTestAlarm": "Enviar alarma de prueba de 1 min",
     "troubleshooting": "Guía de solución de problemas",
-    "troubleshootingDescription": "Soluciones específicas por marca para batería/alarma para una entrega confiable"
+    "troubleshootingDescription": "Soluciones específicas por marca para batería/alarma para una entrega confiable",
+    "inspectButton": "Inspeccionar"
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Superposición de alarma nativa de Android",
@@ -211,7 +220,9 @@
     "timeSlot": "Intervalo de tiempo {{time}}, {{count}} alarmas",
     "alarmItem": "{{title}}, programada a las {{time}}, {{countdown}} restante",
     "soundSettingsButton": "Abrir configuración de sonidos y tonos de notificación",
-    "profileSettingsButton": "Abrir perfil y ajustes de la aplicación"
+    "profileSettingsButton": "Abrir perfil y ajustes de la aplicación",
+    "back": "Volver",
+    "close": "Cerrar ventana"
   },
   "soundSettings": {
     "title": "Configuración de tonos y alarmas",
@@ -242,7 +253,9 @@
     "howItWorksDescription": "En Android 8.0+, los tonos pertenecen a canales de notificación. Al pulsar 'Cambiar en ajustes del teléfono', Android abre el selector de sonidos de su sistema para que elija el tono deseado.",
     "doneButton": "Listo",
     "quickTestAlarmTitle": "Alarma de prueba rápida",
-    "quickTestAlarmMessage": "Alarma activada tras {{seconds}} segundos (Verificando audio en segundo plano y activación)"
+    "quickTestAlarmMessage": "Alarma activada tras {{seconds}} segundos (Verificando audio en segundo plano y activación)",
+    "toneDefaultSiren": "Sirena pulsada LifeTrack",
+    "toneGentleChime": "Campana suave"
   },
   "storage": {
     "title": "Motor de almacenamiento en el dispositivo",

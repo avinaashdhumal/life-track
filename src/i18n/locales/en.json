@@ -20,6 +20,14 @@
     "theme": "Theme",
     "selectLanguage": "Select Language"
   },
+  "common": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "alarm": {
     "phaseReady": "PHASE 0 READY",
     "scheduler": "Alarm Scheduler",
@@ -95,7 +103,8 @@
     "none": "None",
     "sendTestAlarm": "Send 1-Min Test Alarm",
     "troubleshooting": "Troubleshooting Guide",
-    "troubleshootingDescription": "Brand-specific battery/alarm workarounds for reliable delivery"
+    "troubleshootingDescription": "Brand-specific battery/alarm workarounds for reliable delivery",
+    "inspectButton": "Inspect"
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Android Native Alarm Overlay",
@@ -211,7 +220,9 @@
     "timeSlot": "Time slot {{time}}, {{count}} alarms",
     "alarmItem": "{{title}}, scheduled at {{time}}, {{countdown}} remaining",
     "soundSettingsButton": "Open sound and notification tone settings",
-    "profileSettingsButton": "Open profile and application settings"
+    "profileSettingsButton": "Open profile and application settings",
+    "back": "Go back",
+    "close": "Close modal"
   },
   "soundSettings": {
     "title": "Alarm & Notification Tone Settings",
@@ -242,7 +253,9 @@
     "howItWorksDescription": "In Android 8.0+, sound tones belong to Notification Channels. When you tap 'Change in Phone Settings', Android opens your system Sound & Vibration picker where you can pick any built-in or downloaded ringtone. LifeTrack will play your selected tone when the alarm fires.",
     "doneButton": "Done",
     "quickTestAlarmTitle": "Quick Reliability Test Alarm",
-    "quickTestAlarmMessage": "Alarm fired after {{seconds}} seconds (Verifying background audio & wakeup)"
+    "quickTestAlarmMessage": "Alarm fired after {{seconds}} seconds (Verifying background audio & wakeup)",
+    "toneDefaultSiren": "LifeTrack Pulsed Siren",
+    "toneGentleChime": "Gentle Chime"
   },
   "storage": {
     "title": "On-Device Storage Engine",

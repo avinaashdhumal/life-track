@@ -20,6 +20,14 @@
     "theme": "थीम",
     "selectLanguage": "भाषा निवडा"
   },
+  "common": {
+    "enabled": "सक्रिय",
+    "disabled": "निष्क्रिय",
+    "save": "बदल जतन करा",
+    "cancel": "रद्द करा",
+    "edit": "संपादित करा",
+    "delete": "हटवा"
+  },
   "alarm": {
     "phaseReady": "टप्पा 0 तयार",
     "scheduler": "अलार्म शेड्युलर",
@@ -95,7 +103,8 @@
     "none": "काहीही नाही",
     "sendTestAlarm": "1-मिनिट चाचणी अलार्म पाठवा",
     "troubleshooting": "समस्या निवारण मार्गदर्शक",
-    "troubleshootingDescription": "विश्वसनीय डिलिव्हरीसाठी ब्रँड-विशिष्ट बॅटरी/अलार्म उपाय"
+    "troubleshootingDescription": "विश्वसनीय डिलिव्हरीसाठी ब्रँड-विशिष्ट बॅटरी/अलार्म उपाय",
+    "inspectButton": "तपासा"
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Android मूळ अलार्म ओव्हरले",
@@ -211,7 +220,9 @@
     "timeSlot": "वेळ अंतराल {{time}}, {{count}} अलार्म",
     "alarmItem": "{{title}}, {{time}} वेळी शेड्यूल, {{countdown}} बाकी",
     "soundSettingsButton": "ध्वनी आणि सूचना टोन सेटिंग्ज उघडा",
-    "profileSettingsButton": "प्रोफाइल आणि सेटिंग्ज उघडा"
+    "profileSettingsButton": "प्रोफाइल आणि सेटिंग्ज उघडा",
+    "back": "मागे जा",
+    "close": "बंद करा"
   },
   "soundSettings": {
     "title": "अलार्म आणि सूचना टोन सेटिंग्ज",
@@ -242,7 +253,9 @@
     "howItWorksDescription": "अँड्रॉइड 8.0+ मध्ये ध्वनी टोन नोटिफिकेशन चॅनेलशी संबंधित असतात. 'फोन सेटिंग्जमध्ये बदला' टॅप केल्यावर तुमच्या फोनचा रिंगटोन पिकर उघडतो जिथून तुम्ही कोणताही टोन निवडू शकता.",
     "doneButton": "पूर्ण",
     "quickTestAlarmTitle": "जलद चाचणी अलार्म",
-    "quickTestAlarmMessage": "{{seconds}} सेकंदांनंतर अलार्म वाजला (बॅकग्राउंड ऑडिओ आणि वेकअप पडताळणी)"
+    "quickTestAlarmMessage": "{{seconds}} सेकंदांनंतर अलार्म वाजला (बॅकग्राउंड ऑडिओ आणि वेकअप पडताळणी)",
+    "toneDefaultSiren": "लाइफट्रेक पल्स्ड सायरन",
+    "toneGentleChime": "मंद नाद"
   },
   "storage": {
     "title": "ऑन-डिव्हाइस स्टोरेज इंजिन",

@@ -20,6 +20,14 @@
     "theme": "थीम",
     "selectLanguage": "भाषा चुनें"
   },
+  "common": {
+    "enabled": "सक्रिय",
+    "disabled": "निष्क्रिय",
+    "save": "परिवर्तन सहेजें",
+    "cancel": "रद्द करें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं"
+  },
   "alarm": {
     "phaseReady": "चरण 0 तैयार",
     "scheduler": "अलार्म शेड्यूलर",
@@ -95,7 +103,8 @@
     "none": "कोई नहीं",
     "sendTestAlarm": "1-मिनट परीक्षण अलार्म भेजें",
     "troubleshooting": "समस्या निवारण गाइड",
-    "troubleshootingDescription": "विश्वसनीय डिलीवरी के लिए ब्रांड-विशिष्ट बैटरी/अलार्म समाधान"
+    "troubleshootingDescription": "विश्वसनीय डिलीवरी के लिए ब्रांड-विशिष्ट बैटरी/अलार्म समाधान",
+    "inspectButton": "जाँचें"
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Android मूल अलार्म ओवरले",
@@ -211,7 +220,9 @@
     "timeSlot": "समय अंतराल {{time}}, {{count}} अलार्म",
     "alarmItem": "{{title}}, {{time}} पर शेड्यूल, {{countdown}} बाकी",
     "soundSettingsButton": "ध्वनि और नोटिफिकेशन टोन सेटिंग्स खोलें",
-    "profileSettingsButton": "प्रोफ़ाइल और सेटिंग्स खोलें"
+    "profileSettingsButton": "प्रोफ़ाइल और सेटिंग्स खोलें",
+    "back": "वापस जाएं",
+    "close": "बंद करें"
   },
   "soundSettings": {
     "title": "अलार्म और नोटिफिकेशन टोन सेटिंग्स",
@@ -242,7 +253,9 @@
     "howItWorksDescription": "एंड्रॉइड 8.0+ में, ध्वनि टोन नोटिफिकेशन चैनलों से जुड़े होते हैं। जब आप 'फ़ोन सेटिंग्स में बदलें' पर टैप करते हैं, तो एंड्रॉइड आपका सिस्टम साउंड पिकर खोलता है जहां आप अपनी पसंदीदा रिंगटोन चुन सकते हैं।",
     "doneButton": "हो गया",
     "quickTestAlarmTitle": "त्वरित विश्वसनीयता टेस्ट अलार्म",
-    "quickTestAlarmMessage": "{{seconds}} सेकंड बाद अलार्म बजा (बैकग्राउंड ऑडियो और वेकअप की पुष्टि)"
+    "quickTestAlarmMessage": "{{seconds}} सेकंड बाद अलार्म बजा (बैकग्राउंड ऑडियो और वेकअप की पुष्टि)",
+    "toneDefaultSiren": "लाइफ़ट्रैक पल्स्ड सायरन",
+    "toneGentleChime": "धीमी घंटी"
   },
   "storage": {
     "title": "ऑन-डिवाइस स्टोरेज इंजन",
