@@ -90,8 +90,7 @@ export const MedicineSchema = z.object({
   icon: z.string().default('pill'),
   isActive: z.boolean().default(true),
   createdAt: z.number().int(),
-  updatedAt: z.number().int(),
-  doses: z.string().default('')
+  updatedAt: z.number().int()
 });
 export type Medicine = z.infer<typeof MedicineSchema>;
 
