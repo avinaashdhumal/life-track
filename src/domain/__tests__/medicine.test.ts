@@ -97,9 +97,9 @@ assert.strictEqual(decrementStock(0, 1), 0); // No negative stock
 assert.strictEqual(incrementStock(5, 30), 35);
 console.log('✅ Inventory stock calculations and low-stock alerts verified');
 
-// 5. Generate Today's Dose Slots
-const todayStr = '2026-10-11';
-const slots = generateTodayDoseSlots(sampleMed, todayStr, []);
+// 5. Generate Today's Dose Slots (using future date so slots are deterministically pending unless logged)
+const testDateStr = '2099-10-11';
+const slots = generateTodayDoseSlots(sampleMed, testDateStr, []);
 assert.strictEqual(slots.length, 2);
 assert.strictEqual(slots[0].scheduledTime, '08:00');
 assert.strictEqual(slots[1].scheduledTime, '20:00');
@@ -119,7 +119,7 @@ const log: DoseLogEntry = {
   createdAt: Date.now()
 };
 
-const slotsWithLog = generateTodayDoseSlots(sampleMed, todayStr, [log]);
+const slotsWithLog = generateTodayDoseSlots(sampleMed, testDateStr, [log]);
 assert.strictEqual(slotsWithLog[0].status, 'taken');
 assert.strictEqual(slotsWithLog[1].status, 'pending');
 import { medicinesRepository } from '../../data/medicinesRepository';

@@ -14,6 +14,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { medicinesRepository } from '../../data/medicinesRepository';
 import { profileRepository } from '../../data/profileRepository';
+import { shiftRepository } from '../../data/shiftRepository';
+import { routineRepository } from '../../data/routineRepository';
 import {
   Medicine,
   DoseLogEntry,
@@ -21,6 +23,10 @@ import {
   generateTodayDoseSlots,
   calculateStockLevel
 } from '../../domain/medicine';
+import { ShiftConfig, getShiftForDate } from '../../domain/shift';
+import { DailyRoutine } from '../../domain/routine';
+import { ShiftScheduleScreen } from '../shift/ShiftScheduleScreen';
+import { RoutineSettingsModal } from '../routine/RoutineSettingsModal';
 import { UserProfileRecord } from '../../services/DatabaseService';
 import {
   CheckCircle2,
@@ -37,7 +43,10 @@ import {
   Sun,
   Moon,
   Coffee,
-  X
+  X,
+  Briefcase,
+  Utensils,
+  Bed
 } from 'lucide-react-native';
 
 interface TodayScreenProps {
@@ -55,6 +64,10 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [todayLogs, setTodayLogs] = useState<DoseLogEntry[]>([]);
+  const [shiftConfig, setShiftConfig] = useState<ShiftConfig | null>(null);
+  const [routine, setRoutine] = useState<DailyRoutine | null>(null);
+  const [showShiftModal, setShowShiftModal] = useState<boolean>(false);
+  const [showRoutineModal, setShowRoutineModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
@@ -68,6 +81,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const d = String(now.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
+  }, []);
+
+  const tomorrowDateStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }, []);
 
   const formattedDate = useMemo(() => {
@@ -88,14 +110,18 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const loadData = useCallback(async () => {
     try {
-      const [userProfile, allMeds, logs] = await Promise.all([
+      const [userProfile, allMeds, logs, shiftConf, dailyRout] = await Promise.all([
         profileRepository.getProfile(),
         medicinesRepository.getActive('default'),
-        medicinesRepository.getDosesForDay('default', todayDateStr)
+        medicinesRepository.getDosesForDay('default', todayDateStr),
+        shiftRepository.getConfig(),
+        routineRepository.getRoutine('default')
       ]);
       setProfile(userProfile);
       setMedicines(allMeds);
       setTodayLogs(logs);
+      setShiftConfig(shiftConf);
+      setRoutine(dailyRout);
     } catch (e) {
       console.warn('Error loading today data:', e);
     } finally {
@@ -113,11 +139,21 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     loadData();
   };
 
+  const todayShiftAssignment = useMemo(() => {
+    if (!shiftConfig || !shiftConfig.isEnabled) return null;
+    return getShiftForDate(shiftConfig, todayDateStr);
+  }, [shiftConfig, todayDateStr]);
+
+  const tomorrowShiftAssignment = useMemo(() => {
+    if (!shiftConfig || !shiftConfig.isEnabled) return null;
+    return getShiftForDate(shiftConfig, tomorrowDateStr);
+  }, [shiftConfig, tomorrowDateStr]);
+
   // Generate today slots across all active medicines
   const todaySlots: TodayDoseSlot[] = useMemo(() => {
     const slots: TodayDoseSlot[] = [];
     for (const med of medicines) {
-      const medSlots = generateTodayDoseSlots(med, todayDateStr, todayLogs);
+      const medSlots = generateTodayDoseSlots(med, todayDateStr, todayLogs, routine || undefined);
       slots.push(...medSlots);
     }
     // Sort: fixed-time chronologically, PRN at the bottom
@@ -126,7 +162,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       if (b.scheduleType === 'prn_as_needed') return -1;
       return a.scheduledTimestampMs - b.scheduledTimestampMs;
     });
-  }, [medicines, todayLogs, todayDateStr]);
+  }, [medicines, todayLogs, todayDateStr, routine]);
 
   // Next upcoming dose countdown
   const nextUpcomingSlot = useMemo(() => {
@@ -261,6 +297,93 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         contentContainerStyle={tw`p-5 pb-28`}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Conditional Shift Card (Strictly ONLY shown when shift engine is enabled) */}
+        {todayShiftAssignment && (
+          <TouchableOpacity
+            onPress={() => setShowShiftModal(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`Today's shift: ${todayShiftAssignment.shiftType.name}`}
+            style={[
+              tw`p-4 rounded-3xl border mb-4 shadow-sm`,
+              {
+                backgroundColor: `${todayShiftAssignment.shiftType.color}15`,
+                borderColor: `${todayShiftAssignment.shiftType.color}40`
+              }
+            ]}
+          >
+            <View style={tw`flex-row items-center justify-between mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <View
+                  style={[
+                    tw`w-3 h-3 rounded-full`,
+                    { backgroundColor: todayShiftAssignment.shiftType.color }
+                  ]}
+                />
+                <Text style={[tw`text-xs font-bold uppercase tracking-wider`, { color: colors.text }]}>
+                  {t('shift.todayShift', "Today's Shift")}: {todayShiftAssignment.shiftType.name}
+                </Text>
+                {todayShiftAssignment.shiftType.crossesMidnight && (
+                  <View style={tw`px-1.5 py-0.5 rounded-full bg-indigo-500/20`}>
+                    <Text style={tw`text-[9px] font-bold text-indigo-400`}>🌙 Midnight</Text>
+                  </View>
+                )}
+                {todayShiftAssignment.isOverride && (
+                  <View style={tw`px-1.5 py-0.5 rounded-full bg-rose-500/20`}>
+                    <Text style={tw`text-[9px] font-bold text-rose-400`}>Override</Text>
+                  </View>
+                )}
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </View>
+
+            <View style={tw`flex-row items-center justify-between`}>
+              <Text style={[tw`text-base font-black font-mono`, { color: colors.text }]}>
+                {todayShiftAssignment.shiftType.isOffDay
+                  ? t('shift.offDay', 'Day Off 🌴')
+                  : `${todayShiftAssignment.shiftType.startTime} - ${todayShiftAssignment.shiftType.endTime}`}
+              </Text>
+              {tomorrowShiftAssignment && (
+                <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
+                  {t('shift.tomorrowPreview', 'Tomorrow')}: {tomorrowShiftAssignment.shiftType.name}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* Daily Routine Summary Card */}
+        {routine && (
+          <TouchableOpacity
+            onPress={() => setShowRoutineModal(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="View and edit daily routine anchors"
+            style={[
+              tw`p-3.5 rounded-2xl border mb-4 flex-row items-center justify-between`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.borderLight
+              }
+            ]}
+          >
+            <View style={tw`flex-row items-center gap-2.5 flex-1 mr-2`}>
+              <View style={tw`w-8 h-8 rounded-xl bg-amber-500/10 items-center justify-center shrink-0`}>
+                <Sun size={16} color="#f59e0b" />
+              </View>
+              <View style={tw`flex-1`}>
+                <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
+                  {t('routine.title', 'Daily Routine')}
+                </Text>
+                <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                  Wake: {routine.wakeTime} • Lunch: {routine.lunchTime} • Dinner: {routine.dinnerTime} • Sleep: {routine.sleepTime}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
+
         {/* Next Up Alert Card */}
         {nextUpcomingSlot ? (
           <View
@@ -652,6 +775,30 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Shift & Schedule Engine Modal */}
+      {showShiftModal && (
+        <ShiftScheduleScreen
+          visible={showShiftModal}
+          onClose={() => {
+            setShowShiftModal(false);
+            loadData();
+          }}
+          onConfigChanged={() => loadData()}
+        />
+      )}
+
+      {/* Daily Routine Settings Modal */}
+      {showRoutineModal && (
+        <RoutineSettingsModal
+          visible={showRoutineModal}
+          onClose={() => {
+            setShowRoutineModal(false);
+            loadData();
+          }}
+          onRoutineUpdated={() => loadData()}
+        />
+      )}
     </View>
   );
 };

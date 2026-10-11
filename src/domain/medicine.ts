@@ -11,6 +11,8 @@ import { z } from 'zod';
  *   and doctor advice for missed doses.
  */
 
+import { calculateRoutineRelativeClockTime, DailyRoutine } from './routine';
+
 export const MedicineFormSchema = z.enum([
   'tablet',
   'capsule',
@@ -33,10 +35,28 @@ export const FoodRelationSchema = z.enum([
 ]);
 export type FoodRelation = z.infer<typeof FoodRelationSchema>;
 
+export const RoutineAnchorEnum = z.enum([
+  'wake',
+  'breakfast',
+  'lunch',
+  'dinner',
+  'sleep',
+  'windDown',
+  'exercise'
+]);
+export type RoutineAnchorType = z.infer<typeof RoutineAnchorEnum>;
+
+export const RoutineTimingSchema = z.object({
+  anchor: RoutineAnchorEnum,
+  offsetMinutes: z.number().int().default(0)
+});
+export type RoutineTimingConfig = z.infer<typeof RoutineTimingSchema>;
+
 export const MedicineScheduleTypeSchema = z.enum([
   'fixed_time',
   'interval',
-  'prn_as_needed'
+  'prn_as_needed',
+  'routine_relative'
 ]);
 export type MedicineScheduleType = z.infer<typeof MedicineScheduleTypeSchema>;
 
@@ -57,6 +77,7 @@ export const MedicineSchema = z.object({
   foodRelation: FoodRelationSchema.default('no_relation'),
   scheduleType: MedicineScheduleTypeSchema.default('fixed_time'),
   timesOfDay: z.array(z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/)).default(['08:00']),
+  routineTiming: RoutineTimingSchema.optional(),
   intervalHours: z.number().int().positive().optional(),
   minGapMinutes: z.number().int().nonnegative().optional(), // Safety rule: min gap between doses
   maxDailyDoses: z.number().int().positive().optional(), // Safety rule: max doses in 24 hours (PRN ceiling)
@@ -69,7 +90,8 @@ export const MedicineSchema = z.object({
   icon: z.string().default('pill'),
   isActive: z.boolean().default(true),
   createdAt: z.number().int(),
-  updatedAt: z.number().int()
+  updatedAt: z.number().int(),
+  doses: z.string().default('')
 });
 export type Medicine = z.infer<typeof MedicineSchema>;
 
@@ -250,7 +272,8 @@ export function incrementStock(currentStock: number, amount: number): number {
 export function generateTodayDoseSlots(
   medicine: Medicine,
   todayDateStr: string, // YYYY-MM-DD
-  todayLogs: DoseLogEntry[]
+  todayLogs: DoseLogEntry[],
+  dailyRoutine?: DailyRoutine
 ): TodayDoseSlot[] {
   if (!medicine.isActive) {
     return [];
@@ -282,9 +305,14 @@ export function generateTodayDoseSlots(
     ];
   }
 
-  // Fixed time or interval schedules:
+  // Fixed time, interval, or routine-relative schedules:
   const slots: TodayDoseSlot[] = [];
-  const times = medicine.timesOfDay.length > 0 ? medicine.timesOfDay : ['08:00'];
+  let times = medicine.timesOfDay && medicine.timesOfDay.length > 0 ? medicine.timesOfDay : ['08:00'];
+
+  if (medicine.scheduleType === 'routine_relative' && medicine.routineTiming && dailyRoutine) {
+    const resolvedTime = calculateRoutineRelativeClockTime(dailyRoutine, medicine.routineTiming);
+    times = [resolvedTime];
+  }
 
   for (const timeStr of times) {
     const [hours, minutes] = timeStr.split(':').map(Number);

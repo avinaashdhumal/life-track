@@ -21,6 +21,12 @@ import {
   MedicineScheduleType
 } from '../../domain/medicine';
 import {
+  RoutineAnchor,
+  DailyRoutine,
+  calculateRoutineRelativeClockTime
+} from '../../domain/routine';
+import { routineRepository } from '../../data/routineRepository';
+import {
   X,
   Plus,
   Trash2,
@@ -30,7 +36,9 @@ import {
   HelpCircle,
   FileText,
   Check,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Sparkles
 } from 'lucide-react-native';
 
 interface MedicineFormModalProps {
@@ -60,6 +68,13 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
   const [scheduleType, setScheduleType] = useState<MedicineScheduleType>(
     medicine?.scheduleType || 'fixed_time'
   );
+  const [routineAnchor, setRoutineAnchor] = useState<RoutineAnchor>(
+    (medicine?.routineTiming?.anchor as RoutineAnchor) || 'breakfast'
+  );
+  const [routineOffset, setRoutineOffset] = useState<number>(
+    medicine?.routineTiming?.offsetMinutes ?? 0
+  );
+  const [activeRoutine, setActiveRoutine] = useState<DailyRoutine | null>(null);
   const [timesOfDay, setTimesOfDay] = useState<string[]>(
     medicine?.timesOfDay && medicine.timesOfDay.length > 0 ? medicine.timesOfDay : ['08:00']
   );
@@ -95,12 +110,15 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
   // Synchronize form fields whenever modal opens or selected medicine changes
   useEffect(() => {
     if (visible) {
+      routineRepository.getRoutine('default').then(setActiveRoutine).catch(() => {});
       if (medicine) {
         setName(medicine.name || '');
         setForm(medicine.form || 'tablet');
         setStrength(medicine.strength || '');
         setFoodRelation(medicine.foodRelation || 'with');
         setScheduleType(medicine.scheduleType || 'fixed_time');
+        setRoutineAnchor((medicine.routineTiming?.anchor as RoutineAnchor) || 'breakfast');
+        setRoutineOffset(medicine.routineTiming?.offsetMinutes ?? 0);
         setTimesOfDay(
           medicine.timesOfDay && medicine.timesOfDay.length > 0
             ? [...medicine.timesOfDay]
@@ -208,6 +226,10 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
         foodRelation,
         scheduleType,
         timesOfDay: scheduleType === 'fixed_time' ? timesOfDay : [],
+        routineTiming:
+          scheduleType === 'routine_relative'
+            ? { anchor: routineAnchor, offsetMinutes: routineOffset }
+            : undefined,
         minGapMinutes: minGapMinutes ? Math.max(0, parseInt(minGapMinutes, 10)) : undefined,
         maxDailyDoses: maxDailyDoses ? Math.max(1, parseInt(maxDailyDoses, 10)) : undefined,
         stockCount: Math.max(0, parseInt(stockCount, 10) || 0),
@@ -456,6 +478,7 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
             <View style={tw`flex-row gap-2`}>
               {[
                 { type: 'fixed_time' as MedicineScheduleType, label: t('medicines.scheduleFixed', 'Fixed Times') },
+                { type: 'routine_relative' as MedicineScheduleType, label: t('medicines.scheduleRoutine', 'Routine Anchor') },
                 { type: 'prn_as_needed' as MedicineScheduleType, label: t('medicines.schedulePRN', 'As Needed (PRN)') }
               ].map((opt) => (
                 <TouchableOpacity
@@ -483,6 +506,121 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
               ))}
             </View>
           </View>
+
+          {/* Routine-Relative Anchor Configuration */}
+          {scheduleType === 'routine_relative' && (
+            <View
+              style={[
+                tw`p-4 rounded-2xl border mb-5`,
+                { backgroundColor: colors.card, borderColor: colors.border }
+              ]}
+            >
+              <View style={tw`flex-row items-center mb-3`}>
+                <Sun size={16} color={colors.primary} />
+                <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+                  {t('medicines.routineAnchorTitle', 'Routine Milestone Anchor')}
+                </Text>
+              </View>
+
+              {/* Anchor Picker */}
+              <Text style={[tw`text-2xs font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+                {t('medicines.selectAnchor', 'Anchor Event')}
+              </Text>
+              <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
+                {[
+                  { id: 'wake' as RoutineAnchor, label: 'Wake Up ☀️' },
+                  { id: 'breakfast' as RoutineAnchor, label: 'Breakfast ☕' },
+                  { id: 'lunch' as RoutineAnchor, label: 'Lunch 🍽️' },
+                  { id: 'dinner' as RoutineAnchor, label: 'Dinner 🍲' },
+                  { id: 'windDown' as RoutineAnchor, label: 'Wind Down ✨' },
+                  { id: 'sleep' as RoutineAnchor, label: 'Bedtime 🌙' },
+                  { id: 'exercise' as RoutineAnchor, label: 'Workout 🏃' }
+                ].map((a) => (
+                  <TouchableOpacity
+                    key={a.id}
+                    onPress={() => setRoutineAnchor(a.id)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Anchor ${a.label}`}
+                    style={[
+                      tw`px-3 py-1.5 rounded-xl border`,
+                      routineAnchor === a.id
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.bg, borderColor: colors.border }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        tw`text-xs font-semibold`,
+                        routineAnchor === a.id ? tw`text-white` : { color: colors.text }
+                      ]}
+                    >
+                      {a.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Offset Picker */}
+              <Text style={[tw`text-2xs font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+                {t('medicines.selectOffset', 'Timing Offset')}
+              </Text>
+              <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
+                {[
+                  { offset: 0, label: 'Exactly with' },
+                  { offset: 15, label: '+15m after' },
+                  { offset: 30, label: '+30m after' },
+                  { offset: 60, label: '+1h after' },
+                  { offset: -30, label: '-30m before' }
+                ].map((o) => (
+                  <TouchableOpacity
+                    key={o.offset}
+                    onPress={() => setRoutineOffset(o.offset)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Offset ${o.label}`}
+                    style={[
+                      tw`px-2.5 py-1.5 rounded-xl border`,
+                      routineOffset === o.offset
+                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                        : { backgroundColor: colors.bg, borderColor: colors.border }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        tw`text-xs font-semibold`,
+                        routineOffset === o.offset ? tw`text-white` : { color: colors.text }
+                      ]}
+                    >
+                      {o.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Dynamic Live Preview */}
+              {activeRoutine && (
+                <View
+                  style={[
+                    tw`p-2.5 rounded-xl border flex-row items-center gap-2`,
+                    { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}25` }
+                  ]}
+                >
+                  <Sparkles size={14} color={colors.primary} />
+                  <Text style={[tw`text-xs flex-1`, { color: colors.primaryText }]}>
+                    Currently resolves to{' '}
+                    <Text style={tw`font-bold font-mono`}>
+                      {calculateRoutineRelativeClockTime(activeRoutine, {
+                        anchor: routineAnchor,
+                        offsetMinutes: routineOffset
+                      })}
+                    </Text>{' '}
+                    based on your daily routine. Shifts automatically with your routine.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Fixed Time Slots */}
           {scheduleType === 'fixed_time' && (

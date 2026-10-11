@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecurringSchedule, AlarmItem, ReminderLogEntry, NotificationChannelId, AlarmCategory } from '../domain/alarm';
 import { AlarmToneType } from '../utils/audioAlarm';
+import { DailyRoutine, getDefaultDailyRoutine } from '../domain/routine';
+import { ShiftConfig, getDefaultShiftConfig } from '../domain/shift';
 
 export interface AppSettings {
   themeMode: 'light' | 'dark' | 'system';
@@ -48,7 +50,9 @@ const STORAGE_KEYS = {
   ALARMS: '@lifetrack:active_alarms:v1',
   LOGS: '@lifetrack:event_logs:v1',
   SETTINGS: '@lifetrack:settings:v1',
-  PROFILE: '@lifetrack:user_profile:v1'
+  PROFILE: '@lifetrack:user_profile:v1',
+  ROUTINE: '@lifetrack:daily_routine:v1',
+  SHIFT_CONFIG: '@lifetrack:shift_config:v1'
 } as const;
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -466,6 +470,45 @@ class AppStorageService {
       updatedAt: Date.now()
     };
     await this.setItem(STORAGE_KEYS.PROFILE, updated);
+    return updated;
+  }
+
+  // --- DAILY ROUTINE CRUD ---
+
+  public async getDailyRoutine(profileId: string = 'default'): Promise<DailyRoutine> {
+    const key = `${STORAGE_KEYS.ROUTINE}:${profileId}`;
+    return this.getItem<DailyRoutine>(key, getDefaultDailyRoutine(profileId));
+  }
+
+  public async updateDailyRoutine(
+    updates: Partial<DailyRoutine>,
+    profileId: string = 'default'
+  ): Promise<DailyRoutine> {
+    const current = await this.getDailyRoutine(profileId);
+    const updated: DailyRoutine = {
+      ...current,
+      ...updates,
+      updatedAt: Date.now()
+    };
+    const key = `${STORAGE_KEYS.ROUTINE}:${profileId}`;
+    await this.setItem(key, updated);
+    return updated;
+  }
+
+  // --- SHIFT CONFIG CRUD ---
+
+  public async getShiftConfig(): Promise<ShiftConfig> {
+    return this.getItem<ShiftConfig>(STORAGE_KEYS.SHIFT_CONFIG, getDefaultShiftConfig());
+  }
+
+  public async updateShiftConfig(updates: Partial<ShiftConfig>): Promise<ShiftConfig> {
+    const current = await this.getShiftConfig();
+    const updated: ShiftConfig = {
+      ...current,
+      ...updates,
+      updatedAt: Date.now()
+    };
+    await this.setItem(STORAGE_KEYS.SHIFT_CONFIG, updated);
     return updated;
   }
 

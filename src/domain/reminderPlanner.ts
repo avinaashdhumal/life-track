@@ -4,6 +4,7 @@
  */
 
 import { AlarmItem, AlarmStyle, NotificationChannelId, RecurringSchedule } from './alarm';
+import { DailyRoutine, calculateRoutineRelativeClockTime } from './routine';
 
 export interface ScheduleDefinition {
   id: string;
@@ -32,12 +33,31 @@ export function parseTimeOfDay(timeStr: string): { hours: number; minutes: numbe
 }
 
 /**
+ * Resolves the effective hour and minute for a given schedule on a specific date string,
+ * taking into account routine-relative offsets if configured.
+ */
+export function resolveScheduleTimeForDate(
+  schedule: RecurringSchedule,
+  dateStr: string,
+  routineResolver?: (dateStr: string) => DailyRoutine | undefined
+): { hours: number; minutes: number } {
+  if (schedule.isRoutineRelative && schedule.routineTiming && routineResolver) {
+    const routine = routineResolver(dateStr);
+    if (routine) {
+      const clockTime = calculateRoutineRelativeClockTime(routine, schedule.routineTiming);
+      return parseTimeOfDay(clockTime);
+    }
+  }
+  return parseTimeOfDay(schedule.timeOfDay);
+}
+
+/**
  * Calculates future alarm occurrences for a single recurring schedule.
  * Handles:
- * - 'daily': Every day at timeOfDay
- * - 'weekly': Specified days of the week [0..6] at timeOfDay
- * - 'every_n_days': Every N days starting from startDate at timeOfDay (e.g. 2 days after)
- * - 'custom_dates': Explicit list of dates ("YYYY-MM-DD") at timeOfDay
+ * - 'daily': Every day at timeOfDay (or routine-relative anchor)
+ * - 'weekly': Specified days of the week [0..6]
+ * - 'every_n_days': Every N days starting from startDate (e.g. 2 days after)
+ * - 'custom_dates': Explicit list of dates ("YYYY-MM-DD")
  * - 'monthly': Day of month (e.g. 1st or 15th) and optional selective months
  * - 'once': Single date & time
  */
@@ -45,12 +65,14 @@ export function planOccurrencesForRecurringSchedule(
   schedule: RecurringSchedule,
   startFromMs: number,
   maxCount: number = 20,
-  horizonDays: number = 90
+  horizonDays: number = 90,
+  routineResolver?: (dateStr: string) => DailyRoutine | undefined
 ): AlarmItem[] {
   if (!schedule.isEnabled) return [];
 
   const results: AlarmItem[] = [];
-  const { hours, minutes } = parseTimeOfDay(schedule.timeOfDay);
+  const defaultTime = parseTimeOfDay(schedule.timeOfDay);
+  const { hours, minutes } = defaultTime;
   const startDateObj = schedule.startDate ? new Date(schedule.startDate + 'T00:00:00') : new Date(startFromMs);
   const endDateMs = schedule.endDate ? new Date(schedule.endDate + 'T23:59:59').getTime() : Infinity;
 
@@ -77,9 +99,14 @@ export function planOccurrencesForRecurringSchedule(
       }
 
       while (cursor.getTime() <= effectiveEndMs && results.length < maxCount) {
-        const timeMs = cursor.getTime();
         const dateStr = cursor.toISOString().split('T')[0];
-        results.push(createAlarmOccurrence(schedule, timeMs, dateStr));
+        const effectiveTime = resolveScheduleTimeForDate(schedule, dateStr, routineResolver);
+        const trigger = new Date(cursor);
+        trigger.setHours(effectiveTime.hours, effectiveTime.minutes, 0, 0);
+        const timeMs = trigger.getTime();
+        if (timeMs > startFromMs && timeMs <= effectiveEndMs) {
+          results.push(createAlarmOccurrence(schedule, timeMs, dateStr));
+        }
         cursor.setDate(cursor.getDate() + 1);
       }
       break;

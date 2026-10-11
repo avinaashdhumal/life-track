@@ -15,6 +15,8 @@ import { ProfileSettingsScreen } from './features/poc/ProfileSettingsScreen';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
 import { NotificationToneSettingsModal } from './features/poc/NotificationToneSettingsModal';
+import { RoutineSettingsModal } from './features/routine/RoutineSettingsModal';
+import { ShiftScheduleScreen } from './features/shift/ShiftScheduleScreen';
 import { profileRepository } from './data/profileRepository';
 
 import { AlarmItem } from './domain/alarm';
@@ -34,7 +36,8 @@ import {
   ChevronRight,
   Calendar,
   Package,
-  RotateCcw
+  RotateCcw,
+  Briefcase
 } from 'lucide-react-native';
 
 export type MainTabType = 'today' | 'medicines' | 'poc_test' | 'health_check' | 'profile_settings';
@@ -46,6 +49,8 @@ function AppContent() {
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showToneModal, setShowToneModal] = useState(false);
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
+  const [showShiftModal, setShowShiftModal] = useState(false);
   const [showTopMenu, setShowTopMenu] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
@@ -539,6 +544,66 @@ function AppContent() {
               <ChevronRight size={14} color={colors.textMuted} />
             </TouchableOpacity>
 
+            {/* Menu Item: Daily Routine */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setShowRoutineModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('routine.title', 'Daily Routine')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-amber-500/10 items-center justify-center border border-amber-500/20 shrink-0`}>
+                  <Sun size={16} color="#f59e0b" />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('routine.title', 'Daily Routine')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    {t('routine.menuDesc', 'Wake, meals, sleep milestones')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Menu Item: Shift & Schedule */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setShowShiftModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('shift.title', 'Shift & Schedule')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-indigo-500/10 items-center justify-center border border-indigo-500/20 shrink-0`}>
+                  <Briefcase size={16} color="#6366f1" />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('shift.title', 'Shift & Schedule')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    {t('shift.menuDesc', 'Rotating shifts & 90-day calendar')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+
             {/* Menu Item 2: Sound & Tones */}
             <TouchableOpacity
               onPress={() => {
@@ -703,6 +768,22 @@ function AppContent() {
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
+
+      {/* Daily Routine Settings Modal */}
+      {showRoutineModal && (
+        <RoutineSettingsModal
+          visible={showRoutineModal}
+          onClose={() => setShowRoutineModal(false)}
+        />
+      )}
+
+      {/* Shift & Schedule Engine Screen */}
+      {showShiftModal && (
+        <ShiftScheduleScreen
+          visible={showShiftModal}
+          onClose={() => setShowShiftModal(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }

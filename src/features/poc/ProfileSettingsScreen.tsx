@@ -34,8 +34,11 @@ import {
   Activity,
   Layers,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Briefcase
 } from 'lucide-react-native';
+import { RoutineSettingsModal } from '../routine/RoutineSettingsModal';
+import { ShiftScheduleScreen } from '../shift/ShiftScheduleScreen';
 
 interface ProfileSettingsScreenProps {
   onBack: () => void;
@@ -60,6 +63,8 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showLogsModal, setShowLogsModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showRoutineModal, setShowRoutineModal] = useState(false);
+  const [showShiftModal, setShowShiftModal] = useState(false);
   const [backupJson, setBackupJson] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
@@ -324,28 +329,60 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
           </View>
 
           {/* Daily Routine Card */}
-          <View
+          <TouchableOpacity
+            onPress={() => setShowRoutineModal(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('profileSettings.dailyRoutine')}
             style={[
-              tw`p-3 rounded-2xl border flex-col gap-1`,
+              tw`p-3 rounded-2xl border flex-row items-center justify-between`,
               { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
             ]}
           >
-            <View style={tw`flex-row items-center gap-1.5`}>
-              <Clock size={12} color={colors.primary} />
-              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider`, { color: colors.primary }]}>
-                {t('profileSettings.dailyRoutine')}
+            <View style={tw`flex-col gap-1 flex-1 mr-2`}>
+              <View style={tw`flex-row items-center gap-1.5`}>
+                <Clock size={12} color={colors.primary} />
+                <Text style={[tw`text-[10px] font-bold uppercase tracking-wider`, { color: colors.primary }]}>
+                  {t('profileSettings.dailyRoutine')}
+                </Text>
+              </View>
+              <View style={tw`flex-row items-center gap-3`}>
+                <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
+                  Wake: <Text style={tw`font-bold text-emerald-500 font-mono`}>{profile?.wakeTime || '07:00'}</Text>
+                </Text>
+                <Text style={[tw`text-xs`, { color: colors.textMuted }]}>•</Text>
+                <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
+                  Sleep: <Text style={tw`font-bold text-indigo-400 font-mono`}>{profile?.sleepTime || '23:00'}</Text>
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={14} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          {/* Shift & Schedule Engine Card */}
+          <TouchableOpacity
+            onPress={() => setShowShiftModal(true)}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('shift.title', 'Shift & Schedule')}
+            style={[
+              tw`p-3 rounded-2xl border flex-row items-center justify-between`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+            ]}
+          >
+            <View style={tw`flex-col gap-1 flex-1 mr-2`}>
+              <View style={tw`flex-row items-center gap-1.5`}>
+                <Briefcase size={12} color="#f59e0b" />
+                <Text style={tw`text-[10px] font-bold uppercase tracking-wider text-amber-500`}>
+                  {t('shift.title', 'Shift & Schedule')}
+                </Text>
+              </View>
+              <Text style={[tw`text-xs`, { color: colors.textSecondary }]} numberOfLines={1}>
+                {t('shift.profileDesc', 'Rotating work cycles, night shifts & 90-day calendar')}
               </Text>
             </View>
-            <View style={tw`flex-row items-center gap-3`}>
-              <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
-                Wake: <Text style={tw`font-bold text-emerald-500 font-mono`}>{profile?.wakeTime || '07:00'}</Text>
-              </Text>
-              <Text style={[tw`text-xs`, { color: colors.textMuted }]}>•</Text>
-              <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
-                Sleep: <Text style={tw`font-bold text-indigo-400 font-mono`}>{profile?.sleepTime || '23:00'}</Text>
-              </Text>
-            </View>
-          </View>
+            <ChevronRight size={14} color={colors.textMuted} />
+          </TouchableOpacity>
 
           {/* Medical Conditions Tags with Clean Lucide Activity Icon */}
           {profile?.medicalConditions && profile.medicalConditions.length > 0 && (
@@ -1166,6 +1203,30 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
           </View>
         </View>
       </Modal>
+
+      {/* Daily Routine Modal */}
+      {showRoutineModal && (
+        <RoutineSettingsModal
+          visible={showRoutineModal}
+          onClose={() => {
+            setShowRoutineModal(false);
+            loadData();
+          }}
+          onRoutineUpdated={() => loadData()}
+        />
+      )}
+
+      {/* Shift & Schedule Modal */}
+      {showShiftModal && (
+        <ShiftScheduleScreen
+          visible={showShiftModal}
+          onClose={() => {
+            setShowShiftModal(false);
+            loadData();
+          }}
+          onConfigChanged={() => loadData()}
+        />
+      )}
     </View>
   );
 };

@@ -104,7 +104,9 @@ const filesToCheck = [
   'src/features/onboarding/OnboardingScreen.tsx',
   'src/features/medicines/MedicineListScreen.tsx',
   'src/features/medicines/MedicineFormModal.tsx',
-  'src/features/today/TodayScreen.tsx'
+  'src/features/today/TodayScreen.tsx',
+  'src/features/routine/RoutineSettingsModal.tsx',
+  'src/features/shift/ShiftScheduleScreen.tsx'
 ];
 
 for (const file of filesToCheck) {
@@ -135,6 +137,8 @@ i18n.init({
 assert.strictEqual(i18n.t('app.name'), 'LifeTrack');
 assert.strictEqual(i18n.t('tabs.alarms'), 'Alarms');
 assert.strictEqual(i18n.t('fullScreenAlarm.snooze', { minutes: 10 }), 'Snooze 10 Minutes');
+assert.strictEqual(i18n.t('routine.title'), 'Daily Routine');
+assert.strictEqual(i18n.t('shift.title'), 'Shift & Schedule');
 console.log('✅ English (en) runtime translations verified');
 
 // Test Hindi
@@ -143,6 +147,8 @@ assert.strictEqual(i18n.t('app.name'), 'लाइफट्रैक');
 assert.strictEqual(i18n.t('tabs.alarms'), 'अलार्म');
 assert.strictEqual(i18n.t('categories.medicine'), 'दवाई');
 assert.strictEqual(i18n.t('fullScreenAlarm.snooze', { minutes: 10 }), '10 मिनट स्नूज़');
+assert.strictEqual(i18n.t('routine.title'), 'दैनिक दिनचर्या');
+assert.strictEqual(i18n.t('shift.title'), 'शिफ्ट और अनुसूची');
 console.log('✅ Hindi (hi) runtime translations verified');
 
 // Test Marathi
@@ -151,6 +157,8 @@ assert.strictEqual(i18n.t('app.name'), 'लाइफट्रॅक');
 assert.strictEqual(i18n.t('tabs.alarms'), 'अलार्म');
 assert.strictEqual(i18n.t('categories.medicine'), 'औषध');
 assert.strictEqual(i18n.t('fullScreenAlarm.snooze', { minutes: 10 }), '10 मिनिटे स्नूझ');
+assert.strictEqual(i18n.t('routine.title'), 'दैनिक दिनचर्या');
+assert.strictEqual(i18n.t('shift.title'), 'शिफ्ट आणि वेळापत्रक');
 console.log('✅ Marathi (mr) runtime translations verified');
 
 // Test Spanish
@@ -159,6 +167,8 @@ assert.strictEqual(i18n.t('app.name'), 'LifeTrack');
 assert.strictEqual(i18n.t('tabs.alarms'), 'Alarmas');
 assert.strictEqual(i18n.t('categories.medicine'), 'Medicamento');
 assert.strictEqual(i18n.t('fullScreenAlarm.snooze', { minutes: 10 }), 'Posponer 10 minutos');
+assert.strictEqual(i18n.t('routine.title'), 'Rutina Diaria');
+assert.strictEqual(i18n.t('shift.title'), 'Turnos y Horario');
 console.log('✅ Spanish (es) runtime translations verified');
 
 console.log('\n🎉 ALL TESTS PASSED! 100% SUCCESS.\n');

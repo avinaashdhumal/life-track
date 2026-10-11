@@ -196,6 +196,11 @@ export interface RecurringSchedule {
   createdAt: number;
   payload?: Record<string, unknown>;
   shiftTypeId?: string | null;
+  isRoutineRelative?: boolean;
+  routineTiming?: {
+    anchor: 'wake' | 'breakfast' | 'lunch' | 'dinner' | 'sleep' | 'windDown' | 'exercise';
+    offsetMinutes: number;
+  };
 }
 
 export interface AlarmItem {

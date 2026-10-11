@@ -79,7 +79,9 @@ export const DB_TABLES = {
   APP_SETTINGS: 'app_settings',
   USER_PROFILE: 'user_profile',
   MEDICINES: 'medicines',
-  MEDICINE_DOSES: 'medicine_doses'
+  MEDICINE_DOSES: 'medicine_doses',
+  ROUTINES: 'daily_routines',
+  SHIFT_CONFIG: 'shift_config'
 } as const;
 
 export type DbTableName = (typeof DB_TABLES)[keyof typeof DB_TABLES];
@@ -237,6 +239,16 @@ class LocalDatabaseService {
     return updated;
   }
 
+  async upsert<T extends Record<string, any>>(tableName: DbTableName, id: string, record: T): Promise<T> {
+    await this.ensureInitialized();
+    const tableMap = this.getTableMap(tableName);
+    const existing = tableMap.get(id);
+    const updated = { ...(existing || {}), ...record, id, updatedAt: Date.now() };
+    tableMap.set(id, updated);
+    await this.persistTable(tableName);
+    return updated;
+  }
+
   async delete(tableName: DbTableName, id: string): Promise<boolean> {
     await this.ensureInitialized();
     const tableMap = this.getTableMap(tableName);
@@ -349,7 +361,9 @@ class LocalDatabaseService {
       [DB_TABLES.APP_SETTINGS]: 'Persistent user preferences, theme, tone & language',
       [DB_TABLES.USER_PROFILE]: 'Personal health info, blood group & emergency contact',
       [DB_TABLES.MEDICINES]: 'Active and archived medications, dosages & inventory stock',
-      [DB_TABLES.MEDICINE_DOSES]: 'Dose consumption history and real-time intake logs'
+      [DB_TABLES.MEDICINE_DOSES]: 'Dose consumption history and real-time intake logs',
+      [DB_TABLES.ROUTINES]: 'Configured daily routines (wake, sleep, meal milestones)',
+      [DB_TABLES.SHIFT_CONFIG]: 'Work shifts configuration, rotation cycles & manual overrides'
     };
 
     const tables: TableStats[] = [];
@@ -431,6 +445,14 @@ class LocalDatabaseService {
         const rows = await this.selectAll(DB_TABLES.MEDICINE_DOSES);
         return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
       }
+      if (lower.startsWith('select * from daily_routines')) {
+        const rows = await this.selectAll(DB_TABLES.ROUTINES);
+        return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
+      }
+      if (lower.startsWith('select * from shift_config')) {
+        const rows = await this.selectAll(DB_TABLES.SHIFT_CONFIG);
+        return { success: true, rows, rowsAffected: 0, executionTimeMs: Date.now() - start };
+      }
 
       // Default stats query
       const stats = await this.getDatabaseStats();
@@ -495,3 +517,4 @@ class LocalDatabaseService {
 }
 
 export const databaseService = new LocalDatabaseService();
+export const localDb = databaseService;
