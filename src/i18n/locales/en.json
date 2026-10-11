@@ -18,7 +18,8 @@
   "settings": {
     "language": "Language",
     "theme": "Theme",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "quickMenu": "Quick Menu"
   },
   "common": {
     "enabled": "Enabled",
@@ -222,7 +223,8 @@
     "soundSettingsButton": "Open sound and notification tone settings",
     "profileSettingsButton": "Open profile and application settings",
     "back": "Go back",
-    "close": "Close modal"
+    "close": "Close modal",
+    "topMenuButton": "Open quick options menu"
   },
   "soundSettings": {
     "title": "Alarm & Notification Tone Settings",

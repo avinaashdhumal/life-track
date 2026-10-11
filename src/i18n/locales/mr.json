@@ -18,7 +18,8 @@
   "settings": {
     "language": "भाषा",
     "theme": "थीम",
-    "selectLanguage": "भाषा निवडा"
+    "selectLanguage": "भाषा निवडा",
+    "quickMenu": "जलद मेनू"
   },
   "common": {
     "enabled": "सक्रिय",
@@ -222,7 +223,8 @@
     "soundSettingsButton": "ध्वनी आणि सूचना टोन सेटिंग्ज उघडा",
     "profileSettingsButton": "प्रोफाइल आणि सेटिंग्ज उघडा",
     "back": "मागे जा",
-    "close": "बंद करा"
+    "close": "बंद करा",
+    "topMenuButton": "जलद पर्याय मेनू उघडा"
   },
   "soundSettings": {
     "title": "अलार्म आणि सूचना टोन सेटिंग्ज",

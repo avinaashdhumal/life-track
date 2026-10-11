@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import './i18n';
@@ -24,7 +24,10 @@ import {
   Moon,
   Globe,
   Volume2,
-  User
+  User,
+  MoreVertical,
+  X,
+  ChevronRight
 } from 'lucide-react-native';
 
 function AppContent() {
@@ -34,6 +37,7 @@ function AppContent() {
   const [ringingAlarm, setRingingAlarm] = useState<AlarmItem | null>(null);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showToneModal, setShowToneModal] = useState(false);
+  const [showTopMenu, setShowTopMenu] = useState(false);
 
   const currentLangCode = getCurrentLanguage();
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
@@ -187,85 +191,24 @@ function AppContent() {
           </View>
         </View>
 
-        {/* Right Action Icons: Sound, Language & Theme Controls */}
-        <View style={tw`flex-row items-center gap-2`}>
-          {/* Sound & Notification Tone Settings Button */}
-          <TouchableOpacity
-            onPress={() => setShowToneModal(true)}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('accessibility.soundSettingsButton')}
-            style={[
-              tw`p-2 rounded-xl border`,
-              {
-                backgroundColor: colors.cardSecondary,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            <Volume2 size={16} color="#f59e0b" />
-          </TouchableOpacity>
-
-          {/* Language Selector Button */}
-          <TouchableOpacity
-            onPress={() => setShowSettingsModal(true)}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('accessibility.selectLanguage')}
-            style={[
-              tw`flex-row items-center gap-1.5 px-2.5 py-1.5 rounded-xl border`,
-              {
-                backgroundColor: colors.cardSecondary,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            <Globe size={14} color={colors.primary} />
-            <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
-              {currentLang.code.toUpperCase()}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Theme Quick Toggle Button */}
-          <TouchableOpacity
-            onPress={toggleTheme}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('accessibility.toggleTheme')}
-            style={[
-              tw`p-2 rounded-xl border`,
-              {
-                backgroundColor: colors.cardSecondary,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            {isDark ? (
-              <Sun size={16} color="#fbbf24" />
-            ) : (
-              <Moon size={16} color="#6366f1" />
-            )}
-          </TouchableOpacity>
-
-          {/* Profile & Settings Button (Top Right Icon) */}
-          <TouchableOpacity
-            onPress={() => setActiveTab('profile_settings')}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel={t('accessibility.profileSettingsButton')}
-            style={[
-              tw`p-2 rounded-xl border flex-row items-center justify-center min-h-10 min-w-10`,
-              activeTab === 'profile_settings'
-                ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                : { backgroundColor: colors.cardSecondary, borderColor: colors.border }
-            ]}
-          >
-            <User
-              size={16}
-              color={activeTab === 'profile_settings' ? '#ffffff' : colors.primary}
-            />
-          </TouchableOpacity>
-        </View>
+        {/* Single Top Right Menu Button */}
+        <TouchableOpacity
+          onPress={() => setShowTopMenu(true)}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={t('accessibility.topMenuButton')}
+          style={[
+            tw`p-2.5 rounded-2xl border flex-row items-center justify-center min-h-11 min-w-11 shrink-0`,
+            showTopMenu
+              ? { backgroundColor: colors.primary, borderColor: colors.primary }
+              : { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+          ]}
+        >
+          <MoreVertical
+            size={18}
+            color={showTopMenu ? '#ffffff' : colors.text}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Main Content Area (Independently Scrollable Above Fixed Navigation) */}
@@ -414,6 +357,219 @@ function AppContent() {
         onClose={() => setShowToneModal(false)}
         onScheduleQuickTestAlarm={handleScheduleQuickTestAlarm}
       />
+
+      {/* Top Right Quick Actions Menu Modal */}
+      <Modal
+        visible={showTopMenu}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowTopMenu(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowTopMenu(false)}
+          style={tw`flex-1 justify-start items-end bg-black/60 pt-16 px-4`}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={t('accessibility.close')}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              tw`w-full max-w-xs rounded-3xl border p-4 shadow-2xl flex flex-col gap-2 overflow-hidden`,
+              { backgroundColor: colors.card, borderColor: colors.border }
+            ]}
+            accessible={true}
+            accessibilityViewIsModal={true}
+            accessibilityLabel={t('settings.quickMenu')}
+          >
+            {/* Header: Title & Close */}
+            <View style={tw`flex-row items-center justify-between pb-3 border-b border-zinc-800/15 mb-1`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <View style={tw`w-7 h-7 rounded-lg bg-indigo-500/10 items-center justify-center border border-indigo-500/25`}>
+                  <User size={14} color={colors.primary} />
+                </View>
+                <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+                  {t('settings.quickMenu')}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowTopMenu(false)}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={t('accessibility.close')}
+                style={tw`p-1 rounded-lg`}
+              >
+                <X size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Menu Item 1: Profile & Settings */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setActiveTab('profile_settings');
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.profileSettingsButton')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                activeTab === 'profile_settings'
+                  ? { backgroundColor: colors.primaryBg, borderColor: colors.primary }
+                  : { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-indigo-500/10 items-center justify-center border border-indigo-500/20 shrink-0`}>
+                  <User size={16} color={colors.primary} />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('profileSettings.title')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    Health ID, Routine & Local DB
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Menu Item 2: Sound & Tones */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setShowToneModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.soundSettingsButton')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-full bg-amber-500/10 items-center justify-center shrink-0`}>
+                  <Volume2 size={16} color="#f59e0b" />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('soundSettings.button')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    {t('soundSettings.title')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Menu Item 3: Language Selector */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setShowSettingsModal(true);
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.selectLanguage')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-full bg-indigo-500/10 items-center justify-center shrink-0`}>
+                  <Globe size={16} color={colors.primary} />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('settings.language')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    {currentLang.flag} {currentLang.nativeName}
+                  </Text>
+                </View>
+              </View>
+              <View style={tw`px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700`}>
+                <Text style={tw`text-[10px] font-bold text-zinc-300 font-mono`}>
+                  {currentLang.code.toUpperCase()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Menu Item 4: Theme Toggle (Instant 1-Tap Switch) */}
+            <TouchableOpacity
+              onPress={toggleTheme}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.toggleTheme')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-full items-center justify-center shrink-0 bg-amber-500/10`}>
+                  {isDark ? (
+                    <Sun size={16} color="#fbbf24" />
+                  ) : (
+                    <Moon size={16} color="#6366f1" />
+                  )}
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('settings.theme')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    {isDark ? t('theme.dark') : t('theme.light')}
+                  </Text>
+                </View>
+              </View>
+              <View style={tw`px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800`}>
+                <Text style={tw`text-[10px] font-bold text-zinc-300`}>
+                  {isDark ? '🌙 Dark' : '☀️ Light'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Menu Item 5: System Health Check Shortcut */}
+            <TouchableOpacity
+              onPress={() => {
+                setShowTopMenu(false);
+                setActiveTab('health_check');
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('accessibility.tabHealthCheck')}
+              style={[
+                tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
+                activeTab === 'health_check'
+                  ? { backgroundColor: colors.primaryBg, borderColor: colors.primary }
+                  : { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-3 flex-1 min-w-0 pr-2`}>
+                <View style={tw`w-8 h-8 rounded-xl bg-emerald-500/10 items-center justify-center border border-emerald-500/20 shrink-0`}>
+                  <ShieldCheck size={16} color="#10b981" />
+                </View>
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {t('healthCheck.systemHealth')}
+                  </Text>
+                  <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
+                    AlarmManager & Doze Diagnostics
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }

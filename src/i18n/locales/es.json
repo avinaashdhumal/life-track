@@ -18,7 +18,8 @@
   "settings": {
     "language": "Idioma",
     "theme": "Tema",
-    "selectLanguage": "Seleccionar idioma"
+    "selectLanguage": "Seleccionar idioma",
+    "quickMenu": "Menú rápido"
   },
   "common": {
     "enabled": "Activado",
@@ -222,7 +223,8 @@
     "soundSettingsButton": "Abrir configuración de sonidos y tonos de notificación",
     "profileSettingsButton": "Abrir perfil y ajustes de la aplicación",
     "back": "Volver",
-    "close": "Cerrar ventana"
+    "close": "Cerrar ventana",
+    "topMenuButton": "Abrir menú de opciones rápidas"
   },
   "soundSettings": {
     "title": "Configuración de tonos y alarmas",
