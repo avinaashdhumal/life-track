@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
 import tw from 'twrnc';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { reminderService } from '../../services/AlarmEngineService';
 import {
   AlarmItem,
@@ -19,8 +21,6 @@ import {
   Bell,
   Clock,
   Play,
-  CheckCircle2,
-  AlertTriangle,
   RotateCcw,
   Volume2,
   Trash2,
@@ -28,7 +28,6 @@ import {
   Zap,
   Repeat,
   Plus,
-  Calendar,
   ToggleLeft,
   ToggleRight,
   Tag
@@ -43,6 +42,9 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   onTriggerAlarmDirectly,
   onOpenHealthCheck
 }) => {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
   const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>([]);
   const [logs, setLogs] = useState<ReminderLogEntry[]>([]);
@@ -53,7 +55,7 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const [message, setMessage] = useState('Take 1 tablet with warm water');
   const [now, setNow] = useState(Date.now());
   const [showRecurringModal, setShowRecurringModal] = useState(false);
-  const [justScheduledId, setJustScheduledId] = useState<string | null>(null);
+  const [, setJustScheduledId] = useState<string | null>(null);
   const [pendingConflict, setPendingConflict] = useState<{
     candidate: {
       id: string;
@@ -67,6 +69,10 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     };
     conflictResult: AlarmConflictResult;
   } | null>(null);
+
+  const getCategoryLabel = (catId: AlarmCategory): string => {
+    return t(`categories.${catId}`) || ALARM_CATEGORIES[catId]?.label || catId;
+  };
 
   const handleSelectTestCategory = (catId: AlarmCategory) => {
     setSelectedCategory(catId);
@@ -118,7 +124,6 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     const currentTime = Date.now();
     for (const item of list) {
       if (item.triggerTimeMs <= currentTime) {
-        // Trigger alarm
         await reminderService.cancelAlarm(item.id);
         await reminderService.logAction({
           profileId: 'default',
@@ -177,7 +182,6 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
       snoozeIntervalMinutes: 10
     };
 
-    // Check for 5-minute conflict against existing alarms
     const conflictResult = detectAlarmConflict(targetMs, alarms, 5);
     if (conflictResult.hasConflict) {
       setPendingConflict({ candidate, conflictResult });
@@ -252,117 +256,181 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   const getRecurrenceBadge = (s: RecurringSchedule) => {
     switch (s.recurrenceType) {
       case 'daily':
-        return `Daily at ${s.timeOfDay}`;
+        return t('recurrenceBadge.dailyAt', { time: s.timeOfDay });
       case 'weekly': {
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const formattedDays = (s.weekdays || []).map((d) => days[d]).join(', ');
-        return `Weekly (${formattedDays || 'Every day'}) at ${s.timeOfDay}`;
+        return t('recurrenceBadge.weeklyAt', { days: formattedDays || t('recurrenceBadge.everyDay'), time: s.timeOfDay });
       }
       case 'every_n_days':
-        return `Every ${s.intervalDays || 2} Days at ${s.timeOfDay}`;
+        return t('recurrenceBadge.everyNDaysAt', { n: s.intervalDays || 2, time: s.timeOfDay });
       case 'custom_dates':
-        return `${(s.specificDates || []).length} Selected Dates at ${s.timeOfDay}`;
-      case 'monthly':
-        return `Monthly on ${s.dayOfMonth || 1}${s.dayOfMonth === 1 ? 'st' : s.dayOfMonth === 2 ? 'nd' : 'th'} at ${s.timeOfDay}`;
+        return t('recurrenceBadge.selectedDatesAt', { count: (s.specificDates || []).length, time: s.timeOfDay });
+      case 'monthly': {
+        const day = s.dayOfMonth || 1;
+        return t('recurrenceBadge.monthlyOn', { day, time: s.timeOfDay });
+      }
       default:
-        return `At ${s.timeOfDay}`;
+        return t('recurrenceBadge.at', { time: s.timeOfDay });
     }
   };
-
-
 
   return (
     <View style={tw`flex flex-col gap-5 pb-12`}>
       {/* Top Banner: Phase 0 Status */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800/80 p-5 shadow-sm`}>
+      <View
+        style={[
+          tw`rounded-3xl p-5 shadow-sm border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-center justify-between mb-3 flex-wrap gap-2`}>
           <View style={tw`flex-row items-center gap-2 flex-wrap`}>
-            <Text style={tw`px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`}>
-              PHASE 0 READY
+            <Text style={tw`px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30`}>
+              {t('alarm.phaseReady')}
             </Text>
-            <Text style={tw`text-sm font-medium text-zinc-400`}>Alarm Scheduler</Text>
+            <Text style={[tw`text-sm font-semibold`, { color: colors.textMuted }]}>
+              {t('alarm.scheduler')}
+            </Text>
           </View>
         </View>
-        <Text style={tw`text-sm text-zinc-400 leading-relaxed`}>
-          Supports <Text style={tw`font-bold text-zinc-200`}>Recurring Alarms</Text> (Daily, Weekly, Every 2 Days, Selected Dates, Monthly) across all channels with native <Text style={tw`text-zinc-300 bg-zinc-800 px-1.5 py-0.5 rounded-lg font-mono text-xs`}>AlarmManager</Text>.
+        <Text style={[tw`text-sm leading-relaxed`, { color: colors.textSecondary }]}>
+          {t('alarm.supportsRecurring')}
         </Text>
       </View>
 
-      {/* NEW: Recurring Alarm Scheduler Hub Card */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg`}>
+      {/* Recurring Alarm Scheduler Hub Card */}
+      <View
+        style={[
+          tw`rounded-3xl p-5 shadow-lg border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-col gap-4 mb-4`}>
           <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center`}>
-              <Repeat size={24} color={tw.color('indigo-400')} />
+            <View
+              style={[
+                tw`w-12 h-12 rounded-2xl border flex items-center justify-center`,
+                {
+                  backgroundColor: colors.primaryBg,
+                  borderColor: colors.primaryBorder
+                }
+              ]}
+            >
+              <Repeat size={24} color={colors.primary} />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-lg font-bold text-white tracking-tight`}>Recurring Alarms</Text>
-              <Text style={tw`text-xs text-zinc-400 mt-0.5`}>Daily, weekly, custom schedules</Text>
+              <Text style={[tw`text-lg font-bold tracking-tight`, { color: colors.text }]}>
+                {t('alarm.recurringAlarms')}
+              </Text>
+              <Text style={[tw`text-xs mt-0.5`, { color: colors.textMuted }]}>
+                {t('alarm.recurringDescription')}
+              </Text>
             </View>
           </View>
 
           <TouchableOpacity
             onPress={() => setShowRecurringModal(true)}
-            style={tw`w-full py-3.5 px-4 rounded-2xl bg-indigo-600 active:bg-indigo-500 flex-row items-center justify-center gap-2 shadow-lg shadow-indigo-900/40`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarm.addNewSchedule')}
+            style={[
+              tw`w-full py-3.5 px-4 rounded-2xl flex-row items-center justify-center gap-2 shadow-md min-h-12`,
+              { backgroundColor: colors.primary }
+            ]}
           >
-            <Plus size={18} color="#fff" />
-            <Text style={tw`text-sm font-bold text-white`}>Add New Schedule</Text>
+            <Plus size={18} color="#ffffff" />
+            <Text style={tw`text-sm font-bold text-white`}>
+              {t('alarm.addNewSchedule')}
+            </Text>
           </TouchableOpacity>
         </View>
 
         {/* List of Recurring Schedules */}
-        <View style={tw`space-y-2 mt-4`}>
+        <View style={tw`gap-2.5 mt-2`}>
           {recurringSchedules.map((schedule) => {
             const cat = resolveAlarmCategory(schedule);
+            const catLabel = getCategoryLabel(cat.id);
             return (
               <View
                 key={schedule.id}
-                style={tw`p-3 rounded-2xl border flex-row items-center justify-between gap-3 ${schedule.isEnabled
-                  ? 'bg-zinc-950 border-zinc-800'
-                  : 'bg-zinc-950/50 border-zinc-800/40 opacity-60'
-                  }`}
+                style={[
+                  tw`p-3.5 rounded-2xl border flex-row items-center justify-between gap-3`,
+                  {
+                    backgroundColor: colors.cardSecondary,
+                    borderColor: colors.border
+                  },
+                  !schedule.isEnabled ? { opacity: 0.6 } : {}
+                ]}
               >
                 <View style={tw`flex-row items-center gap-2.5 flex-1`}>
                   <TouchableOpacity
                     onPress={() => handleToggleRecurring(schedule.id, schedule.isEnabled)}
-                    style={tw`p-1 shrink-0`}
+                    accessible={true}
+                    accessibilityRole="switch"
+                    accessibilityState={{ checked: schedule.isEnabled }}
+                    accessibilityLabel={t('accessibility.toggleSchedule')}
+                    style={tw`p-1 shrink-0 min-w-10 min-h-10 items-center justify-center`}
                   >
                     {schedule.isEnabled ? (
-                      <ToggleRight size={32} color={tw.color('emerald-400')} />
+                      <ToggleRight size={32} color="#10b981" />
                     ) : (
-                      <ToggleLeft size={32} color={tw.color('zinc-600')} />
+                      <ToggleLeft size={32} color={colors.textSubtle} />
                     )}
                   </TouchableOpacity>
-                  
+
                   <View
-                    style={[tw`w-10 h-10 rounded-xl flex items-center justify-center shrink-0`, {
-                      backgroundColor: `${cat.color}15`,
-                      border: `1px solid ${cat.color}30`
-                    }]}
+                    style={[
+                      tw`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border`,
+                      {
+                        backgroundColor: `${cat.color}15`,
+                        borderColor: `${cat.color}30`
+                      }
+                    ]}
                   >
-                    <View style={tw`w-5 h-5`}><CategoryIcon category={cat.id} /></View>
+                    <View style={tw`w-5 h-5`}>
+                      <CategoryIcon category={cat.id} color={cat.color} />
+                    </View>
                   </View>
-                  
+
                   <View style={tw`flex-1`}>
                     <View style={tw`flex-row items-center gap-1.5 flex-wrap`}>
-                      <Text style={tw`text-sm font-bold text-white flex-1 shrink`} numberOfLines={1}>{schedule.title}</Text>
+                      <Text style={[tw`text-sm font-bold flex-1 shrink`, { color: colors.text }]} numberOfLines={1}>
+                        {schedule.title}
+                      </Text>
                     </View>
                     <View style={tw`flex-row gap-1 mt-1`}>
                       <Text
-                        style={[tw`text-[9px] px-1.5 py-0.5 rounded flex-row items-center font-bold overflow-hidden`, {
-                          backgroundColor: `${cat.color}15`,
-                          color: cat.color
-                        }]}
+                        style={[
+                          tw`text-[10px] px-1.5 py-0.5 rounded font-bold overflow-hidden`,
+                          {
+                            backgroundColor: `${cat.color}15`,
+                            color: cat.color
+                          }
+                        ]}
                       >
-                        {cat.label}
+                        {catLabel}
                       </Text>
-                      <Text style={tw`text-[9px] px-1.5 py-0.5 rounded font-bold overflow-hidden ${schedule.style === 'full_alarm' ? 'bg-amber-500/10 text-amber-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                        {schedule.style === 'full_alarm' ? 'Full Alarm' : 'Notif'}
+                      <Text
+                        style={[
+                          tw`text-[10px] px-1.5 py-0.5 rounded font-bold overflow-hidden`,
+                          schedule.style === 'full_alarm'
+                            ? { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }
+                            : { backgroundColor: colors.border, color: colors.textMuted }
+                        ]}
+                      >
+                        {schedule.style === 'full_alarm' ? t('alarm.fullAlarm') : t('alarm.notification')}
                       </Text>
                     </View>
                     <View style={tw`flex-row items-center gap-1 mt-1`}>
-                      <Clock size={10} color={tw.color('indigo-400')} />
-                      <Text style={tw`text-[10px] font-medium text-zinc-400 flex-1`} numberOfLines={1}>
+                      <Clock size={10} color={colors.primary} />
+                      <Text style={[tw`text-[10px] font-medium flex-1`, { color: colors.textMuted }]} numberOfLines={1}>
                         {getRecurrenceBadge(schedule)}
                         {schedule.message ? ` • ${schedule.message}` : ''}
                       </Text>
@@ -372,9 +440,12 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
 
                 <TouchableOpacity
                   onPress={() => handleDeleteRecurring(schedule.id)}
-                  style={tw`p-2.5 rounded-full bg-red-500/10 shrink-0`}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('accessibility.deleteSchedule')}
+                  style={tw`p-2.5 rounded-full bg-red-500/10 shrink-0 min-w-10 min-h-10 items-center justify-center`}
                 >
-                  <Trash2 size={16} color={tw.color('red-400')} />
+                  <Trash2 size={16} color="#ef4444" />
                 </TouchableOpacity>
               </View>
             );
@@ -383,29 +454,60 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
       </View>
 
       {/* Primary 2-Minute Proof of Concept Action Card */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-indigo-500/30 p-5 shadow-xl relative overflow-hidden mt-2`}>
-        <View style={tw`absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full`} />
+      <View
+        style={[
+          tw`rounded-3xl p-5 shadow-xl relative overflow-hidden mt-1 border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.primaryBorder
+          }
+        ]}
+      >
+        <View
+          style={[
+            tw`absolute top-0 right-0 w-32 h-32 rounded-bl-full`,
+            { backgroundColor: colors.primaryBg }
+          ]}
+        />
         <View style={tw`flex-col items-start justify-between mb-5 relative z-10 gap-3`}>
           <View style={tw`flex-1 w-full`}>
             <View style={tw`flex-row items-center gap-2.5 mb-1.5`}>
-              <View style={tw`w-10 h-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center`}>
-                <Bell size={20} color={tw.color('indigo-400')} />
+              <View
+                style={[
+                  tw`w-10 h-10 rounded-2xl border flex items-center justify-center`,
+                  {
+                    backgroundColor: colors.primaryBg,
+                    borderColor: colors.primaryBorder
+                  }
+                ]}
+              >
+                <Bell size={20} color={colors.primary} />
               </View>
-              <Text style={tw`text-xl font-bold text-white tracking-tight`}>
-                Quick Alarm Test
+              <Text style={[tw`text-xl font-bold tracking-tight`, { color: colors.text }]}>
+                {t('alarm.quickAlarmTest')}
               </Text>
             </View>
-            <Text style={tw`text-sm text-zinc-400 pr-2 mt-1`}>
-              Schedule a one-off alarm directly to verify system functionality.
+            <Text style={[tw`text-sm pr-2 mt-1`, { color: colors.textMuted }]}>
+              {t('alarm.quickAlarmDescription')}
             </Text>
           </View>
           {nextAlarm && (
-            <View style={tw`w-full flex-row items-center justify-between bg-black/30 p-4 rounded-2xl border border-white/5`}>
+            <View
+              style={[
+                tw`w-full flex-row items-center justify-between p-4 rounded-2xl border`,
+                {
+                  backgroundColor: colors.cardSecondary,
+                  borderColor: colors.border
+                }
+              ]}
+            >
               <View style={tw`flex-row items-center gap-2`}>
-                <Clock size={16} color={tw.color('amber-400')} />
-                <Text style={tw`text-sm font-medium text-amber-400`}>Next Ring In</Text>
+                <Clock size={16} color="#f59e0b" />
+                <Text style={tw`text-sm font-semibold text-amber-500`}>
+                  {t('alarm.nextRingIn')}
+                </Text>
               </View>
-              <Text style={tw`text-2xl font-mono font-bold text-white`}>
+              <Text style={[tw`text-2xl font-mono font-bold`, { color: colors.text }]}>
                 {formatCountdown(nextAlarm.triggerTimeMs)}
               </Text>
             </View>
@@ -415,24 +517,48 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
         {/* Category Selector Pills */}
         <View style={tw`mb-5 relative z-10`}>
           <View style={tw`flex-row items-center gap-1.5 mb-3`}>
-            <Tag size={16} color={tw.color('indigo-400')} />
-            <Text style={tw`text-sm font-bold text-zinc-300`}>Category</Text>
+            <Tag size={16} color={colors.primary} />
+            <Text style={[tw`text-sm font-bold`, { color: colors.textSecondary }]}>
+              {t('alarm.category')}
+            </Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-center gap-2 pb-2`}>
             {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
               const catDef = ALARM_CATEGORIES[catId];
               const isSelected = selectedCategory === catId;
+              const catLabel = getCategoryLabel(catId);
               return (
                 <TouchableOpacity
                   key={catId}
                   onPress={() => handleSelectTestCategory(catId)}
-                  style={tw`px-4 py-3 rounded-2xl flex-row items-center gap-2.5 border ${isSelected
-                    ? 'bg-zinc-800 border-zinc-500 shadow-sm'
-                    : 'bg-zinc-950 border-zinc-800/80'
-                    }`}
+                  accessible={true}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={catLabel}
+                  style={[
+                    tw`px-4 py-3 rounded-2xl flex-row items-center gap-2.5 border min-h-11`,
+                    isSelected
+                      ? {
+                          backgroundColor: colors.cardHover,
+                          borderColor: catDef.color
+                        }
+                      : {
+                          backgroundColor: colors.cardSecondary,
+                          borderColor: colors.border
+                        }
+                  ]}
                 >
-                  <View style={tw`w-5 h-5`}><CategoryIcon category={catId} /></View>
-                  <Text style={tw`text-sm ${isSelected ? 'text-white font-bold' : 'text-zinc-400 font-medium'}`}>{catDef.label}</Text>
+                  <View style={tw`w-4 h-4`}>
+                    <CategoryIcon category={catId} color={catDef.color} />
+                  </View>
+                  <Text
+                    style={[
+                      tw`text-sm font-semibold`,
+                      { color: isSelected ? colors.text : colors.textMuted }
+                    ]}
+                  >
+                    {catLabel}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -440,75 +566,147 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
         </View>
 
         {/* Inputs */}
-        <View style={tw`flex-col gap-5 mb-6 relative z-10`}>
+        <View style={tw`flex-col gap-4 mb-6 relative z-10`}>
           <View>
-            <Text style={tw`text-sm font-bold text-zinc-300 mb-2`}>
-              Reminder Title
+            <Text style={[tw`text-sm font-bold mb-2`, { color: colors.textSecondary }]}>
+              {t('alarm.reminderTitle')}
             </Text>
             <TextInput
               value={title}
               onChangeText={setTitle}
-              style={tw`w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-base text-white font-medium`}
-              placeholder="e.g. Metformin 500mg"
-              placeholderTextColor={tw.color('zinc-600')}
+              placeholder={t('alarm.titlePlaceholder')}
+              placeholderTextColor={colors.textSubtle}
+              accessible={true}
+              accessibilityLabel={t('alarm.reminderTitle')}
+              style={[
+                tw`w-full border rounded-2xl px-5 py-4 text-base font-medium`,
+                {
+                  backgroundColor: colors.inputBg,
+                  borderColor: colors.inputBorder,
+                  color: colors.text
+                }
+              ]}
             />
           </View>
 
           <View>
-            <Text style={tw`text-sm font-bold text-zinc-300 mb-2`}>
-              Notification Channel
+            <Text style={[tw`text-sm font-bold mb-2`, { color: colors.textSecondary }]}>
+              {t('alarm.notificationChannel')}
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-2`}>
-              {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => (
-                <TouchableOpacity
-                  key={ch}
-                  onPress={() => setSelectedChannel(ch as NotificationChannelId)}
-                  style={tw`px-5 py-3 rounded-2xl border ${selectedChannel === ch ? 'bg-indigo-600 border-indigo-500 shadow-md shadow-indigo-900/40' : 'bg-zinc-950 border-zinc-800'}`}
-                >
-                  <Text style={tw`text-sm ${selectedChannel === ch ? 'text-white font-bold' : 'text-zinc-400 font-medium'}`}>{ch}</Text>
-                </TouchableOpacity>
-              ))}
+              {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => {
+                const isSelected = selectedChannel === ch;
+                return (
+                  <TouchableOpacity
+                    key={ch}
+                    onPress={() => setSelectedChannel(ch as NotificationChannelId)}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={ch}
+                    style={[
+                      tw`px-5 py-3 rounded-2xl border min-h-11 justify-center`,
+                      isSelected
+                        ? {
+                            backgroundColor: colors.primary,
+                            borderColor: colors.primary
+                          }
+                        : {
+                            backgroundColor: colors.cardSecondary,
+                            borderColor: colors.border
+                          }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        tw`text-sm font-medium`,
+                        { color: isSelected ? '#ffffff' : colors.textMuted }
+                      ]}
+                    >
+                      {ch}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
           <View>
-            <Text style={tw`text-sm font-bold text-zinc-300 mb-2`}>
-              Alarm Style
+            <Text style={[tw`text-sm font-bold mb-2`, { color: colors.textSecondary }]}>
+              {t('alarm.alarmStyle')}
             </Text>
             <TouchableOpacity
               onPress={() => setIsFullAlarm(!isFullAlarm)}
-              style={tw`w-full py-4 px-5 rounded-2xl border flex-row items-center justify-center gap-2 transition ${isFullAlarm
-                ? 'bg-amber-500/15 border-amber-500/40'
-                : 'bg-zinc-800 border-zinc-700'
-                }`}
+              accessible={true}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: isFullAlarm }}
+              accessibilityLabel={isFullAlarm ? t('alarm.fullScreenAlarm') : t('alarm.standardNotification')}
+              style={[
+                tw`w-full py-4 px-5 rounded-2xl border flex-row items-center justify-center gap-2 min-h-12`,
+                isFullAlarm
+                  ? {
+                      backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                      borderColor: '#f59e0b'
+                    }
+                  : {
+                      backgroundColor: colors.cardSecondary,
+                      borderColor: colors.border
+                    }
+              ]}
             >
-              <Volume2 size={18} color={isFullAlarm ? tw.color('amber-400') : tw.color('zinc-400')} />
-              <Text style={tw`text-sm font-bold ${isFullAlarm ? 'text-amber-400' : 'text-zinc-300'}`}>{isFullAlarm ? 'Full Screen Alarm' : 'Standard Notification'}</Text>
+              <Volume2 size={18} color={isFullAlarm ? '#d97706' : colors.textMuted} />
+              <Text
+                style={[
+                  tw`text-sm font-bold`,
+                  { color: isFullAlarm ? '#d97706' : colors.textSecondary }
+                ]}
+              >
+                {isFullAlarm ? t('alarm.fullScreenAlarm') : t('alarm.standardNotification')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Buttons */}
-        <View style={tw`flex-col gap-3 mt-4`}>
+        <View style={tw`flex-col gap-3 mt-2`}>
           <TouchableOpacity
             onPress={handleScheduleTwoMinutes}
-            style={tw`py-4 px-5 rounded-2xl bg-indigo-600 flex-row items-center justify-center gap-2.5 shadow-lg shadow-indigo-900/30`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarm.schedule2Min')}
+            style={[
+              tw`py-4 px-5 rounded-2xl flex-row items-center justify-center gap-2.5 shadow-md min-h-12`,
+              { backgroundColor: colors.primary }
+            ]}
           >
-            <Clock size={18} color={tw.color('white')} />
-            <Text style={tw`text-white font-bold text-base`}>Schedule 2 Minutes Ahead</Text>
+            <Clock size={18} color="#ffffff" />
+            <Text style={tw`text-white font-bold text-base`}>
+              {t('alarm.schedule2Min')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={handleScheduleTenSeconds}
-            style={tw`py-4 px-5 rounded-2xl bg-zinc-800 flex-row items-center justify-center gap-2 border border-zinc-700`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarm.quick10sTest')}
+            style={[
+              tw`py-3.5 px-5 rounded-2xl border flex-row items-center justify-center gap-2 min-h-12`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
           >
-            <Zap size={16} color={tw.color('amber-400')} />
-            <Text style={tw`text-zinc-200 font-semibold text-sm`}>Quick 10s Test</Text>
+            <Zap size={16} color="#f59e0b" />
+            <Text style={[tw`font-semibold text-sm`, { color: colors.text }]}>
+              {t('alarm.quick10sTest')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 24-Hour Visual Sequence Timeline using Recharts */}
+      {/* 24-Hour Visual Sequence Timeline */}
       <Alarm24hTimelineChart
         alarms={alarms}
         currentTimeMs={now}
@@ -516,94 +714,178 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
       />
 
       {/* Currently Scheduled Occurrences in Native AlarmManager */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg mt-2`}>
+      <View
+        style={[
+          tw`rounded-3xl p-5 shadow-lg border mt-1`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-center justify-between mb-5`}>
           <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-10 h-10 rounded-2xl bg-zinc-800/80 flex items-center justify-center`}>
-              <Bell size={20} color={tw.color('zinc-300')} />
+            <View
+              style={[
+                tw`w-10 h-10 rounded-2xl border flex items-center justify-center`,
+                {
+                  backgroundColor: colors.cardSecondary,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Bell size={20} color={colors.primary} />
             </View>
             <View>
-              <Text style={tw`text-lg font-bold text-white`}>Upcoming Alarms</Text>
-              <Text style={tw`text-xs text-zinc-400 mt-0.5`}>{alarms.length} scheduled</Text>
+              <Text style={[tw`text-lg font-bold`, { color: colors.text }]}>
+                {t('alarm.upcomingAlarms')}
+              </Text>
+              <Text style={[tw`text-xs mt-0.5`, { color: colors.textMuted }]}>
+                {t('alarm.scheduled', { count: alarms.length })}
+              </Text>
             </View>
           </View>
           {alarms.length > 0 && (
             <TouchableOpacity
               onPress={handleClearAll}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('alarm.clearAll')}
               style={tw`px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20`}
             >
-              <Text style={tw`text-xs font-bold text-red-400`}>Clear All</Text>
+              <Text style={tw`text-xs font-bold text-red-500`}>
+                {t('alarm.clearAll')}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
         {alarms.length === 0 ? (
-          <View style={tw`py-12 bg-zinc-950 rounded-3xl border border-zinc-800/60 flex items-center justify-center`}>
-            <View style={tw`w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center mb-4`}>
-              <Bell size={28} color={tw.color('zinc-700')} />
+          <View
+            style={[
+              tw`py-12 rounded-3xl border flex items-center justify-center`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <View
+              style={[
+                tw`w-16 h-16 rounded-full flex items-center justify-center mb-4`,
+                { backgroundColor: colors.card }
+              ]}
+            >
+              <Bell size={28} color={colors.textSubtle} />
             </View>
-            <Text style={tw`text-base font-bold text-zinc-400 mb-1`}>All clear!</Text>
-            <Text style={tw`text-sm font-medium text-zinc-600 text-center px-6`}>
-              No upcoming alarms.
+            <Text style={[tw`text-base font-bold mb-1`, { color: colors.textSecondary }]}>
+              {t('alarm.allClear')}
+            </Text>
+            <Text style={[tw`text-sm font-medium text-center px-6`, { color: colors.textMuted }]}>
+              {t('alarm.noUpcoming')}
             </Text>
           </View>
         ) : (
           <View style={tw`flex-col gap-3`}>
             {alarms.map((alarm) => {
               const cat = resolveAlarmCategory(alarm);
+              const catLabel = getCategoryLabel(cat.id);
+              const countdown = formatCountdown(alarm.triggerTimeMs);
               return (
                 <View
                   key={alarm.id}
-                  style={tw`p-4 rounded-3xl bg-zinc-950 border border-zinc-800 flex-col gap-4`}
+                  style={[
+                    tw`p-4 rounded-3xl border flex-col gap-3.5`,
+                    {
+                      backgroundColor: colors.cardSecondary,
+                      borderColor: colors.border
+                    }
+                  ]}
+                  accessible={true}
+                  accessibilityLabel={t('accessibility.alarmItem', {
+                    title: alarm.title,
+                    time: new Date(alarm.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    countdown
+                  })}
                 >
                   <View style={tw`flex-row items-start gap-4`}>
                     <View
-                      style={[tw`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0`, {
-                        backgroundColor: `${cat.color}15`,
-                        border: `1px solid ${cat.color}30`
-                      }]}
+                      style={[
+                        tw`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border`,
+                        {
+                          backgroundColor: `${cat.color}15`,
+                          borderColor: `${cat.color}30`
+                        }
+                      ]}
                     >
-                      <View style={tw`w-7 h-7`}><CategoryIcon category={cat.id} /></View>
+                      <View style={tw`w-7 h-7`}>
+                        <CategoryIcon category={cat.id} color={cat.color} />
+                      </View>
                     </View>
                     <View style={tw`flex-1`}>
                       <View style={tw`flex-row items-center flex-wrap gap-2 mb-1.5`}>
-                        <Text style={tw`text-base font-bold text-white shrink`} numberOfLines={1}>{alarm.title}</Text>
+                        <Text style={[tw`text-base font-bold shrink`, { color: colors.text }]} numberOfLines={1}>
+                          {alarm.title}
+                        </Text>
                         <View style={tw`flex-row gap-1`}>
                           <Text
-                            style={[tw`text-[10px] px-2 py-0.5 rounded-md font-bold overflow-hidden`, {
-                              backgroundColor: `${cat.color}15`,
-                              color: cat.color
-                            }]}
+                            style={[
+                              tw`text-[10px] px-2 py-0.5 rounded-md font-bold overflow-hidden`,
+                              {
+                                backgroundColor: `${cat.color}15`,
+                                color: cat.color
+                              }
+                            ]}
                           >
-                            {cat.label}
+                            {catLabel}
                           </Text>
                         </View>
                       </View>
                       <View style={tw`flex-row items-center gap-2 flex-wrap`}>
-                        <Text style={tw`text-sm text-zinc-400 font-medium`}>
+                        <Text style={[tw`text-sm font-medium`, { color: colors.textSecondary }]}>
                           {new Date(alarm.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </Text>
-                        <Text style={tw`text-zinc-600`}>•</Text>
-                        <Text style={tw`text-xs font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md`}>
-                          {formatCountdown(alarm.triggerTimeMs)} left
+                        <Text style={{ color: colors.borderStrong }}>•</Text>
+                        <Text style={tw`text-xs font-mono font-bold text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-md`}>
+                          {countdown} {t('alarm.left')}
                         </Text>
                       </View>
                     </View>
                   </View>
 
-                  <View style={tw`flex-row items-center gap-3 pt-3 border-t border-zinc-800/60`}>
+                  <View style={[tw`flex-row items-center gap-3 pt-3 border-t`, { borderTopColor: colors.border }]}>
                     <TouchableOpacity
                       onPress={() => handleManualTrigger(alarm)}
-                      style={tw`flex-1 py-3 rounded-xl bg-zinc-800 active:bg-zinc-700 flex-row items-center justify-center gap-2`}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('alarm.testNow')}: ${alarm.title}`}
+                      style={[
+                        tw`flex-1 py-3 rounded-xl border flex-row items-center justify-center gap-2 min-h-11`,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border
+                        }
+                      ]}
                     >
-                      <Play size={16} color={tw.color('emerald-400')} />
-                      <Text style={tw`text-sm font-bold text-emerald-400`}>Test Now</Text>
+                      <Play size={16} color="#10b981" />
+                      <Text style={tw`text-sm font-bold text-emerald-500`}>
+                        {t('alarm.testNow')}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleCancel(alarm.id)}
-                      style={tw`p-3 rounded-xl bg-zinc-900 border border-zinc-800 active:bg-zinc-800`}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('accessibility.cancelAlarm')}
+                      style={[
+                        tw`p-3 rounded-xl border min-w-11 min-h-11 items-center justify-center`,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border
+                        }
+                      ]}
                     >
-                      <Trash2 size={22} color={tw.color('zinc-500')} />
+                      <Trash2 size={18} color={colors.textMuted} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -613,52 +895,103 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
         )}
       </View>
 
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 mt-2`}>
-        <View style={tw`flex-col gap-4 mb-4`}>
+      {/* System Health Card */}
+      <View
+        style={[
+          tw`rounded-3xl p-5 border mt-1`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <View style={tw`flex-col gap-4 mb-2`}>
           <View style={tw`flex-row items-center gap-4`}>
             <View style={tw`w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center`}>
-              <ShieldCheck size={28} color={tw.color('emerald-400')} />
+              <ShieldCheck size={28} color="#10b981" />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-lg font-bold text-white mb-0.5`}>System Health</Text>
-              <Text style={tw`text-xs text-zinc-400`}>Permissions & battery optimizations</Text>
+              <Text style={[tw`text-lg font-bold mb-0.5`, { color: colors.text }]}>
+                {t('healthCheck.systemHealth')}
+              </Text>
+              <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
+                {t('healthCheck.systemHealthDescription')}
+              </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={onOpenHealthCheck}
-            style={tw`w-full py-3.5 rounded-2xl bg-zinc-800 active:bg-zinc-700 flex-row items-center justify-center gap-2`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('healthCheck.runDiagnostics')}
+            style={[
+              tw`w-full py-3.5 rounded-2xl flex-row items-center justify-center gap-2 min-h-12 border`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
           >
-            <Text style={tw`text-sm font-bold text-white`}>Run Diagnostics</Text>
+            <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+              {t('healthCheck.runDiagnostics')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 mt-2`}>
-        <View style={tw`flex-row items-center justify-between mb-5`}>
+      {/* Event Logs Card */}
+      <View
+        style={[
+          tw`rounded-3xl p-5 border mt-1`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <View style={tw`flex-row items-center justify-between mb-4`}>
           <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-10 h-10 rounded-2xl bg-zinc-800 flex items-center justify-center`}>
-              <RotateCcw size={20} color={tw.color('zinc-400')} />
+            <View
+              style={[
+                tw`w-10 h-10 rounded-2xl border flex items-center justify-center`,
+                {
+                  backgroundColor: colors.cardSecondary,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <RotateCcw size={18} color={colors.primary} />
             </View>
             <View>
-              <Text style={tw`text-lg font-bold text-white`}>Event Logs</Text>
-              <Text style={tw`text-xs text-zinc-500 font-medium`}>System alarm events</Text>
+              <Text style={[tw`text-lg font-bold`, { color: colors.text }]}>
+                {t('logs.title')}
+              </Text>
+              <Text style={[tw`text-xs font-medium`, { color: colors.textMuted }]}>
+                {t('logs.subtitle')}
+              </Text>
             </View>
           </View>
         </View>
 
         {logs.length === 0 ? (
-          <Text style={tw`py-6 text-center text-sm text-zinc-500`}>
-            No events logged yet. Scheduled alarms and actions will appear here.
+          <Text style={[tw`py-6 text-center text-sm italic`, { color: colors.textMuted }]}>
+            {t('logs.noLogs')}
           </Text>
         ) : (
           <ScrollView nestedScrollEnabled={true} style={tw`max-h-64`} contentContainerStyle={tw`flex-col gap-2 pr-1`}>
             {logs.map((log) => (
               <View
                 key={log.id}
-                style={tw`p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex-row items-center justify-between`}
+                style={[
+                  tw`p-3 rounded-xl border flex-row items-center justify-between`,
+                  {
+                    backgroundColor: colors.cardSecondary,
+                    borderColor: colors.border
+                  }
+                ]}
               >
-                <View style={tw`flex-row items-center gap-3`}>
-                  <Text
+                <View style={tw`flex-row items-center gap-3 flex-1`}>
+                  <View
                     style={tw`w-2.5 h-2.5 rounded-full ${log.action === 'TAKEN'
                       ? 'bg-emerald-400'
                       : log.action === 'SNOOZED' || log.action.includes('SNOOZE')
@@ -670,14 +1003,18 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
                             : 'bg-zinc-400'
                       }`}
                   />
-                  <View>
-                    <Text style={tw`font-bold text-zinc-200 font-mono text-sm mb-0.5`}>
+                  <View style={tw`flex-1`}>
+                    <Text style={[tw`font-bold font-mono text-sm mb-0.5`, { color: colors.text }]}>
                       {log.action}
                     </Text>
-                    {log.note && <Text style={tw`text-zinc-500 text-xs truncate max-w-[200px]`}>{log.note}</Text>}
+                    {log.note && (
+                      <Text style={[tw`text-xs`, { color: colors.textMuted }]} numberOfLines={1}>
+                        {log.note}
+                      </Text>
+                    )}
                   </View>
                 </View>
-                <Text style={tw`text-xs text-zinc-500 font-mono`}>
+                <Text style={[tw`text-xs font-mono`, { color: colors.textSubtle }]}>
                   {new Date(log.timestampMs).toLocaleTimeString()}
                 </Text>
               </View>
@@ -687,7 +1024,12 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
       </View>
 
       {/* Recurring Alarm Scheduler Modal */}
-      <Modal visible={showRecurringModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowRecurringModal(false)}>
+      <Modal
+        visible={showRecurringModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowRecurringModal(false)}
+      >
         <AlarmFormScreen
           existingAlarms={alarms}
           onClose={() => setShowRecurringModal(false)}
@@ -718,4 +1060,3 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     </View>
   );
 };
-

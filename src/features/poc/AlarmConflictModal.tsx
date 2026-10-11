@@ -1,13 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import tw from 'twrnc';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { AlarmConflictResult } from '../../domain/alarmConflict';
-import { CategoryIcon } from './Alarm24hTimelineChart';
 import { resolveAlarmCategory } from '../../domain/alarm';
 import {
   AlertTriangle,
   Clock,
-  ArrowRight,
   CheckCircle2,
   X,
   ShieldAlert,
@@ -31,6 +31,9 @@ export const AlarmConflictModal: React.FC<AlarmConflictModalProps> = ({
   onApplySuggestion,
   onCancel
 }) => {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+
   if (!conflictResult.hasConflict || conflictResult.conflictingAlarms.length === 0) {
     return null;
   }
@@ -48,65 +51,102 @@ export const AlarmConflictModal: React.FC<AlarmConflictModalProps> = ({
   });
 
   return (
-    <View style={tw`fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150`}>
-      <View style={tw`bg-zinc-900 border border-amber-500/40 rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden text-white`}>
+    <View
+      style={tw`fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4`}
+      accessible={true}
+      accessibilityRole="alert"
+    >
+      <View
+        style={[
+          tw`rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: '#f59e0b'
+          }
+        ]}
+      >
         {/* Header */}
-        <View style={tw`p-4 border-b border-zinc-800 bg-amber-500/10 flex items-center justify-between`}>
-          <View style={tw`flex items-center gap-2.5`}>
-            <View style={tw`w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400`}>
-              <AlertTriangle style={tw`w-4 h-4`} />
+        <View
+          style={[
+            tw`p-4 border-b flex-row items-center justify-between`,
+            {
+              backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.15)',
+              borderBottomColor: colors.border
+            }
+          ]}
+        >
+          <View style={tw`flex-row items-center gap-2.5 flex-1`}>
+            <View style={tw`w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center`}>
+              <AlertTriangle size={16} color="#f59e0b" />
             </View>
-            <View>
-              <Text style={tw`text-sm font-bold text-white tracking-tight`}>
-                Alarm Schedule Conflict Detected
+            <View style={tw`flex-1`}>
+              <Text style={[tw`text-sm font-bold tracking-tight`, { color: colors.text }]}>
+                {t('conflict.title')}
               </Text>
-              <Text style={tw`text-[11px] text-amber-300/80`}>
+              <Text style={tw`text-[11px] text-amber-500 font-medium`}>
                 Within {conflictResult.windowMinutes}-minute safety buffer
               </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={onCancel}
-            style={tw`p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('conflict.cancelSchedule')}
+            style={[tw`p-1.5 rounded-lg`, { backgroundColor: colors.cardSecondary }]}
           >
-            <X style={tw`w-4 h-4`} />
+            <X size={16} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         {/* Content Body */}
-        <View style={tw`p-5 flex-col gap-4 text-sm`}>
-          <Text style={tw`text-zinc-300 leading-relaxed text-sm`}>
-            Scheduling two alarms too close together can cause audio collisions or missed reminders when your phone rings.
+        <View style={tw`p-5 flex-col gap-4`}>
+          <Text style={[tw`leading-relaxed text-sm`, { color: colors.textSecondary }]}>
+            {t('conflict.description', { title: candidateTitle || 'Alarm' })}
           </Text>
 
           {/* Comparison Side-by-Side Card */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex-col gap-3`}>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex-col gap-3`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
             {/* Candidate / New Alarm */}
             <View style={tw`flex-row items-center justify-between gap-2`}>
               <View style={tw`flex-row items-center gap-2 flex-1`}>
-                <Text style={tw`w-2 h-2 rounded-full bg-indigo-400 shrink-0`} />
-                <Text style={tw`text-zinc-400 shrink-0 text-sm`}>New:</Text>
-                <Text style={tw`font-bold text-white shrink`} numberOfLines={1}>{candidateTitle || 'Untitled'}</Text>
+                <View style={tw`w-2 h-2 rounded-full bg-indigo-500 shrink-0`} />
+                <Text style={[tw`shrink-0 text-sm`, { color: colors.textMuted }]}>New:</Text>
+                <Text style={[tw`font-bold shrink text-sm`, { color: colors.text }]} numberOfLines={1}>
+                  {candidateTitle || 'Untitled'}
+                </Text>
               </View>
-              <Text style={tw`font-mono text-indigo-300 font-bold shrink-0 text-sm`}>{candidateTimeStr}</Text>
+              <Text style={[tw`font-mono font-bold shrink-0 text-sm`, { color: colors.primaryText }]}>
+                {candidateTimeStr}
+              </Text>
             </View>
 
-            <View style={tw`border-t border-zinc-800/80 pt-3 flex-row items-center justify-between gap-2`}>
+            <View style={[tw`border-t pt-3 flex-row items-center justify-between gap-2`, { borderTopColor: colors.border }]}>
               <View style={tw`flex-row items-center gap-2 flex-1`}>
-                <Text
+                <View
                   style={[tw`w-2 h-2 rounded-full shrink-0`, { backgroundColor: existingCat.color }]}
                 />
-                <Text style={tw`text-zinc-400 shrink-0 text-sm`}>Existing:</Text>
-                <Text style={tw`font-bold text-white shrink`} numberOfLines={1}>
+                <Text style={[tw`shrink-0 text-sm`, { color: colors.textMuted }]}>Existing:</Text>
+                <Text style={[tw`font-bold shrink text-sm`, { color: colors.text }]} numberOfLines={1}>
                   {primaryConflict.alarm.title}
                 </Text>
               </View>
-              <Text style={tw`font-mono text-zinc-300 font-bold shrink-0 text-sm`}>{existingTimeStr}</Text>
+              <Text style={[tw`font-mono font-bold shrink-0 text-sm`, { color: colors.textSecondary }]}>
+                {existingTimeStr}
+              </Text>
             </View>
 
-            <View style={tw`text-[11px] text-amber-400 font-medium bg-amber-500/10 p-2 rounded-xl flex items-center gap-1.5`}>
-              <ShieldAlert style={tw`w-3.5 h-3.5 shrink-0`} />
-              <Text>
+            <View style={tw`text-[11px] bg-amber-500/10 p-2.5 rounded-xl flex-row items-center gap-1.5`}>
+              <ShieldAlert size={14} color="#f59e0b" style={tw`shrink-0`} />
+              <Text style={tw`text-amber-500 font-medium text-xs flex-1`}>
                 {primaryConflict.isExactOverlap
                   ? 'Fires at the exact same minute!'
                   : `Separated by only ${primaryConflict.differenceMinutes} minute${primaryConflict.differenceMinutes === 1 ? '' : 's'}.`}
@@ -118,23 +158,27 @@ export const AlarmConflictModal: React.FC<AlarmConflictModalProps> = ({
           {conflictResult.suggestions.length > 0 && (
             <View style={tw`flex-col gap-3 pt-2`}>
               <View style={tw`flex-row items-center gap-1.5`}>
-                <Sparkles size={14} color={tw.color('emerald-400')} />
-                <Text style={tw`text-sm font-bold text-emerald-400`}>Recommended One-Tap Adjustments:</Text>
+                <Sparkles size={14} color="#10b981" />
+                <Text style={tw`text-sm font-bold text-emerald-500`}>
+                  Recommended One-Tap Adjustments:
+                </Text>
               </View>
 
               <View style={tw`flex-col gap-2.5`}>
                 {conflictResult.suggestions.map((sug, idx) => (
                   <TouchableOpacity
                     key={idx}
-                    
                     onPress={() => onApplySuggestion(sug.suggestedTimeMs)}
-                    style={tw`w-full p-4 rounded-2xl bg-emerald-500/10 active:bg-emerald-500/20 border border-emerald-500/30 flex-row items-center justify-between transition`}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('conflict.suggestion', { time: sug.formattedTime })}
+                    style={tw`w-full p-3.5 rounded-2xl bg-emerald-500/10 active:bg-emerald-500/20 border border-emerald-500/30 flex-row items-center justify-between min-h-12`}
                   >
                     <View style={tw`flex-row items-center gap-2.5`}>
-                      <Clock size={16} color={tw.color('emerald-400')} />
-                      <Text style={tw`text-sm font-bold text-emerald-400`}>{sug.label}</Text>
+                      <Clock size={16} color="#10b981" />
+                      <Text style={tw`text-sm font-bold text-emerald-500`}>{sug.label}</Text>
                     </View>
-                    <Text style={tw`font-mono font-bold text-white bg-emerald-600/30 px-2 py-1 rounded-lg text-sm`}>
+                    <Text style={tw`font-mono font-bold text-emerald-600 dark:text-emerald-300 bg-emerald-500/20 px-2.5 py-1 rounded-lg text-sm`}>
                       {sug.formattedTime}
                     </Text>
                   </TouchableOpacity>
@@ -145,23 +189,44 @@ export const AlarmConflictModal: React.FC<AlarmConflictModalProps> = ({
         </View>
 
         {/* Footer Actions */}
-        <View style={tw`p-5 border-t border-zinc-800 bg-zinc-950 flex-row items-center justify-between gap-3`}>
+        <View
+          style={[
+            tw`p-5 border-t flex-row items-center justify-between gap-3`,
+            {
+              backgroundColor: colors.cardSecondary,
+              borderTopColor: colors.border
+            }
+          ]}
+        >
           <TouchableOpacity
-            
             onPress={onCancel}
-            style={tw`py-3.5 px-6 rounded-2xl bg-zinc-800 active:bg-zinc-700`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('conflict.cancelSchedule')}
+            style={[
+              tw`py-3.5 px-6 rounded-2xl border min-h-12 justify-center`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border
+              }
+            ]}
           >
-            <Text style={tw`text-sm font-bold text-zinc-300`}>Cancel</Text>
+            <Text style={[tw`text-sm font-bold`, { color: colors.textSecondary }]}>
+              {t('conflict.cancelSchedule')}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            
             onPress={onProceedAnyway}
-            style={tw`flex-1 py-3.5 px-4 rounded-2xl bg-amber-600 active:bg-amber-500 shadow-lg shadow-amber-900/40 flex-row items-center justify-center gap-2`}
-            
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('conflict.proceedAnyway')}
+            style={tw`flex-1 py-3.5 px-4 rounded-2xl bg-amber-600 active:bg-amber-700 shadow-md flex-row items-center justify-center gap-2 min-h-12`}
           >
             <CheckCircle2 size={18} color="#fff" />
-            <Text style={tw`text-sm font-bold text-white`}>Schedule Anyway</Text>
+            <Text style={tw`text-sm font-bold text-white`}>
+              {t('conflict.proceedAnyway')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

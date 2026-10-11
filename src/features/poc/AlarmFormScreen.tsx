@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import tw from 'twrnc';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import {
   NotificationChannelId,
   AlarmStyle,
@@ -16,15 +18,12 @@ import { detectAlarmConflict } from '../../domain/alarmConflict';
 import {
   X,
   Clock,
-  Calendar,
   Repeat,
   Bell,
   Volume2,
   CheckCircle2,
   Plus,
-  Trash2,
   Sparkles,
-  Info,
   Tag,
   AlertTriangle
 } from 'lucide-react-native';
@@ -40,6 +39,9 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   onClose,
   onSave
 }) => {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
+
   const [category, setCategory] = useState<AlarmCategory>('medicine');
   const [title, setTitle] = useState('Daily Insulin Dose');
   const [message, setMessage] = useState('10 units before dinner');
@@ -59,6 +61,10 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   const [newCustomDate, setNewCustomDate] = useState<string>('');
   const [snoozeIntervalMinutes, setSnoozeIntervalMinutes] = useState<number>(10);
 
+  const getCategoryLabel = (catId: AlarmCategory): string => {
+    return t(`categories.${catId}`) || ALARM_CATEGORIES[catId]?.label || catId;
+  };
+
   // When category changes, auto-select standard defaults
   const handleSelectCategory = (catId: AlarmCategory) => {
     setCategory(catId);
@@ -69,7 +75,6 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
     }
   };
 
-  // Day names for weekly chips
   const weekdayNames = [
     { label: 'Sun', val: 0 },
     { label: 'Mon', val: 1 },
@@ -80,7 +85,6 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
     { label: 'Sat', val: 6 }
   ];
 
-  // Month names for monthly selector
   const monthNames = [
     { label: 'Jan', val: 1 },
     { label: 'Feb', val: 2 },
@@ -184,8 +188,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
     return null;
   }, [previewOccurrences, existingAlarms]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     onSave({
       profileId: 'default',
       category,
@@ -208,52 +211,106 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
 
   return (
     <KeyboardAvoidingView
-      style={tw`flex-1 bg-zinc-950`}
+      style={[tw`flex-1`, { backgroundColor: colors.bg }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={tw`flex-1 flex flex-col`}>
+      <View style={[tw`flex-1 flex flex-col`, { backgroundColor: colors.bg }]}>
         {/* Header */}
-        <View style={tw`p-5 border-b border-zinc-800 flex-row items-center justify-between bg-zinc-900/95`}>
+        <View
+          style={[
+            tw`p-4 border-b flex-row items-center justify-between z-10`,
+            {
+              backgroundColor: colors.bgHeader,
+              borderBottomColor: colors.border
+            }
+          ]}
+        >
           <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400`}>
-              <Repeat style={tw`w-5 h-5`} />
+            <View
+              style={[
+                tw`w-10 h-10 rounded-xl border flex items-center justify-center`,
+                {
+                  backgroundColor: colors.primaryBg,
+                  borderColor: colors.primaryBorder
+                }
+              ]}
+            >
+              <Repeat size={20} color={colors.primary} />
             </View>
             <View>
-              <Text style={tw`text-lg font-bold text-white tracking-tight`}>Recurring Alarm</Text>
-              <Text style={tw`text-xs text-zinc-400`}>Set automated patterns</Text>
+              <Text style={[tw`text-lg font-bold tracking-tight`, { color: colors.text }]}>
+                {t('alarmForm.newSchedule')}
+              </Text>
+              <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
+                {t('alarm.recurringDescription')}
+              </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={onClose}
-            style={tw`p-2.5 rounded-full bg-zinc-800 hover:bg-zinc-700`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarmForm.cancel')}
+            style={[
+              tw`p-2.5 rounded-full min-w-11 min-h-11 items-center justify-center`,
+              { backgroundColor: colors.cardSecondary }
+            ]}
           >
-            <X size={20} color={tw.color('zinc-400')} />
+            <X size={18} color={colors.textMuted} />
           </TouchableOpacity>
         </View>
 
         {/* Form Body */}
-        <ScrollView style={tw`flex-1 p-4`} contentContainerStyle={tw`gap-4 pb-12`}>
+        <ScrollView
+          style={[tw`flex-1 p-4`, { backgroundColor: colors.bg }]}
+          contentContainerStyle={tw`gap-4 pb-12`}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Category Selector */}
           <View>
             <View style={tw`flex-row items-center gap-1.5 mb-2`}>
-              <Tag size={14} color={tw.color('indigo-400')} />
-              <Text style={tw`text-sm font-semibold text-zinc-400`}>Alarm Category:</Text>
+              <Tag size={14} color={colors.primary} />
+              <Text style={[tw`text-sm font-semibold`, { color: colors.textMuted }]}>
+                {t('alarmForm.category')}:
+              </Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
               {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
                 const catDef = ALARM_CATEGORIES[catId];
                 const isSelected = category === catId;
+                const catLabel = getCategoryLabel(catId);
                 return (
                   <TouchableOpacity
                     key={catId}
                     onPress={() => handleSelectCategory(catId)}
-                    style={tw`px-4 py-3 rounded-2xl flex-row items-center gap-2 border ${isSelected
-                      ? 'bg-zinc-800 border-zinc-600'
-                      : 'bg-zinc-950 border-zinc-800'
-                      }`}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={catLabel}
+                    style={[
+                      tw`px-4 py-3 rounded-2xl flex-row items-center gap-2 border min-h-11`,
+                      isSelected
+                        ? {
+                            backgroundColor: colors.cardHover,
+                            borderColor: catDef.color
+                          }
+                        : {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border
+                          }
+                    ]}
                   >
-                    <View style={tw`w-4 h-4`}><CategoryIcon category={catId} /></View>
-                    <Text style={tw`text-sm font-medium ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{catDef.label}</Text>
+                    <View style={tw`w-4 h-4`}>
+                      <CategoryIcon category={catId} color={catDef.color} />
+                    </View>
+                    <Text
+                      style={[
+                        tw`text-sm font-medium`,
+                        { color: isSelected ? colors.text : colors.textMuted }
+                      ]}
+                    >
+                      {catLabel}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
@@ -263,79 +320,185 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
           {/* Title & Message */}
           <View style={tw`gap-4`}>
             <View>
-              <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Alarm / Reminder Title</Text>
-              <TextInput value={title} onChangeText={setTitle} placeholderTextColor={tw.color("zinc-600")}
-                placeholder="e.g. Blood Pressure Reading"
-                style={tw`w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3.5 text-base text-white`}
+              <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+                {t('alarmForm.reminderTitle')}
+              </Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder={t('alarmForm.titlePlaceholder')}
+                placeholderTextColor={colors.textSubtle}
+                accessible={true}
+                accessibilityLabel={t('alarmForm.reminderTitle')}
+                style={[
+                  tw`w-full border rounded-2xl px-4 py-3.5 text-base font-medium`,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.inputBorder,
+                    color: colors.text
+                  }
+                ]}
               />
             </View>
             <View>
-              <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Instructions / Message (Optional)</Text>
-              <TextInput value={message} onChangeText={setMessage} placeholderTextColor={tw.color("zinc-600")}
-                placeholder="e.g. Take with 1 glass of water"
-                style={tw`w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-4 py-3.5 text-sm text-zinc-300`}
+              <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+                {t('alarmForm.message')}
+              </Text>
+              <TextInput
+                value={message}
+                onChangeText={setMessage}
+                placeholder={t('alarmForm.messagePlaceholder')}
+                placeholderTextColor={colors.textSubtle}
+                accessible={true}
+                accessibilityLabel={t('alarmForm.message')}
+                style={[
+                  tw`w-full border rounded-2xl px-4 py-3.5 text-sm`,
+                  {
+                    backgroundColor: colors.inputBg,
+                    borderColor: colors.inputBorder,
+                    color: colors.text
+                  }
+                ]}
               />
             </View>
           </View>
 
           {/* Recurrence Mode Selector Pills */}
           <View>
-            <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Recurrence Frequency</Text>
+            <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+              {t('alarmForm.recurrenceType')}
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
               {[
-                { type: 'daily', label: 'Daily', icon: '⏰' },
-                { type: 'weekly', label: 'Weekly', icon: '📅' },
-                { type: 'every_n_days', label: '2 Days / N', icon: '🔄' },
-                { type: 'custom_dates', label: 'Dates', icon: '🗓️' },
-                { type: 'monthly', label: 'Monthly', icon: '📆' }
-              ].map((item) => (
-                <TouchableOpacity
-                  key={item.type}
-                  onPress={() => setRecurrenceType(item.type as RecurrenceType)}
-                  style={tw`py-3 px-4 rounded-2xl flex-row items-center justify-center gap-2 border ${recurrenceType === item.type
-                    ? 'bg-indigo-600 border-indigo-500'
-                    : 'bg-zinc-950 border-zinc-800'
-                    }`}
-                >
-                  <Text style={tw`text-lg`}>{item.icon}</Text>
-                  <Text style={tw`text-sm font-medium ${recurrenceType === item.type ? 'text-white' : 'text-zinc-400'}`}>{item.label}</Text>
-                </TouchableOpacity>
-              ))}
+                { type: 'daily', label: t('alarmForm.daily'), icon: '⏰' },
+                { type: 'weekly', label: t('alarmForm.weekly'), icon: '📅' },
+                { type: 'every_n_days', label: t('alarmForm.everyNDays'), icon: '🔄' },
+                { type: 'custom_dates', label: t('alarmForm.customDates'), icon: '🗓️' },
+                { type: 'monthly', label: t('alarmForm.monthly'), icon: '📆' }
+              ].map((item) => {
+                const isSelected = recurrenceType === item.type;
+                return (
+                  <TouchableOpacity
+                    key={item.type}
+                    onPress={() => setRecurrenceType(item.type as RecurrenceType)}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={item.label}
+                    style={[
+                      tw`py-3 px-4 rounded-2xl flex-row items-center justify-center gap-2 border min-h-11`,
+                      isSelected
+                        ? {
+                            backgroundColor: colors.primary,
+                            borderColor: colors.primary
+                          }
+                        : {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border
+                          }
+                    ]}
+                  >
+                    <Text style={tw`text-base`}>{item.icon}</Text>
+                    <Text
+                      style={[
+                        tw`text-sm font-medium`,
+                        { color: isSelected ? '#ffffff' : colors.textMuted }
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
           {/* Time Picker */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex-row items-center justify-between`}>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex-row items-center justify-between`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border
+              }
+            ]}
+          >
             <View style={tw`flex-row items-center gap-3`}>
-              <Clock size={20} color={tw.color('indigo-400')} />
+              <Clock size={20} color={colors.primary} />
               <View>
-                <Text style={tw`text-base font-bold text-white`}>Alarm Time</Text>
-                <Text style={tw`text-xs text-zinc-400`}>Clock time to trigger</Text>
+                <Text style={[tw`text-base font-bold`, { color: colors.text }]}>
+                  {t('alarmForm.timeOfDay')}
+                </Text>
+                <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
+                  {t('alarmForm.timeFormat')}
+                </Text>
               </View>
             </View>
-            <TextInput value={timeOfDay} onChangeText={setTimeOfDay} placeholder="HH:MM" placeholderTextColor={tw.color("zinc-600")}
-              style={tw`bg-zinc-900 border border-zinc-700 text-white font-mono text-lg font-bold px-4 py-2.5 rounded-xl text-center min-w-[100px]`}
+            <TextInput
+              value={timeOfDay}
+              onChangeText={setTimeOfDay}
+              placeholder="HH:mm"
+              placeholderTextColor={colors.textSubtle}
+              accessible={true}
+              accessibilityLabel={t('alarmForm.timeOfDay')}
+              style={[
+                tw`border font-mono text-lg font-bold px-4 py-2.5 rounded-xl text-center min-w-[100px]`,
+                {
+                  backgroundColor: colors.inputBg,
+                  borderColor: colors.inputBorder,
+                  color: colors.primaryText
+                }
+              ]}
             />
           </View>
 
           {/* Conditional Recurrence Settings */}
           {/* 1. WEEKLY */}
           {recurrenceType === 'weekly' && (
-            <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3`}>
-              <Text style={tw`text-sm font-semibold text-zinc-300 block`}>Repeat On Weekdays:</Text>
-              <View style={tw`flex-row items-center justify-between gap-2`}>
+            <View
+              style={[
+                tw`p-4 rounded-2xl border space-y-3`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+                {t('alarmForm.selectWeekdays')}:
+              </Text>
+              <View style={tw`flex-row items-center justify-between gap-1`}>
                 {weekdayNames.map((w) => {
                   const isSelected = weekdays.includes(w.val);
                   return (
                     <TouchableOpacity
                       key={w.val}
                       onPress={() => toggleWeekday(w.val)}
-                      style={tw`w-11 h-11 rounded-xl text-sm font-bold transition flex items-center justify-center ${isSelected
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300 border border-zinc-800'
-                        }`}
+                      accessible={true}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: isSelected }}
+                      accessibilityLabel={w.label}
+                      style={[
+                        tw`w-11 h-11 rounded-xl items-center justify-center border`,
+                        isSelected
+                          ? {
+                              backgroundColor: colors.primary,
+                              borderColor: colors.primary
+                            }
+                          : {
+                              backgroundColor: colors.cardSecondary,
+                              borderColor: colors.border
+                            }
+                      ]}
                     >
-                      <Text style={tw`${isSelected ? 'text-white' : 'text-zinc-500'}`}>{w.label[0]}</Text>
+                      <Text
+                        style={[
+                          tw`text-xs font-bold`,
+                          { color: isSelected ? '#ffffff' : colors.textSubtle }
+                        ]}
+                      >
+                        {w.label}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -343,37 +506,74 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             </View>
           )}
 
-          {/* 2. EVERY N DAYS (e.g. 2 days after) */}
+          {/* 2. EVERY N DAYS */}
           {recurrenceType === 'every_n_days' && (
-            <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-4`}>
+            <View
+              style={[
+                tw`p-4 rounded-2xl border gap-4`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
               <View style={tw`flex-row items-center justify-between`}>
                 <View>
-                  <Text style={tw`text-sm font-bold text-white block`}>Interval Days</Text>
-                  <Text style={tw`text-xs text-zinc-400 mt-0.5`}>e.g. 2 for "every 2 days"</Text>
+                  <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+                    {t('alarmForm.interval')}
+                  </Text>
+                  <Text style={[tw`text-xs mt-0.5`, { color: colors.textMuted }]}>
+                    e.g. 2 for "every 2 days"
+                  </Text>
                 </View>
                 <View style={tw`flex-row items-center gap-3`}>
                   <TouchableOpacity
                     onPress={() => setIntervalDays(Math.max(1, intervalDays - 1))}
-                    style={tw`w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center`}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease interval"
+                    style={[
+                      tw`w-10 h-10 rounded-xl items-center justify-center border`,
+                      { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+                    ]}
                   >
-                    <Text style={tw`text-white font-bold text-lg`}>-</Text>
+                    <Text style={[tw`font-bold text-lg`, { color: colors.text }]}>-</Text>
                   </TouchableOpacity>
-                  <Text style={tw`font-mono text-lg font-bold text-indigo-400 w-10 text-center`}>
+                  <Text style={[tw`font-mono text-lg font-bold w-10 text-center`, { color: colors.primaryText }]}>
                     {intervalDays}d
                   </Text>
                   <TouchableOpacity
                     onPress={() => setIntervalDays(intervalDays + 1)}
-                    style={tw`w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center`}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase interval"
+                    style={[
+                      tw`w-10 h-10 rounded-xl items-center justify-center border`,
+                      { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+                    ]}
                   >
-                    <Text style={tw`text-white font-bold text-lg`}>+</Text>
+                    <Text style={[tw`font-bold text-lg`, { color: colors.text }]}>+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View>
-                <Text style={tw`text-sm text-zinc-400 mb-2 font-medium`}>Anchor Start Date</Text>
-                <TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={tw.color("zinc-600")}
-                  style={tw`w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-4 py-3 text-sm text-white`}
+                <Text style={[tw`text-sm mb-2 font-medium`, { color: colors.textSecondary }]}>
+                  Anchor Start Date
+                </Text>
+                <TextInput
+                  value={startDate}
+                  onChangeText={setStartDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.textSubtle}
+                  style={[
+                    tw`w-full border rounded-2xl px-4 py-3 text-sm`,
+                    {
+                      backgroundColor: colors.inputBg,
+                      borderColor: colors.inputBorder,
+                      color: colors.text
+                    }
+                  ]}
                 />
               </View>
             </View>
@@ -381,33 +581,74 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
 
           {/* 3. CUSTOM DATES */}
           {recurrenceType === 'custom_dates' && (
-            <View style={tw`p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-2.5`}>
-              <Text style={tw`text-xs font-semibold text-zinc-300 block`}>Selected Specific Dates:</Text>
-              <View style={tw`flex gap-2`}>
-                <TextInput value={newCustomDate} onChangeText={setNewCustomDate} placeholder="YYYY-MM-DD" placeholderTextColor={tw.color("zinc-600")}
-                  style={tw`flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-xs text-white`}
+            <View
+              style={[
+                tw`p-4 rounded-2xl border gap-3`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
+                {t('alarmForm.addedDates')}
+              </Text>
+              <View style={tw`flex-row gap-2`}>
+                <TextInput
+                  value={newCustomDate}
+                  onChangeText={setNewCustomDate}
+                  placeholder={t('alarmForm.datePlaceholder')}
+                  placeholderTextColor={colors.textSubtle}
+                  style={[
+                    tw`flex-1 border rounded-xl px-3 py-2 text-xs`,
+                    {
+                      backgroundColor: colors.inputBg,
+                      borderColor: colors.inputBorder,
+                      color: colors.text
+                    }
+                  ]}
                 />
-                <TouchableOpacity onPress={handleAddCustomDate} style={tw`px-3 py-1.5 rounded-xl bg-indigo-600 flex-row items-center gap-1`}>
-                  <Plus size={14} color={tw.color('white')} />
-                  <Text style={tw`text-xs font-semibold text-white`}>Add Date</Text>
+                <TouchableOpacity
+                  onPress={handleAddCustomDate}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('alarmForm.addDate')}
+                  style={[
+                    tw`px-3 py-2 rounded-xl flex-row items-center gap-1`,
+                    { backgroundColor: colors.primary }
+                  ]}
+                >
+                  <Plus size={14} color="#ffffff" />
+                  <Text style={tw`text-xs font-semibold text-white`}>
+                    {t('alarmForm.addDate')}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
-              <View style={tw`flex flex-wrap gap-1.5 pt-1`}>
+              <View style={tw`flex-row flex-wrap gap-1.5 pt-1`}>
                 {customDates.map((d) => (
-                  <Text
+                  <View
                     key={d}
-                    style={tw`px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300 font-mono flex items-center gap-1.5`}
+                    style={[
+                      tw`px-2.5 py-1 rounded-lg border flex-row items-center gap-1.5`,
+                      {
+                        backgroundColor: colors.cardSecondary,
+                        borderColor: colors.border
+                      }
+                    ]}
                   >
-                    <Text>{d}</Text>
+                    <Text style={[tw`text-xs font-mono`, { color: colors.textSecondary }]}>
+                      {d}
+                    </Text>
                     <TouchableOpacity
-
                       onPress={() => handleRemoveCustomDate(d)}
-                      style={tw`text-zinc-500 hover:text-red-400`}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove date ${d}`}
                     >
-                      <X style={tw`w-3 h-3`} />
+                      <X size={12} color={colors.textMuted} />
                     </TouchableOpacity>
-                  </Text>
+                  </View>
                 ))}
               </View>
             </View>
@@ -415,24 +656,60 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
 
           {/* 4. MONTHLY */}
           {recurrenceType === 'monthly' && (
-            <View style={tw`p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3`}>
-              <View style={tw`flex items-center justify-between`}>
-                <View>
-                  <Text style={tw`text-xs font-semibold text-white block`}>Day of Month</Text>
-                  <Text style={tw`text-[10px] text-zinc-400`}>Triggers on this date every month</Text>
-                </View>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1.5`}>
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <TouchableOpacity key={d} onPress={() => setDayOfMonth(d)} style={tw`px-3 py-1.5 rounded-xl border ${dayOfMonth === d ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-900 border-zinc-700'}`}>
-                      <Text style={tw`text-xs ${dayOfMonth === d ? 'text-white' : 'text-zinc-400'}`}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
+            <View
+              style={[
+                tw`p-4 rounded-2xl border gap-3`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <View>
+                <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
+                  {t('alarmForm.dayOfMonth')}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1.5 mt-2`}>
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
+                    const isSelected = dayOfMonth === d;
+                    return (
+                      <TouchableOpacity
+                        key={d}
+                        onPress={() => setDayOfMonth(d)}
+                        accessible={true}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: isSelected }}
+                        accessibilityLabel={`Day ${d}`}
+                        style={[
+                          tw`px-3 py-1.5 rounded-xl border min-w-9 items-center justify-center`,
+                          isSelected
+                            ? {
+                                backgroundColor: colors.primary,
+                                borderColor: colors.primary
+                              }
+                            : {
+                                backgroundColor: colors.cardSecondary,
+                                borderColor: colors.border
+                              }
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            tw`text-xs font-bold`,
+                            { color: isSelected ? '#ffffff' : colors.textMuted }
+                          ]}
+                        >
+                          {d}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
 
               <View>
-                <Text style={tw`text-[11px] font-semibold text-zinc-400 block mb-1.5`}>
-                  Applies to Months ({selectedMonths.length}/12):
+                <Text style={[tw`text-xs font-semibold mb-1.5`, { color: colors.textMuted }]}>
+                  Months ({selectedMonths.length}/12):
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1`}>
                   {monthNames.map((m) => {
@@ -440,10 +717,32 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                     return (
                       <TouchableOpacity
                         key={m.val}
-
                         onPress={() => toggleMonth(m.val)}
-                        style={tw`py-1 px-2 rounded-lg border ${isSelected ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-900 border-zinc-800'}`}>
-                        <Text style={tw`text-[11px] ${isSelected ? 'text-white' : 'text-zinc-500'}`}>{m.label}</Text>
+                        accessible={true}
+                        accessibilityRole="checkbox"
+                        accessibilityState={{ checked: isSelected }}
+                        accessibilityLabel={m.label}
+                        style={[
+                          tw`py-1 px-2.5 rounded-lg border`,
+                          isSelected
+                            ? {
+                                backgroundColor: colors.primary,
+                                borderColor: colors.primary
+                              }
+                            : {
+                                backgroundColor: colors.cardSecondary,
+                                borderColor: colors.border
+                              }
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            tw`text-xs font-medium`,
+                            { color: isSelected ? '#ffffff' : colors.textSubtle }
+                          ]}
+                        >
+                          {m.label}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -455,26 +754,110 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
           {/* Channel Selector & Alarm Style */}
           <View style={tw`flex-col gap-4`}>
             <View>
-              <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Notification Channel</Text>
+              <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+                {t('alarmForm.notificationChannel')}
+              </Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
-                {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => (
-                  <TouchableOpacity key={ch} onPress={() => setChannelId(ch as NotificationChannelId)} style={tw`px-4 py-3 rounded-2xl border ${channelId === ch ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-950 border-zinc-800'}`}>
-                    <Text style={tw`text-sm ${channelId === ch ? 'text-white font-medium' : 'text-zinc-400'}`}>{ch}</Text>
-                  </TouchableOpacity>
-                ))}
+                {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => {
+                  const isSelected = channelId === ch;
+                  return (
+                    <TouchableOpacity
+                      key={ch}
+                      onPress={() => setChannelId(ch as NotificationChannelId)}
+                      accessible={true}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={ch}
+                      style={[
+                        tw`px-4 py-2.5 rounded-2xl border min-h-11 justify-center`,
+                        isSelected
+                          ? {
+                              backgroundColor: colors.primary,
+                              borderColor: colors.primary
+                            }
+                          : {
+                              backgroundColor: colors.card,
+                              borderColor: colors.border
+                            }
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          tw`text-sm font-medium`,
+                          { color: isSelected ? '#ffffff' : colors.textMuted }
+                        ]}
+                      >
+                        {ch}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
 
             <View>
-              <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Alarm Style</Text>
+              <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+                {t('alarmForm.alarmStyle')}
+              </Text>
               <View style={tw`flex-row gap-2`}>
-                <TouchableOpacity onPress={() => setStyle('full_alarm')} style={tw`flex-1 py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2 border ${style === 'full_alarm' ? 'bg-amber-500/10 border-amber-500/40' : 'bg-zinc-950 border-zinc-800'}`}>
-                  <Volume2 size={16} color={tw.color(style === 'full_alarm' ? 'amber-400' : 'zinc-400')} />
-                  <Text style={tw`text-sm font-bold ${style === 'full_alarm' ? 'text-amber-400' : 'text-zinc-400'}`}>Full Alarm</Text>
+                <TouchableOpacity
+                  onPress={() => setStyle('full_alarm')}
+                  accessible={true}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: style === 'full_alarm' }}
+                  accessibilityLabel={t('alarmForm.fullScreenAlarm')}
+                  style={[
+                    tw`flex-1 py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2 border min-h-11`,
+                    style === 'full_alarm'
+                      ? {
+                          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                          borderColor: '#f59e0b'
+                        }
+                      : {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border
+                        }
+                  ]}
+                >
+                  <Volume2 size={16} color={style === 'full_alarm' ? '#d97706' : colors.textMuted} />
+                  <Text
+                    style={[
+                      tw`text-sm font-bold`,
+                      { color: style === 'full_alarm' ? '#d97706' : colors.textMuted }
+                    ]}
+                  >
+                    {t('alarmForm.fullScreenAlarm')}
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setStyle('notification')} style={tw`flex-1 py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2 border ${style === 'notification' ? 'bg-indigo-500/10 border-indigo-500/40' : 'bg-zinc-950 border-zinc-800'}`}>
-                  <Bell size={16} color={tw.color(style === 'notification' ? 'indigo-400' : 'zinc-400')} />
-                  <Text style={tw`text-sm font-bold ${style === 'notification' ? 'text-indigo-300' : 'text-zinc-400'}`}>Notification</Text>
+
+                <TouchableOpacity
+                  onPress={() => setStyle('notification')}
+                  accessible={true}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: style === 'notification' }}
+                  accessibilityLabel={t('alarmForm.standardNotification')}
+                  style={[
+                    tw`flex-1 py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2 border min-h-11`,
+                    style === 'notification'
+                      ? {
+                          backgroundColor: colors.primaryBg,
+                          borderColor: colors.primary
+                        }
+                      : {
+                          backgroundColor: colors.card,
+                          borderColor: colors.border
+                        }
+                  ]}
+                >
+                  <Bell size={16} color={style === 'notification' ? colors.primaryText : colors.textMuted} />
+                  <Text
+                    style={[
+                      tw`text-sm font-bold`,
+                      { color: style === 'notification' ? colors.primaryText : colors.textMuted }
+                    ]}
+                  >
+                    {t('alarmForm.standardNotification')}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -482,41 +865,88 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
 
           {/* Snooze Setting */}
           <View>
-            <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Snooze Duration</Text>
+            <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
+              {t('alarmForm.snoozeInterval')}
+            </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
-              {[5, 10, 15, 30].map((mins) => (
-                <TouchableOpacity
-                  key={mins}
-                  onPress={() => setSnoozeIntervalMinutes(mins)}
-                  style={tw`px-5 py-3 rounded-2xl border ${snoozeIntervalMinutes === mins ? 'bg-zinc-800 border-indigo-500' : 'bg-zinc-950 border-zinc-800'}`}>
-                  <Text style={tw`text-sm font-medium ${snoozeIntervalMinutes === mins ? 'text-white font-bold' : 'text-zinc-400'}`}>{mins} min</Text>
-                </TouchableOpacity>
-              ))}
+              {[5, 10, 15, 30].map((mins) => {
+                const isSelected = snoozeIntervalMinutes === mins;
+                return (
+                  <TouchableOpacity
+                    key={mins}
+                    onPress={() => setSnoozeIntervalMinutes(mins)}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`${mins} minutes`}
+                    style={[
+                      tw`px-5 py-3 rounded-2xl border min-h-11 justify-center`,
+                      isSelected
+                        ? {
+                            backgroundColor: colors.primary,
+                            borderColor: colors.primary
+                          }
+                        : {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border
+                          }
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        tw`text-sm font-medium`,
+                        { color: isSelected ? '#ffffff' : colors.textMuted }
+                      ]}
+                    >
+                      {mins} min
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           </View>
 
           {/* Next 5 Planned Occurrences Preview */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800/90 space-y-3`}>
-            <View style={tw`flex-row items-center justify-between`}>
-              <View style={tw`flex-row items-center gap-2`}><Sparkles size={16} color={tw.color("emerald-400")} /><Text style={tw`text-sm font-bold text-emerald-400`}>Next 5 Upcoming Triggers Preview</Text></View>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border space-y-3`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <View style={tw`flex-row items-center justify-between mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Sparkles size={16} color="#10b981" />
+                <Text style={tw`text-sm font-bold text-emerald-500`}>
+                  {t('alarmForm.preview')}
+                </Text>
+              </View>
             </View>
 
             {previewOccurrences.length === 0 ? (
-              <View style={tw`text-sm text-zinc-500 italic py-2`}>
+              <Text style={[tw`text-sm italic py-2`, { color: colors.textMuted }]}>
                 No future triggers match this rule in the next 90 days.
-              </View>
+              </Text>
             ) : (
-              <View style={tw`space-y-2`}>
+              <View style={tw`gap-2`}>
                 {previewOccurrences.map((occ, i) => (
                   <View
                     key={occ.id}
-                    style={tw`p-3 rounded-xl bg-zinc-900 border border-zinc-800/80 flex-row items-center justify-between`}
+                    style={[
+                      tw`p-3 rounded-xl border flex-row items-center justify-between`,
+                      {
+                        backgroundColor: colors.cardSecondary,
+                        borderColor: colors.border
+                      }
+                    ]}
                   >
-                    <Text style={tw`text-sm text-zinc-300 font-medium`}>
-                      <Text style={tw`text-zinc-500 font-mono text-xs mr-2`}>#{i + 1} </Text>
+                    <Text style={[tw`text-sm font-medium`, { color: colors.text }]}>
+                      <Text style={[tw`font-mono text-xs mr-2`, { color: colors.textMuted }]}>#{i + 1} </Text>
                       {new Date(occ.triggerTimeMs).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </Text>
-                    <Text style={tw`font-mono text-indigo-400 font-bold text-sm`}>
+                    <Text style={[tw`font-mono font-bold text-sm`, { color: colors.primaryText }]}>
                       {new Date(occ.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   </View>
@@ -528,25 +958,26 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
           {/* Conflict Warning Banner if scheduled within 5 minutes of an existing alarm */}
           {recurringConflict && (
             <View style={tw`p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex-row items-start gap-2.5`}>
-              <AlertTriangle style={tw`w-4 h-4 shrink-0 text-amber-400 mt-0.5`} />
-              <View style={tw`flex-1 space-y-1`}>
-                <View style={tw`font-semibold text-white`}>
-                  Alarm Conflict Detected (5-Min Window)
-                </View>
-                <View style={tw`text-[11px] text-zinc-300`}>
+              <AlertTriangle size={16} color="#f59e0b" style={tw`shrink-0 mt-0.5`} />
+              <View style={tw`flex-1 gap-1`}>
+                <Text style={tw`font-semibold text-amber-500 text-sm`}>
+                  {t('alarmForm.conflictsDetected', { count: 1 })}
+                </Text>
+                <Text style={[tw`text-xs leading-relaxed`, { color: colors.textSecondary }]}>
                   {recurringConflict.conflictResult.warningSummary}
-                </View>
+                </Text>
                 {recurringConflict.conflictResult.suggestions.length > 0 && (
                   <TouchableOpacity
-
                     onPress={() => {
                       const sug = recurringConflict.conflictResult.suggestions[0];
                       setTimeOfDay(sug.formattedTime);
                     }}
                     style={tw`flex-row items-center gap-1 mt-1 pt-1 border-t border-amber-500/20`}
                   >
-                    <Sparkles style={tw`w-3 h-3`} />
-                    <Text style={tw`text-[11px] text-emerald-400 font-semibold`}>One-tap auto-fix: Change alarm time to {recurringConflict.conflictResult.suggestions[0].formattedTime} ({recurringConflict.conflictResult.suggestions[0].label})</Text>
+                    <Sparkles size={12} color="#10b981" />
+                    <Text style={tw`text-xs text-emerald-500 font-semibold`}>
+                      {t('conflict.useSuggested')}: {recurringConflict.conflictResult.suggestions[0].formattedTime}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -555,19 +986,46 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
         </ScrollView>
 
         {/* Footer Actions */}
-        <View style={tw`p-4 border-t border-zinc-800 bg-zinc-950 flex-row items-center justify-between gap-4`}>
+        <View
+          style={[
+            tw`p-4 border-t flex-row items-center justify-between gap-4`,
+            {
+              backgroundColor: colors.bgHeader,
+              borderTopColor: colors.border
+            }
+          ]}
+        >
           <TouchableOpacity
             onPress={onClose}
-            style={tw`py-4 px-6 rounded-2xl bg-zinc-800 active:bg-zinc-700`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarmForm.cancel')}
+            style={[
+              tw`py-3.5 px-6 rounded-2xl border min-h-12 justify-center`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
           >
-            <Text style={tw`text-sm font-bold text-zinc-300`}>Cancel</Text>
+            <Text style={[tw`text-sm font-bold`, { color: colors.textSecondary }]}>
+              {t('alarmForm.cancel')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => handleSubmit({ preventDefault: () => { } } as any)}
-            style={tw`flex-1 py-4 px-5 rounded-2xl bg-indigo-600 active:bg-indigo-500 flex-row items-center justify-center gap-2 shadow-lg shadow-indigo-900/30`}
+            onPress={handleSubmit}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('alarmForm.save')}
+            style={[
+              tw`flex-1 py-3.5 px-5 rounded-2xl flex-row items-center justify-center gap-2 shadow-md min-h-12`,
+              { backgroundColor: colors.primary }
+            ]}
           >
-            <CheckCircle2 size={18} color={tw.color('white')} />
-            <Text style={tw`text-base font-bold text-white`}>Save & Schedule</Text>
+            <CheckCircle2 size={18} color="#ffffff" />
+            <Text style={tw`text-base font-bold text-white`}>
+              {t('alarmForm.save')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

@@ -35,7 +35,8 @@
       ]
     },
     "plugins": [
-      "./plugins/withAlarmEngine.cjs"
+      "./plugins/withAlarmEngine.cjs",
+      "expo-localization"
     ],
     "extra": {
       "eas": {

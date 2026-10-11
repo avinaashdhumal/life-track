@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import tw from 'twrnc';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import { reminderService } from '../../services/AlarmEngineService';
 import { HealthCheckStatus, AlarmItem } from '../../domain/alarm';
 import {
-  ShieldAlert,
   ShieldCheck,
   CheckCircle,
   AlertCircle,
@@ -14,8 +15,7 @@ import {
   Smartphone,
   ExternalLink,
   ChevronLeft,
-  RefreshCw,
-  Info
+  RefreshCw
 } from 'lucide-react-native';
 
 interface HealthCheckScreenProps {
@@ -27,9 +27,11 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
   onBack,
   onSendTestAlarmInOneMinute
 }) => {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
   const [status, setStatus] = useState<HealthCheckStatus | null>(null);
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [brandOverride, setBrandOverride] = useState<string>('auto');
 
   const loadHealthData = async () => {
@@ -111,155 +113,329 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
 
   return (
     <View style={tw`flex flex-col gap-5 pb-12`}>
-      {/* Top Header */}
+      {/* Top Header Buttons */}
       <View style={tw`flex-row items-center justify-between`}>
         <TouchableOpacity
           onPress={onBack}
-          style={tw`flex-row items-center gap-2 text-sm text-zinc-300 hover:text-white px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 transition`}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={t('healthCheck.back')}
+          style={[
+            tw`flex-row items-center gap-2 px-4 py-2.5 rounded-xl border min-h-11`,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border
+            }
+          ]}
         >
-          <ChevronLeft style={tw`w-5 h-5`} />
-          <Text style={tw`text-sm font-medium`}>Back to Test Screen</Text>
+          <ChevronLeft size={18} color={colors.text} />
+          <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+            {t('healthCheck.back')}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={loadHealthData}
-          style={tw`flex-row items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 transition`}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={t('healthCheck.refresh')}
+          style={[
+            tw`flex-row items-center gap-2 px-4 py-2.5 rounded-xl border min-h-11`,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border
+            }
+          ]}
         >
-          <RefreshCw style={tw`w-4 h-4`} />
-          <Text style={tw`text-sm font-medium`}>Refresh</Text>
+          <RefreshCw size={15} color={colors.primary} />
+          <Text style={[tw`text-sm font-semibold`, { color: colors.primaryText }]}>
+            {t('healthCheck.refresh')}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-sm`}>
+      {/* Main Health Card */}
+      <View
+        style={[
+          tw`rounded-3xl p-5 shadow-sm border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-start justify-between mb-5`}>
           <View>
             <View style={tw`flex-row items-center gap-2 mb-1`}>
-              <ShieldCheck style={tw`w-7 h-7 text-emerald-400`} />
-              <Text style={tw`text-xl font-bold text-white tracking-tight`}>Reminder Health Check</Text>
+              <ShieldCheck size={26} color="#10b981" />
+              <Text style={[tw`text-xl font-bold tracking-tight`, { color: colors.text }]}>
+                {t('healthCheck.title')}
+              </Text>
             </View>
-            <Text style={tw`text-sm text-zinc-400 mt-1`}>
-              Verifies system permissions and OEM background limits so reminders never miss.
+            <Text style={[tw`text-sm mt-1`, { color: colors.textMuted }]}>
+              {t('healthCheck.subtitle')}
             </Text>
           </View>
         </View>
 
         {/* 3 Vital Health Indicators */}
-        <View style={tw`flex flex-col md:flex-row gap-3 mb-5`}>
+        <View style={tw`flex-col gap-3 mb-5`}>
           {/* 1. Exact Alarms */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between`}>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
             <View style={tw`flex-row items-center justify-between mb-2`}>
-              <Text style={tw`text-sm font-semibold text-zinc-300 flex-row items-center gap-2`}>
-                <Clock style={tw`w-4 h-4 text-indigo-400`} />
-                <Text>Exact Alarms</Text>
-              </Text>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Clock size={16} color={colors.primary} />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('healthCheck.exactAlarms')}
+                </Text>
+              </View>
               {status?.exactAlarmsAllowed ? (
-                <CheckCircle style={tw`w-5 h-5 text-emerald-400`} />
+                <CheckCircle size={20} color="#10b981" />
               ) : (
-                <AlertCircle style={tw`w-5 h-5 text-amber-400`} />
+                <AlertCircle size={20} color="#f59e0b" />
               )}
             </View>
-            <Text style={tw`text-xs text-zinc-400 mb-3`}>
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
               {status?.exactAlarmsAllowed
-                ? 'Granted: AlarmClock & exact wakeups active'
-                : 'Restricted: May be delayed by Android Doze'}
+                ? `${t('healthCheck.allowed')}: AlarmClock & exact wakeups active`
+                : `${t('healthCheck.denied')}: May be delayed by Android Doze`}
             </Text>
             <TouchableOpacity
               onPress={handleOpenExactAlarmSettings}
-              style={tw`mt-auto w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 items-center justify-center transition`}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('healthCheck.openSettings')}: Exact Alarms`}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
             >
-              <Text style={tw`text-xs font-semibold text-zinc-200`}>Exact Alarm Settings</Text>
+              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
+                {t('healthCheck.openSettings')}
+              </Text>
             </TouchableOpacity>
           </View>
 
           {/* 2. Notifications */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between`}>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
             <View style={tw`flex-row items-center justify-between mb-2`}>
-              <Text style={tw`text-sm font-semibold text-zinc-300 flex-row items-center gap-2`}>
-                <Bell style={tw`w-4 h-4 text-indigo-400`} />
-                <Text>Notifications</Text>
-              </Text>
-              <CheckCircle style={tw`w-5 h-5 text-emerald-400`} />
+              <View style={tw`flex-row items-center gap-2`}>
+                <Bell size={16} color={colors.primary} />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('healthCheck.notifications')}
+                </Text>
+              </View>
+              <CheckCircle size={20} color="#10b981" />
             </View>
-            <Text style={tw`text-xs text-zinc-400 mb-3`}>
-              7 channels configured (Medicines high-priority)
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
+              7 channels configured ({t('healthCheck.allowed')})
             </Text>
             <View style={tw`mt-auto items-center justify-center py-2.5`}>
-              <Text style={tw`text-xs font-semibold text-emerald-400`}>Active & Configured</Text>
+              <Text style={tw`text-xs font-semibold text-emerald-500`}>
+                {t('healthCheck.allowed')} & Active
+              </Text>
             </View>
           </View>
 
           {/* 3. Battery Optimization */}
-          <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between`}>
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
             <View style={tw`flex-row items-center justify-between mb-2`}>
-              <Text style={tw`text-sm font-semibold text-zinc-300 flex-row items-center gap-2`}>
-                <Battery style={tw`w-4 h-4 text-indigo-400`} />
-                <Text>Battery Bypass</Text>
-              </Text>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Battery size={16} color={colors.primary} />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('healthCheck.batteryOptimization')}
+                </Text>
+              </View>
               {status?.batteryOptimizationsIgnored ? (
-                <CheckCircle style={tw`w-5 h-5 text-emerald-400`} />
+                <CheckCircle size={20} color="#10b981" />
               ) : (
-                <AlertCircle style={tw`w-5 h-5 text-amber-400`} />
+                <AlertCircle size={20} color="#f59e0b" />
               )}
             </View>
-            <Text style={tw`text-xs text-zinc-400 mb-3`}>
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
               {status?.batteryOptimizationsIgnored
-                ? 'Unrestricted: Never throttled in background'
-                : 'Optimized: Recommend requesting exemption'}
+                ? `${t('healthCheck.exempt')}: Never throttled in background`
+                : `${t('healthCheck.notExempt')}: Recommend requesting exemption`}
             </Text>
             <TouchableOpacity
               onPress={handleRequestBatteryExemption}
-              style={tw`mt-auto w-full py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 items-center justify-center transition`}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('healthCheck.openSettings')}: Battery Optimization`}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
             >
-              <Text style={tw`text-xs font-semibold text-zinc-200`}>Request Exemption</Text>
+              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
+                {t('healthCheck.openSettings')}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Action: Send Test Alarm in 1 Minute */}
-        <View style={tw`p-4 rounded-2xl bg-gradient-to-r from-indigo-950/30 to-purple-950/30 border border-indigo-500/20 flex-col gap-4`}>
+        <View
+          style={[
+            tw`p-4 rounded-2xl border flex-col gap-3.5`,
+            {
+              backgroundColor: colors.primaryBg,
+              borderColor: colors.primaryBorder
+            }
+          ]}
+        >
           <View style={tw`flex-row items-center gap-3`}>
-            <View style={tw`w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-300`}>
-              <Clock style={tw`w-5 h-5`} />
+            <View
+              style={[
+                tw`w-10 h-10 rounded-xl border flex items-center justify-center`,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border
+                }
+              ]}
+            >
+              <Clock size={20} color={colors.primary} />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-sm font-bold text-white`}>Send Test Alarm in 1 Minute</Text>
-              <Text style={tw`text-xs text-zinc-400 mt-0.5`}>Verifies system wake-lock and notification intent</Text>
+              <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+                {t('healthCheck.sendTestAlarm')}
+              </Text>
+              <Text style={[tw`text-xs mt-0.5`, { color: colors.textMuted }]}>
+                Verifies system wake-lock and notification intent
+              </Text>
             </View>
           </View>
           <TouchableOpacity
             onPress={onSendTestAlarmInOneMinute}
-            style={tw`px-5 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 items-center justify-center shadow-sm transition`}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={t('healthCheck.sendTestAlarm')}
+            style={[
+              tw`px-5 py-3.5 rounded-xl items-center justify-center shadow-md min-h-12`,
+              { backgroundColor: colors.primary }
+            ]}
           >
-            <Text style={tw`text-sm font-semibold text-white`}>Schedule 1m Test</Text>
+            <Text style={tw`text-sm font-bold text-white`}>
+              {t('healthCheck.sendTestAlarm')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* OEM Autostart Guide */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5`}>
+      <View
+        style={[
+          tw`rounded-3xl p-5 border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-center justify-between mb-4`}>
           <View style={tw`flex-row items-center gap-2`}>
-            <Smartphone style={tw`w-5 h-5 text-amber-400`} />
-            <Text style={tw`text-base font-semibold text-white`}>Device Optimization</Text>
+            <Smartphone size={18} color="#f59e0b" />
+            <Text style={[tw`text-base font-semibold`, { color: colors.text }]}>
+              {t('healthCheck.troubleshooting')}
+            </Text>
           </View>
           {/* Brand simulator selector */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2`} style={tw`max-w-[50%]`}>
-            {[{val: "auto", label: `Detected: ${status?.manufacturer || 'Android'}`}, {val: "xiaomi", label: "Xiaomi / Redmi / Poco"}, {val: "samsung", label: "Samsung"}, {val: "oneplus", label: "OnePlus / Oppo / Realme"}, {val: "vivo", label: "Vivo / iQOO"}, {val: "pixel", label: "Google Pixel / Pure Android"}].map(opt => (
-              <TouchableOpacity key={opt.val} onPress={() => setBrandOverride(opt.val)} style={tw`py-2 px-3 rounded-xl border ${brandOverride === opt.val ? 'bg-indigo-600 border-indigo-500' : 'bg-zinc-950 border-zinc-800'}`}>
-                <Text style={tw`text-sm font-medium ${brandOverride === opt.val ? 'text-white' : 'text-zinc-300'}`}>{opt.label}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={tw`flex-row gap-2`}
+            style={tw`max-w-[50%]`}
+          >
+            {[
+              { val: 'auto', label: `${t('healthCheck.manufacturer')}: ${status?.manufacturer || 'Android'}` },
+              { val: 'xiaomi', label: 'Xiaomi / Redmi' },
+              { val: 'samsung', label: 'Samsung' },
+              { val: 'oneplus', label: 'OnePlus / Oppo' },
+              { val: 'vivo', label: 'Vivo / iQOO' },
+              { val: 'pixel', label: 'Google Pixel' }
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.val}
+                onPress={() => setBrandOverride(opt.val)}
+                accessible={true}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: brandOverride === opt.val }}
+                accessibilityLabel={opt.label}
+                style={[
+                  tw`py-1.5 px-3 rounded-xl border`,
+                  brandOverride === opt.val
+                    ? {
+                        backgroundColor: colors.primary,
+                        borderColor: colors.primary
+                      }
+                    : {
+                        backgroundColor: colors.cardSecondary,
+                        borderColor: colors.border
+                      }
+                ]}
+              >
+                <Text
+                  style={[
+                    tw`text-xs font-medium`,
+                    { color: brandOverride === opt.val ? '#ffffff' : colors.text }
+                  ]}
+                >
+                  {opt.label}
+                </Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
-        <View style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 mb-4`}>
-          <Text style={tw`text-sm font-semibold text-amber-300 mb-2.5`}>
+
+        <View
+          style={[
+            tw`p-4 rounded-2xl border mb-4`,
+            {
+              backgroundColor: colors.cardSecondary,
+              borderColor: colors.border
+            }
+          ]}
+        >
+          <Text style={tw`text-sm font-semibold text-amber-500 mb-2.5`}>
             {brandInfo.brand} Setup Steps:
           </Text>
           <View style={tw`gap-2`}>
             {brandInfo.steps.map((step, idx) => (
               <View key={idx} style={tw`flex-row items-start`}>
-                <Text style={tw`text-sm font-bold text-zinc-500 mr-2`}>•</Text>
-                <Text style={tw`flex-1 text-sm text-zinc-300 leading-relaxed`}>{step}</Text>
+                <Text style={tw`text-sm font-bold text-amber-500 mr-2`}>•</Text>
+                <Text style={[tw`flex-1 text-sm leading-relaxed`, { color: colors.textSecondary }]}>
+                  {step}
+                </Text>
               </View>
             ))}
           </View>
@@ -267,47 +443,80 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
 
         <TouchableOpacity
           onPress={handleOpenAutostartSettings}
-          style={tw`w-full py-3.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-semibold text-zinc-200 border border-zinc-700 flex-row items-center justify-center gap-2 transition`}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`${t('healthCheck.openSettings')}: Autostart`}
+          style={[
+            tw`w-full py-3.5 px-4 rounded-xl border flex-row items-center justify-center gap-2 min-h-12`,
+            {
+              backgroundColor: colors.cardSecondary,
+              borderColor: colors.border
+            }
+          ]}
         >
-          <ExternalLink style={tw`w-4 h-4 text-zinc-400`} />
-          <Text style={tw`text-sm font-semibold text-white`}>Open Device Autostart Settings</Text>
+          <ExternalLink size={16} color={colors.textMuted} />
+          <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+            {t('healthCheck.openSettings')}
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Next 10 Scheduled Alarms */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5`}>
+      <View
+        style={[
+          tw`rounded-3xl p-5 border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-center justify-between mb-4`}>
-          <Text style={tw`text-base font-semibold text-white`}>Next 10 Scheduled Alarms</Text>
-          <Text style={tw`text-xs text-zinc-500 font-mono`}>
-            {alarms.length} registered
+          <Text style={[tw`text-base font-semibold`, { color: colors.text }]}>
+            {t('healthCheck.scheduledCount')}
+          </Text>
+          <Text style={[tw`text-xs font-mono`, { color: colors.textMuted }]}>
+            {alarms.length} {t('alarm.scheduled', { count: alarms.length })}
           </Text>
         </View>
 
         {alarms.length === 0 ? (
-          <View style={tw`py-6 text-center text-sm text-zinc-500 flex items-center justify-center`}>
-            <Text style={tw`text-zinc-500`}>No alarms registered in native storage.</Text>
+          <View style={tw`py-6 items-center justify-center`}>
+            <Text style={[tw`text-sm`, { color: colors.textMuted }]}>
+              {t('alarm.noUpcoming')}
+            </Text>
           </View>
         ) : (
-          <View style={tw`space-y-3`}>
+          <View style={tw`gap-3`}>
             {alarms.slice(0, 10).map((a, i) => (
               <View
                 key={a.id}
-                style={tw`p-4 rounded-2xl bg-zinc-950 border border-zinc-800 flex-row items-center justify-between`}
+                style={[
+                  tw`p-4 rounded-2xl border flex-row items-center justify-between`,
+                  {
+                    backgroundColor: colors.cardSecondary,
+                    borderColor: colors.border
+                  }
+                ]}
               >
                 <View style={tw`flex-row items-center gap-3 flex-1`}>
-                  <Text style={tw`font-mono text-zinc-600 text-xs font-bold w-4`}>{i + 1}.</Text>
+                  <Text style={[tw`font-mono text-xs font-bold w-4`, { color: colors.textSubtle }]}>
+                    {i + 1}.
+                  </Text>
                   <View style={tw`flex-1`}>
-                    <Text style={tw`font-semibold text-white text-base mb-0.5`} numberOfLines={1}>{a.title}</Text>
-                    <Text style={tw`text-xs text-zinc-400`}>
-                      Channel: <Text style={tw`uppercase text-zinc-300 font-medium`}>{a.channelId}</Text> • Style: {a.style === 'full_alarm' ? 'Full' : 'Notify'}
+                    <Text style={[tw`font-semibold text-base mb-0.5`, { color: colors.text }]} numberOfLines={1}>
+                      {a.title}
+                    </Text>
+                    <Text style={[tw`text-xs`, { color: colors.textMuted }]}>
+                      Channel: <Text style={[tw`uppercase font-medium`, { color: colors.textSecondary }]}>{a.channelId}</Text> • Style: {a.style === 'full_alarm' ? t('alarm.fullAlarm') : t('alarm.notification')}
                     </Text>
                   </View>
                 </View>
                 <View style={tw`items-end shrink-0 pl-2`}>
-                  <Text style={tw`font-mono text-indigo-400 font-bold text-sm`}>
+                  <Text style={[tw`font-mono font-bold text-sm`, { color: colors.primaryText }]}>
                     {new Date(a.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
-                  <Text style={tw`text-xs text-zinc-500 mt-0.5`}>
+                  <Text style={[tw`text-xs mt-0.5`, { color: colors.textSubtle }]}>
                     {new Date(a.triggerTimeMs).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                   </Text>
                 </View>
@@ -318,16 +527,28 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
       </View>
 
       {/* Last Fired Alarm Record */}
-      <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5`}>
-        <Text style={tw`text-sm font-semibold text-zinc-400 mb-2`}>Last Alarm Fired:</Text>
+      <View
+        style={[
+          tw`rounded-3xl p-5 border`,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textMuted }]}>
+          {t('healthCheck.lastFired')}:
+        </Text>
         {status?.lastFiredAlarm ? (
-          <Text style={tw`text-sm text-zinc-300 leading-relaxed`}>
-            <Text style={tw`font-bold text-emerald-400`}>{status.lastFiredAlarm.title}</Text> fired at{' '}
-            {new Date(status.lastFiredAlarm.firedAtMs).toLocaleTimeString()} on{' '}
+          <Text style={[tw`text-sm leading-relaxed`, { color: colors.textSecondary }]}>
+            <Text style={tw`font-bold text-emerald-500`}>{status.lastFiredAlarm.title}</Text>{' '}
+            fired at {new Date(status.lastFiredAlarm.firedAtMs).toLocaleTimeString()} on{' '}
             {new Date(status.lastFiredAlarm.firedAtMs).toLocaleDateString()}
           </Text>
         ) : (
-          <Text style={tw`text-sm text-zinc-500 italic`}>No alarm has fired yet in this session.</Text>
+          <Text style={[tw`text-sm italic`, { color: colors.textSubtle }]}>
+            {t('healthCheck.none')}
+          </Text>
         )}
       </View>
     </View>

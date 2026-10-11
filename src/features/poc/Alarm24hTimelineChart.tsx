@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, Switch, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import tw from 'twrnc';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../context/ThemeContext';
 import {
   AlarmItem,
   AlarmCategory,
@@ -17,7 +19,6 @@ import {
   Activity,
   Clock,
   Filter,
-  CheckCircle2,
   Play
 } from 'lucide-react-native';
 
@@ -37,27 +38,29 @@ interface TimelineHourSlot {
 }
 
 // Render the appropriate Lucide icon for any category
-export const CategoryIcon: React.FC<{ category: AlarmCategory; className?: string }> = ({
+export const CategoryIcon: React.FC<{ category: AlarmCategory; className?: string; color?: string }> = ({
   category,
-  className = 'w-3.5 h-3.5'
+  className = 'w-3.5 h-3.5',
+  color
 }) => {
+  const iconProps = { style: tw.style(className), color };
   switch (category) {
     case 'medicine':
-      return <Pill style={tw.style(className)} />;
+      return <Pill {...iconProps} />;
     case 'exercise':
-      return <Dumbbell style={tw.style(className)} />;
+      return <Dumbbell {...iconProps} />;
     case 'reminder':
-      return <Bell style={tw.style(className)} />;
+      return <Bell {...iconProps} />;
     case 'appointment':
-      return <Calendar style={tw.style(className)} />;
+      return <Calendar {...iconProps} />;
     case 'hydration':
-      return <Droplets style={tw.style(className)} />;
+      return <Droplets {...iconProps} />;
     case 'habit':
-      return <Sparkles style={tw.style(className)} />;
+      return <Sparkles {...iconProps} />;
     case 'vitals':
-      return <Activity style={tw.style(className)} />;
+      return <Activity {...iconProps} />;
     default:
-      return <Bell style={tw.style(className)} />;
+      return <Bell {...iconProps} />;
   }
 };
 
@@ -66,10 +69,16 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
   currentTimeMs,
   onTriggerAlarmDirectly
 }) => {
+  const { t } = useTranslation();
+  const { colors, isDark } = useTheme();
   const [selectedFilterCategory, setSelectedFilterCategory] = useState<AlarmCategory | 'all'>('all');
   const [selectedSlotIndex, setSelectedSlotIndex] = useState<number | null>(null);
 
   const next24hEnd = currentTimeMs + 24 * 60 * 60 * 1000;
+
+  const getCategoryLabel = (catId: AlarmCategory): string => {
+    return t(`categories.${catId}`) || ALARM_CATEGORIES[catId]?.label || catId;
+  };
 
   // Filter alarms falling in the next 24 hours
   const all24hAlarms = useMemo(() => {
@@ -137,94 +146,181 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
   // Relative countdown formatter
   const getRelativeTimeString = (targetMs: number) => {
     const diffMins = Math.round((targetMs - currentTimeMs) / (60 * 1000));
-    if (diffMins <= 1) return 'in < 1m';
-    if (diffMins < 60) return `in ${diffMins}m`;
+    if (diffMins <= 1) return t('timeline.inTime', { time: '< 1m' });
+    if (diffMins < 60) return t('timeline.inTime', { time: `${diffMins}m` });
     const hours = Math.floor(diffMins / 60);
     const mins = diffMins % 60;
-    return `in ${hours}h ${mins > 0 ? `${mins}m` : ''}`;
+    const formatted = `${hours}h ${mins > 0 ? `${mins}m` : ''}`.trim();
+    return t('timeline.inTime', { time: formatted });
   };
 
   return (
-    <View style={tw`rounded-3xl bg-zinc-900 border border-zinc-800 p-5 shadow-lg space-y-4`}>
+    <View
+      style={[
+        tw`rounded-3xl p-5 shadow-lg border`,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border
+        }
+      ]}
+    >
       {/* Header */}
-      <View style={tw`flex items-center justify-between`}>
-        <View style={tw`flex items-center gap-2.5`}>
-          <View style={tw`w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400`}>
-            <Clock style={tw`w-5 h-5`} />
+      <View style={tw`flex-row items-center justify-between mb-4`}>
+        <View style={tw`flex-row items-center gap-2.5 flex-1`}>
+          <View
+            style={[
+              tw`w-9 h-9 rounded-xl border flex items-center justify-center`,
+              {
+                backgroundColor: colors.primaryBg,
+                borderColor: colors.primaryBorder
+              }
+            ]}
+          >
+            <Clock size={18} color={colors.primary} />
           </View>
-          <View>
-            <Text style={tw`text-base font-bold text-white tracking-tight`}>
-              24-Hour Alarm Timeline
+          <View style={tw`flex-1`}>
+            <Text style={[tw`text-base font-bold tracking-tight`, { color: colors.text }]}>
+              {t('timeline.title')}
             </Text>
-            <Text style={tw`text-[11px] text-zinc-400`}>
-              Categorized sequence of events scheduled for the next 24h
+            <Text style={[tw`text-[11px]`, { color: colors.textMuted }]}>
+              {t('timeline.subtitle')}
             </Text>
           </View>
         </View>
 
-        <View style={tw`flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300`}>
-          <Text style={tw`w-2 h-2 rounded-full bg-emerald-400 animate-pulse`} />
-          <Text style={tw`font-semibold text-white`}>{filtered24hAlarms.length}</Text>
-          <Text style={tw`text-zinc-500`}>
-            {selectedFilterCategory === 'all' ? 'scheduled' : 'in category'}
+        <View
+          style={[
+            tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full border`,
+            {
+              backgroundColor: colors.cardSecondary,
+              borderColor: colors.border
+            }
+          ]}
+        >
+          <View style={tw`w-2 h-2 rounded-full bg-emerald-400`} />
+          <Text style={[tw`font-bold text-xs`, { color: colors.text }]}>
+            {filtered24hAlarms.length}
+          </Text>
+          <Text style={[tw`text-[11px]`, { color: colors.textSubtle }]}>
+            {selectedFilterCategory === 'all'
+              ? t('timeline.scheduled')
+              : t('timeline.inCategory')}
           </Text>
         </View>
       </View>
 
       {/* Category Filter Chips with Unique Icons & Colors */}
-      <View style={tw`mb-2 mt-2`}>
-        <View style={tw`flex-row items-center justify-between mb-3 text-[11px] text-zinc-400`}>
+      <View style={tw`mb-2 mt-1`}>
+        <View style={tw`flex-row items-center justify-between mb-2.5`}>
           <View style={tw`flex-row items-center gap-1.5`}>
-            <Filter size={14} color={tw.color('indigo-400')} />
-            <Text style={tw`font-bold text-zinc-300 text-xs`}>Filter by Category:</Text>
+            <Filter size={14} color={colors.primary} />
+            <Text style={[tw`font-bold text-xs`, { color: colors.textSecondary }]}>
+              {t('timeline.filterByCategory')}
+            </Text>
           </View>
           {selectedFilterCategory !== 'all' && (
             <TouchableOpacity
               onPress={() => setSelectedFilterCategory('all')}
-              style={tw`px-2 py-1 rounded-md bg-indigo-500/10 active:bg-indigo-500/20`}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={t('timeline.reset', { count: all24hAlarms.length })}
+              style={[
+                tw`px-2.5 py-1 rounded-lg`,
+                { backgroundColor: colors.primaryBg }
+              ]}
             >
-              <Text style={tw`text-[10px] font-bold text-indigo-400`}>Reset ({all24hAlarms.length})</Text>
+              <Text style={[tw`text-[10px] font-bold`, { color: colors.primaryText }]}>
+                {t('timeline.reset', { count: all24hAlarms.length })}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-center gap-2 pb-2 text-xs`}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={tw`flex-row items-center gap-2 pb-2`}
+        >
           {/* All Filter Chip */}
           <TouchableOpacity
-            
             onPress={() => setSelectedFilterCategory('all')}
-            style={tw`px-4 py-2.5 rounded-xl text-xs font-bold flex-row items-center gap-2 transition border ${
+            accessible={true}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: selectedFilterCategory === 'all' }}
+            accessibilityLabel={`${t('timeline.all')}, ${categoryCounts.all || 0} ${t('timeline.scheduled')}`}
+            style={[
+              tw`px-3.5 py-2 rounded-xl text-xs font-bold flex-row items-center gap-2 border`,
               selectedFilterCategory === 'all'
-                ? 'bg-zinc-200 text-zinc-950 border-white shadow-sm'
-                : 'bg-zinc-950 text-zinc-400 border-zinc-800'
-            }`}
+                ? {
+                    backgroundColor: colors.primary,
+                    borderColor: colors.primary
+                  }
+                : {
+                    backgroundColor: colors.cardSecondary,
+                    borderColor: colors.border
+                  }
+            ]}
           >
-            <Text style={tw`${selectedFilterCategory === 'all' ? 'text-zinc-900' : 'text-zinc-300'} font-bold`}>All</Text>
-            <Text style={tw`text-[10px] ${selectedFilterCategory === 'all' ? 'opacity-75 text-zinc-900' : 'opacity-75 text-zinc-400'}`}>({categoryCounts.all || 0})</Text>
+            <Text
+              style={[
+                tw`font-bold text-xs`,
+                { color: selectedFilterCategory === 'all' ? '#ffffff' : colors.text }
+              ]}
+            >
+              {t('timeline.all')}
+            </Text>
+            <Text
+              style={[
+                tw`text-[10px] font-mono`,
+                { color: selectedFilterCategory === 'all' ? 'rgba(255,255,255,0.8)' : colors.textMuted }
+              ]}
+            >
+              ({categoryCounts.all || 0})
+            </Text>
           </TouchableOpacity>
 
-          {/* Each Category Chip with unique icon and color badge */}
+          {/* Each Category Chip */}
           {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
             const catDef = ALARM_CATEGORIES[catId];
             const isSelected = selectedFilterCategory === catId;
             const count = categoryCounts[catId] || 0;
+            const catLabel = getCategoryLabel(catId);
 
             return (
               <TouchableOpacity
                 key={catId}
-                
                 onPress={() => setSelectedFilterCategory(isSelected ? 'all' : catId)}
-                style={tw`flex-row items-center gap-2 px-4 py-2.5 rounded-xl border ${isSelected ? 'border-zinc-500 bg-zinc-800' : 'border-zinc-800 bg-zinc-950'}`}
+                accessible={true}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected }}
+                accessibilityLabel={t('accessibility.categoryBadge', { category: catLabel, count })}
+                style={[
+                  tw`flex-row items-center gap-2 px-3 py-2 rounded-xl border`,
+                  isSelected
+                    ? {
+                        backgroundColor: colors.cardHover,
+                        borderColor: catDef.color
+                      }
+                    : {
+                        backgroundColor: colors.cardSecondary,
+                        borderColor: colors.border
+                      }
+                ]}
               >
-                <View style={tw`w-4 h-4`}>
-                  <CategoryIcon category={catId} />
+                <View style={tw`w-3.5 h-3.5`}>
+                  <CategoryIcon category={catId} color={catDef.color} />
                 </View>
-                <Text style={[tw`font-bold`, { color: catDef.color }]}>{catDef.label}</Text>
+                <Text style={[tw`font-bold text-xs`, { color: catDef.color }]}>
+                  {catLabel}
+                </Text>
                 <Text
-                  style={[tw`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold`, {
-                    backgroundColor: isSelected ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
-                    color: isSelected ? 'white' : '#A1A1AA'
-                  }]}
+                  style={[
+                    tw`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold`,
+                    {
+                      backgroundColor: isSelected ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.08)',
+                      color: colors.text
+                    }
+                  ]}
                 >
                   {count}
                 </Text>
@@ -234,14 +330,30 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
         </ScrollView>
       </View>
 
-      {/* Native Visual Timeline Bar Chart */}
-      <View style={tw`bg-zinc-950/70 border border-zinc-800/80 rounded-2xl p-3.5`}>
+      {/* Visual Timeline Bar Chart */}
+      <View
+        style={[
+          tw`border rounded-2xl p-3.5 mt-2`,
+          {
+            backgroundColor: colors.cardSecondary,
+            borderColor: colors.border
+          }
+        ]}
+      >
         <View style={tw`flex-row items-center justify-between mb-2`}>
-          <Text style={tw`text-xs font-semibold text-zinc-300`}>2-Hour Event Density</Text>
-          <Text style={tw`text-[10px] text-zinc-500`}>Tap a bar to inspect</Text>
+          <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
+            {t('timeline.eventDensity')}
+          </Text>
+          <Text style={[tw`text-[10px]`, { color: colors.textMuted }]}>
+            {t('timeline.tapToInspect')}
+          </Text>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-end gap-2 px-1 pt-2 pb-1`}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={tw`flex-row items-end gap-2 px-1 pt-2 pb-1`}
+        >
           {timelineData.map((slot, idx) => {
             const isSelected = selectedSlotIndex === idx;
             const hasAlarms = slot.alarmCount > 0;
@@ -253,7 +365,13 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
                 key={slot.hourLabel}
                 onPress={() => setSelectedSlotIndex(isSelected ? null : idx)}
                 activeOpacity={0.7}
-                style={tw`items-center justify-end w-11`}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={t('accessibility.timeSlot', {
+                  time: slot.hourLabel,
+                  count: slot.alarmCount
+                })}
+                style={tw`items-center justify-end w-11 min-h-24`}
               >
                 <View style={tw`h-5 justify-center items-center mb-1`}>
                   {hasAlarms ? (
@@ -270,15 +388,22 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
                     tw`w-7 rounded-t-lg`,
                     {
                       height: barHeight,
-                      backgroundColor: hasAlarms ? slot.categoryColor : '#27272A',
-                      opacity: isSelected ? 1 : hasAlarms ? 0.85 : 0.4,
+                      backgroundColor: hasAlarms ? slot.categoryColor : isDark ? '#27272A' : '#cbd5e1',
+                      opacity: isSelected ? 1 : hasAlarms ? 0.9 : 0.4,
                       borderWidth: isSelected ? 2 : 0,
-                      borderColor: '#FFFFFF'
+                      borderColor: colors.text
                     }
                   ]}
                 />
 
-                <Text style={tw`text-[10px] font-mono mt-2 ${isSelected ? 'text-white font-bold' : 'text-zinc-500'}`}>
+                <Text
+                  style={[
+                    tw`text-[10px] font-mono mt-2`,
+                    isSelected
+                      ? { color: colors.primaryText, fontWeight: 'bold' }
+                      : { color: colors.textSubtle }
+                  ]}
+                >
                   {slot.hourLabel}
                 </Text>
               </TouchableOpacity>
@@ -288,22 +413,33 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
 
         {/* Selected Slot Inspector Card */}
         {selectedSlotIndex !== null && timelineData[selectedSlotIndex] && (
-          <View style={tw`mt-3 p-3 rounded-xl bg-zinc-900 border border-zinc-700/70`}>
-            <View style={tw`flex-row items-center justify-between border-b border-zinc-800 pb-2 mb-2`}>
+          <View
+            style={[
+              tw`mt-3 p-3 rounded-xl border`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <View style={[tw`flex-row items-center justify-between border-b pb-2 mb-2`, { borderBottomColor: colors.border }]}>
               <View style={tw`flex-row items-center gap-2`}>
-                <Clock size={12} color={tw.color('indigo-400')} />
-                <Text style={tw`text-xs font-bold text-white`}>
-                  Window: {timelineData[selectedSlotIndex].hourLabel}
+                <Clock size={12} color={colors.primary} />
+                <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>
+                  {t('timeline.window', { time: timelineData[selectedSlotIndex].hourLabel })}
                 </Text>
               </View>
-              <Text style={tw`text-[10px] font-semibold text-zinc-400`}>
-                {timelineData[selectedSlotIndex].alarmCount} {timelineData[selectedSlotIndex].alarmCount === 1 ? 'alarm' : 'alarms'}
+              <Text style={[tw`text-[10px] font-semibold`, { color: colors.textMuted }]}>
+                {timelineData[selectedSlotIndex].alarmCount}{' '}
+                {timelineData[selectedSlotIndex].alarmCount === 1
+                  ? t('timeline.alarm')
+                  : t('timeline.alarms')}
               </Text>
             </View>
 
             {timelineData[selectedSlotIndex].alarmCount === 0 ? (
-              <Text style={tw`text-xs text-zinc-500 italic py-1`}>
-                No alarms scheduled in this 2-hour window.
+              <Text style={[tw`text-xs italic py-1`, { color: colors.textSubtle }]}>
+                {t('timeline.noAlarmsInWindow')}
               </Text>
             ) : (
               <View style={tw`gap-1.5`}>
@@ -312,19 +448,25 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
                   return (
                     <View
                       key={a.id}
-                      style={tw`flex-row items-center justify-between p-2 rounded-lg bg-zinc-950 border border-zinc-800`}
+                      style={[
+                        tw`flex-row items-center justify-between p-2 rounded-lg border`,
+                        {
+                          backgroundColor: colors.cardSecondary,
+                          borderColor: colors.border
+                        }
+                      ]}
                     >
                       <View style={tw`flex-row items-center gap-2 flex-1`}>
                         <View style={[tw`p-1 rounded-md`, { backgroundColor: `${cat.color}20` }]}>
                           <View style={tw`w-3.5 h-3.5`}>
-                            <CategoryIcon category={cat.id} />
+                            <CategoryIcon category={cat.id} color={cat.color} />
                           </View>
                         </View>
                         <View style={tw`flex-1`}>
-                          <Text style={tw`text-xs font-bold text-white`} numberOfLines={1}>
+                          <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
                             {a.title}
                           </Text>
-                          <Text style={tw`text-[10px] text-zinc-400`}>
+                          <Text style={[tw`text-[10px]`, { color: colors.textMuted }]}>
                             {new Date(a.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {getRelativeTimeString(a.triggerTimeMs)}
                           </Text>
                         </View>
@@ -332,9 +474,18 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
                       {onTriggerAlarmDirectly && (
                         <TouchableOpacity
                           onPress={() => onTriggerAlarmDirectly(a)}
-                          style={tw`p-1.5 rounded-lg bg-zinc-800 active:bg-zinc-700`}
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={t('accessibility.testAlarm')}
+                          style={[
+                            tw`p-1.5 rounded-lg border`,
+                            {
+                              backgroundColor: colors.card,
+                              borderColor: colors.border
+                            }
+                          ]}
                         >
-                          <Play size={12} color={tw.color('emerald-400')} />
+                          <Play size={12} color="#10b981" />
                         </TouchableOpacity>
                       )}
                     </View>
@@ -347,9 +498,16 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
       </View>
 
       {/* Visual Category Legend */}
-      <View style={tw`flex-row flex-wrap items-center gap-x-3 gap-y-2 pt-3 pb-3 text-[10px] text-zinc-400 border-t border-b border-zinc-800/80`}>
-        <Text style={tw`text-zinc-500 font-bold flex-row items-center gap-1`}>
-          <Text>Categories:</Text>
+      <View
+        style={[
+          tw`flex-row flex-wrap items-center gap-x-3 gap-y-2 pt-3 pb-3 border-t border-b mt-3`,
+          {
+            borderColor: colors.border
+          }
+        ]}
+      >
+        <Text style={[tw`font-bold text-[11px]`, { color: colors.textMuted }]}>
+          {t('timeline.categories')}
         </Text>
         {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
           const cat = ALARM_CATEGORIES[catId];
@@ -358,77 +516,124 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
               <View
                 style={[tw`w-2 h-2 rounded-full shrink-0`, { backgroundColor: cat.color }]}
               />
-              <Text style={tw`text-zinc-300 font-medium text-[11px]`}>{cat.label}</Text>
+              <Text style={[tw`font-medium text-[11px]`, { color: colors.textSecondary }]}>
+                {getCategoryLabel(catId)}
+              </Text>
             </View>
           );
         })}
       </View>
 
-      {/* Chronological Sequence List with Category Badges & Icons */}
-      <View style={tw`mt-2`}>
-        <View style={tw`flex-row text-xs font-bold text-zinc-300 mb-3 items-center justify-between`}>
+      {/* Chronological Sequence List */}
+      <View style={tw`mt-3`}>
+        <View style={tw`flex-row text-xs font-bold mb-3 items-center justify-between`}>
           <View style={tw`flex-row items-center gap-2 flex-wrap`}>
-            <Text style={tw`text-sm`}>Upcoming Timeline</Text>
+            <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+              {t('timeline.upcomingTimeline')}
+            </Text>
             {selectedFilterCategory !== 'all' && (
-              <Text style={tw`text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md`}>
-                Filtered: {ALARM_CATEGORIES[selectedFilterCategory].label}
+              <Text
+                style={[
+                  tw`text-[10px] font-bold px-2 py-0.5 rounded-md`,
+                  {
+                    backgroundColor: colors.primaryBg,
+                    color: colors.primaryText
+                  }
+                ]}
+              >
+                {t('timeline.filtered', { label: getCategoryLabel(selectedFilterCategory) })}
               </Text>
             )}
           </View>
-          <Text style={tw`text-[10px] text-zinc-500 font-mono font-bold`}>Next 24h</Text>
+          <Text style={[tw`text-[10px] font-mono font-bold`, { color: colors.textMuted }]}>
+            {t('timeline.next24h')}
+          </Text>
         </View>
 
         {filtered24hAlarms.length === 0 ? (
-          <View style={tw`p-6 rounded-3xl bg-zinc-950 border border-zinc-800 flex items-center justify-center`}>
-            <Text style={tw`text-sm font-medium text-zinc-500 text-center`}>
+          <View
+            style={[
+              tw`p-6 rounded-3xl border flex items-center justify-center`,
+              {
+                backgroundColor: colors.cardSecondary,
+                borderColor: colors.border
+              }
+            ]}
+          >
+            <Text style={[tw`text-sm font-medium text-center`, { color: colors.textMuted }]}>
               {selectedFilterCategory === 'all'
-                ? 'No alarms scheduled in the next 24 hours. Use the scheduler above to add an alarm.'
-                : `No alarms scheduled in category "${ALARM_CATEGORIES[selectedFilterCategory].label}" for the next 24 hours.`}
+                ? t('timeline.noAlarmsAll')
+                : t('timeline.noAlarmsCategory', { category: getCategoryLabel(selectedFilterCategory) })}
             </Text>
           </View>
         ) : (
           <ScrollView nestedScrollEnabled={true} style={tw`max-h-64`} contentContainerStyle={tw`flex-col gap-2 pr-1`}>
             {filtered24hAlarms.map((item) => {
               const cat = resolveAlarmCategory(item);
+              const catLabel = getCategoryLabel(cat.id);
               return (
                 <View
                   key={item.id}
-                  style={tw`p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800 flex-row items-center justify-between gap-3 text-xs`}
+                  style={[
+                    tw`p-3.5 rounded-2xl border flex-row items-center justify-between gap-3`,
+                    {
+                      backgroundColor: colors.cardSecondary,
+                      borderColor: colors.border
+                    }
+                  ]}
+                  accessible={true}
+                  accessibilityLabel={`${item.title}, ${catLabel}, ${getRelativeTimeString(item.triggerTimeMs)}`}
                 >
                   <View style={tw`flex-row items-center gap-3.5 flex-1`}>
-                    {/* Category Icon Badge Container */}
                     <View
-                      style={[tw`w-10 h-10 rounded-xl flex items-center justify-center shrink-0`, {
-                        backgroundColor: `${cat.color}15`,
-                        border: `1px solid ${cat.color}30`
-                      }]}
+                      style={[
+                        tw`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border`,
+                        {
+                          backgroundColor: `${cat.color}15`,
+                          borderColor: `${cat.color}30`
+                        }
+                      ]}
                     >
-                      <View style={tw`w-5 h-5`}><CategoryIcon category={cat.id}  /></View>
+                      <View style={tw`w-5 h-5`}>
+                        <CategoryIcon category={cat.id} color={cat.color} />
+                      </View>
                     </View>
 
                     <View style={tw`flex-1`}>
                       <View style={tw`flex-row items-center flex-wrap gap-2 mb-1`}>
-                        <Text style={tw`text-sm font-bold text-white shrink`} numberOfLines={1}>{item.title}</Text>
+                        <Text style={[tw`text-sm font-bold shrink`, { color: colors.text }]} numberOfLines={1}>
+                          {item.title}
+                        </Text>
                         <View style={tw`flex-row gap-1`}>
                           <Text
-                            style={[tw`text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0`, {
-                              backgroundColor: `${cat.color}15`,
-                              color: cat.color
-                            }]}
+                            style={[
+                              tw`text-[10px] px-2 py-0.5 rounded-md font-bold shrink-0`,
+                              {
+                                backgroundColor: `${cat.color}15`,
+                                color: cat.color
+                              }
+                            ]}
                           >
-                            {cat.label}
+                            {catLabel}
                           </Text>
-                          <Text style={tw`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${item.style === 'full_alarm' ? 'bg-amber-500/10 text-amber-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                            {item.style === 'full_alarm' ? 'Full Alarm' : 'Notif'}
+                          <Text
+                            style={[
+                              tw`text-[10px] font-bold px-1.5 py-0.5 rounded-md`,
+                              item.style === 'full_alarm'
+                                ? { backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }
+                                : { backgroundColor: colors.border, color: colors.textMuted }
+                            ]}
+                          >
+                            {item.style === 'full_alarm' ? t('alarm.fullAlarm') : t('alarm.notification')}
                           </Text>
                         </View>
                       </View>
-                      <View style={tw`text-xs text-zinc-400 flex-row items-center gap-2 mt-0.5`}>
-                        <Text style={tw`font-mono font-bold text-zinc-300`}>
+                      <View style={tw`text-xs flex-row items-center gap-2 mt-0.5`}>
+                        <Text style={[tw`font-mono font-bold text-xs`, { color: colors.textSecondary }]}>
                           {new Date(item.triggerTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </Text>
-                        <Text style={tw`text-zinc-600`}>•</Text>
-                        <Text style={tw`text-zinc-500 font-medium`}>
+                        <Text style={{ color: colors.borderStrong }}>•</Text>
+                        <Text style={[tw`font-medium text-xs`, { color: colors.textMuted }]}>
                           {new Date(item.triggerTimeMs).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                         </Text>
                       </View>
@@ -436,16 +641,32 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
                   </View>
 
                   <View style={tw`flex-row items-center gap-2 shrink-0`}>
-                    <Text style={tw`px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-300 font-bold text-[10px] font-mono`}>
+                    <Text
+                      style={[
+                        tw`px-2.5 py-1 rounded-lg font-bold text-[10px] font-mono`,
+                        {
+                          backgroundColor: colors.primaryBg,
+                          color: colors.primaryText
+                        }
+                      ]}
+                    >
                       {getRelativeTimeString(item.triggerTimeMs)}
                     </Text>
                     {onTriggerAlarmDirectly && (
                       <TouchableOpacity
                         onPress={() => onTriggerAlarmDirectly(item)}
-                        style={tw`p-2.5 rounded-xl bg-zinc-900 active:bg-zinc-800`}
-                        
+                        accessible={true}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('accessibility.testAlarm')}
+                        style={[
+                          tw`p-2.5 rounded-xl border`,
+                          {
+                            backgroundColor: colors.card,
+                            borderColor: colors.border
+                          }
+                        ]}
                       >
-                        <Play size={14} color={tw.color('emerald-400')} />
+                        <Play size={14} color="#10b981" />
                       </TouchableOpacity>
                     )}
                   </View>
