@@ -12,6 +12,7 @@ import { z } from 'zod';
  */
 
 import { calculateRoutineRelativeClockTime, DailyRoutine } from './routine';
+import { localDateTimeToMs } from './dates';
 
 export const MedicineFormSchema = z.enum([
   'tablet',
@@ -348,9 +349,7 @@ export function generateTodayDoseSlots(
   const times = getMedicineDoseTimes(medicine, dailyRoutine);
 
   for (const timeStr of times) {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const scheduledDate = new Date(`${todayDateStr}T${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`);
-    const scheduledTimestampMs = scheduledDate.getTime();
+    const scheduledTimestampMs = localDateTimeToMs(todayDateStr, timeStr);
 
     // Check if there is an existing log for this scheduled time
     // Prefer the log recorded for this exact slot; fall back to a nearby log only when the log has

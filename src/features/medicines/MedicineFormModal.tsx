@@ -203,8 +203,9 @@ const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = (
         isActive
       });
       onClose();
-    } catch (e: any) {
-      Alert.alert(t('common.error', 'Error'), e.message || 'Could not save medicine');
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      Alert.alert(t('common.error', 'Error'), msg || 'Could not save medicine');
     } finally {
       setIsSaving(false);
     }
@@ -216,8 +217,9 @@ const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = (
     try {
       await onDelete(medicine.id);
       onClose();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not delete medicine');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Could not delete medicine');
     } finally {
       setIsDeleting(false);
     }

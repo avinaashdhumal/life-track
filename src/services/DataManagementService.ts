@@ -74,11 +74,11 @@ const BackupDataSchema = z.object({
   logs: z.array(LogSchema).default([])
 });
 
-const asArray = (value: unknown): any[] => (Array.isArray(value) ? value : []);
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 /** Schema v1 table dump from the old Profile "Backup" button (`databaseService.exportDatabaseDump`). */
-function fromLegacyDbDump(dump: Record<string, any>): Record<string, unknown> {
-  const settingsRows = asArray(dump.app_settings);
+function fromLegacyDbDump(dump: Record<string, unknown>): Record<string, unknown> {
+  const settingsRows = asArray(dump.app_settings) as Record<string, unknown>[];
   const onboarding = settingsRows.find((r) => r?.key === 'has_completed_onboarding' || r?.id === 'has_completed_onboarding');
   return {
     settings: onboarding?.value === true ? { hasCompletedOnboarding: true } : {},
@@ -93,9 +93,9 @@ function fromLegacyDbDump(dump: Record<string, any>): Record<string, unknown> {
 }
 
 /** Schema v1 StorageService export (`version: 1`). */
-function fromLegacyStorageExport(data: Record<string, any>): Record<string, unknown> {
+function fromLegacyStorageExport(data: Record<string, unknown>): Record<string, unknown> {
   return {
-    settings: data.settings ?? {},
+    settings: (data.settings as Record<string, unknown> | undefined) ?? {},
     schedules: asArray(data.schedules),
     logs: asArray(data.logs)
   };
@@ -128,9 +128,9 @@ class DataManagementService {
 
   /** Accepts a v2 backup or either v1 legacy format. Nothing is written unless the whole file is valid. */
   parseBackup(json: string): { data?: BackupData; error?: string } {
-    let raw: any;
+    let raw: Record<string, unknown> | null = null;
     try {
-      raw = JSON.parse(json);
+      raw = JSON.parse(json) as Record<string, unknown>;
     } catch {
       return { error: 'not_json' };
     }

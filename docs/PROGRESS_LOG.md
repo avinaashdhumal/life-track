@@ -15,6 +15,17 @@ Template:
 
 ---
 
+## 2026-10-12 — Production lint, type strictness, and date hardening pass (Antigravity)
+- **Changed:**
+  - `tsconfig.json`: Added `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noImplicitOverride`, and `forceConsistentCasingInFileNames`.
+  - Date purity: Replaced `toISOString().split('T')[0]` in `shift.ts:addDaysToDateString` with `addLocalDays` from `dates.ts` (Rule 8). In `medicine.ts:generateTodayDoseSlots`, used `localDateTimeToMs` instead of inline ISO string Date parsing.
+  - Type safety: Replaced `colors: any` in `RoutineSettingsModal` and `ShiftScheduleScreen` with `ThemeColors`.
+  - Error typing: Replaced `err: any` in `TodayScreen`, `MedicineListScreen`, and `MedicineFormModal` with type-safe `unknown` error handling.
+  - Backup parsing: Cleaned legacy import typings in `DataManagementService` from `Record<string, any>` to `Record<string, unknown>` and fixed `@typescript-eslint/array-type`.
+  - Config: Added `.vscode/` to `.gitignore`.
+- **Verified:** `npm run lint` ✅ 0 errors / 0 warnings · `npm test` ✅ (7 files in 2 timezones) · `test-i18n-theme.cjs` ✅ (100% parity across en, hi, mr, es) · `expo-doctor` ✅ (21/21 passed) · `expo export` android ✅ web ✅ · native Gradle `:alarm-engine:compileDebugKotlin` & `:app:compileDebugKotlin` ✅.
+- **Left / risks:** Ready for physical device testing on Android hardware (DEBT-010).
+
 ## 2026-10-12 — Lint and health pass (Claude Code)
 - **Changed:** tsconfig `strict` + no-unused; ESLint 9 + `eslint-config-expo` (`eslint.config.cjs`, `npm run lint`
   runs both); removed 79 unused imports/vars; fixed all React Hooks lint errors (fetch-then-set effects, pure renders,

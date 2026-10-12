@@ -92,8 +92,9 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
     try {
       await medicinesRepository.upsert(data);
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Failed to save medicine');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Failed to save medicine');
       throw err;
     }
   };
@@ -102,8 +103,9 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
     try {
       await medicinesRepository.delete(id);
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Failed to delete medicine');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Failed to delete medicine');
       throw err;
     }
   };
@@ -161,8 +163,9 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
         );
       }
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not log dose');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Could not log dose');
     }
   };
 

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import {
   DailyRoutine,
   RoutineCustomBlock,
@@ -598,7 +598,7 @@ interface RoutineAnchorRowProps {
   label: string;
   time: string;
   onAdjust: (delta: number) => void;
-  colors: any;
+  colors: ThemeColors;
   isDark: boolean;
 }
 

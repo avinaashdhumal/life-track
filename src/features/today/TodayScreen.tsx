@@ -240,8 +240,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         );
       }
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not log dose');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Could not log dose');
     }
   };
 
@@ -254,8 +255,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         t('reminders.snoozedNotice', { name: slot.medicineName, minutes })
       );
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || t('common.error'));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || t('common.error'));
     }
   };
 
@@ -276,8 +278,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       setSkipSlot(null);
       setSkipReason('');
       await loadData();
-    } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not record skip');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert(t('common.error', 'Error'), msg || 'Could not record skip');
     }
   };
 

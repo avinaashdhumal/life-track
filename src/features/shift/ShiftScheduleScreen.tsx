@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import {
   ShiftConfig,
   ShiftOverride,
@@ -907,7 +907,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   );
 };
 
-const FeatureBullet: React.FC<{ icon: React.ReactNode; text: string; colors: any }> = ({
+const FeatureBullet: React.FC<{ icon: React.ReactNode; text: string; colors: ThemeColors }> = ({
   icon,
   text,
   colors

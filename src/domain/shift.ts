@@ -11,7 +11,7 @@ import {
   calculateRoutineRelativeClockTime
 } from './routine';
 import { Medicine } from './medicine';
-import { toLocalDateString } from './dates';
+import { toLocalDateString, addLocalDays } from './dates';
 
 export interface ShiftType {
   id: string;
@@ -267,10 +267,7 @@ export function getDaysDifference(startDateStr: string, targetDateStr: string): 
  * Adds N days to a "YYYY-MM-DD" string and returns resulting "YYYY-MM-DD".
  */
 export function addDaysToDateString(dateStr: string, days: number): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().split('T')[0];
+  return addLocalDays(dateStr, days);
 }
 
 /**

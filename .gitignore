@@ -15,4 +15,5 @@ bun.lockb
 .expo/
 .expo
 *.apk
+.vscode/
 
