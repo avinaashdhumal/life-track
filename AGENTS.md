@@ -30,35 +30,40 @@ Indian households (the app ships in English, Hindi, Marathi, and Spanish).
 1. **Alarm reliability is the product.** Never weaken the native path in `modules/alarm-engine/` (exact alarms, boot
    restore, full-screen intent, foreground service). Any change there needs a manual device test (see README "Physical
    Android Phone Testing Guide") and must be noted in `docs/PROGRESS_LOG.md`.
-2. **Offline and private.** Do not add network calls, analytics, crash reporters, ads, or cloud SDKs. `@google/genai`,
-   `express`, `dotenv`, and `recharts` are unused leftovers from an AI Studio scaffold (DEBT-004) — don't start using them.
+2. **Offline and private.** Do not add network calls, analytics, crash reporters, ads, or cloud SDKs.
 3. **Medication safety logic lives in pure domain code** (`src/domain/`) with tests. No React or React Native imports
    in `src/domain/`. Any change to dose-gap, max-daily-dose, stock, or scheduling math needs a test.
 4. **Every user-facing string goes through i18n** and must be added to all four locale files
    (`src/i18n/locales/{en,hi,mr,es}.json`). `npm test` fails on key mismatch.
-5. **Never lose user data.** Storage keys are versioned (`@lifetrack:*:v1`). Changing a stored shape means writing a
-   migration, not renaming a key. Backups must cover every store (see BUG-003).
-6. **Don't add a third storage layer.** There are already two (DEBT-001). New data goes into `DatabaseService` tables
-   via a repository in `src/data/` until DEBT-001 is resolved.
+5. **Never lose user data.** Changing a stored shape means a step in `src/services/migrations.ts`, not renaming a
+   key. Every store must be in the backup (`DataManagementService`) and its round-trip test.
+6. **One storage engine.** Only `src/services/kvStore.ts` touches AsyncStorage. Each piece of data has exactly one
+   owner store (ARCHITECTURE.md §3). Don't duplicate fields across stores.
+7. **Reminders go through the coordinator.** Anything that should change scheduled alarms goes through
+   `reminderCoordinator` or a repository change event it listens to. Screens never fire or cancel alarms on timers.
+   The alarm id format is a contract with the native engine (ADR-0004).
+8. **Local dates only.** Use `src/domain/dates.ts`; never `toISOString()` for a calendar date.
 
 ## Commands
 
 ```bash
 npm install
-npm test              # i18n parity + a11y audit + domain tests (node assert via tsx)
+npm test              # i18n checks + every src/**/__tests__/*.test.ts in two timezones
 npm run lint          # tsc --noEmit (strict typecheck)
-npx expo prebuild -p android   # regenerate android/ (gitignored, CNG)
-npx expo run:android --device  # dev build on a USB-connected phone
+npm run web           # expo start --web: quick UI check (in-app alarm engine, no native module)
+npx expo export --platform android   # verifies the JS bundles for Android (no JDK needed)
+npx expo prebuild -p android         # regenerate android/ (gitignored, CNG)
+npx expo run:android --device        # dev build on a USB-connected phone (needs a JDK + Android SDK)
 ```
 
-`npm run dev` / `npm run build` (Vite web preview) is currently **broken** — see DEBT-005. Use a device or emulator.
-`src/domain/__tests__/alarmConflict.test.ts` uses Jest globals and is **not** run by `npm test` (DEBT-006).
+The native module was rewritten on 2026-10-12 and **has not been compiled or device-tested yet** (DEBT-010). Do that
+before building anything else on top of the native engine.
 
 ## Definition of done (every task)
 
 - [ ] `npm test` and `npm run lint` pass.
 - [ ] New strings are in all 4 locales; new interactive elements have `accessible`, `accessibilityRole`, `accessibilityLabel`.
-- [ ] Domain logic changes have tests in `src/domain/__tests__/`, added to the `test` script in `package.json`.
+- [ ] Domain/service logic changes have tests in a `__tests__/` folder (picked up automatically).
 - [ ] Native (Kotlin) changes were built with `npx expo run:android`, and you stated in the log whether they were tested on a device.
 - [ ] Docs updated (next section).
 
@@ -80,18 +85,24 @@ If you find the docs disagree with the code, **the code wins**. Fix the docs in 
 ## Repository map (short)
 
 ```
-App.tsx                      Expo entry → src/App.tsx
-src/App.tsx                  Shell: onboarding gate, top bar, 5 bottom tabs, global alarm loop, modals
-src/domain/                  Pure TS logic + zod schemas (alarm, reminderPlanner, medicine, routine, shift, alarmConflict)
-src/data/                    Repositories (medicines, profile, routine, shift) — UI talks to these
-src/services/                StorageService (AsyncStorage KV), DatabaseService (table-like store),
-                             AlarmEngineService (JS ↔ native bridge + replanning)
-src/features/<feature>/      Screens and modals. `poc/` holds Phase 0 screens that are still live in the app.
-src/i18n/                    i18next setup + 4 locale JSONs
-src/context/ThemeContext.tsx Light/dark palette — use `useTheme().colors`, never hard-code colors
-modules/alarm-engine/        Local Expo module: Kotlin AlarmManager, receivers, foreground service, full-screen activity
-plugins/withAlarmEngine.cjs  Config plugin that patches AndroidManifest for the module
-docs/                        Agent and project context (this system)
+App.tsx                         Expo entry → src/App.tsx
+src/App.tsx                     Shell: bootstrap (preload → migrations → reminders), tabs, back button, deep links
+src/domain/                     Pure TS + zod: alarm, dates, reminderPlanner, medicine, medicineReminders, routine, shift
+src/data/                       Repositories (medicines, profile, routine, shift) + ChangeEmitter events
+src/services/kvStore.ts         The only AsyncStorage access
+src/services/StorageService.ts  Documents: settings, schedules, logs, routine, shift config
+src/services/DatabaseService.ts Tables: medicines, dose history, health profile
+src/services/migrations.ts      Versioned storage migrations (run at startup)
+src/services/DataManagementService.ts  Backup / restore / delete-all
+src/services/AlarmEngineService.ts     JS ↔ native alarm bridge, diff-based sync, health check
+src/services/reminderCoordinator.ts    Medicine reminder sync, native action drain, in-app engine
+src/features/<feature>/         today, medicines, alarms, reliability, settings, routine, shift, onboarding
+src/i18n/                       i18next setup + 4 locale JSONs
+src/context/ThemeContext.tsx    Light/dark palette: use `useTheme().colors`, never hard-code colors
+modules/alarm-engine/           Kotlin: AlarmManager, receivers, action handler, foreground service, lock-screen UI
+plugins/withAlarmEngine.cjs     Config plugin that patches AndroidManifest for the module
+scripts/run-tests.mjs           Test runner (auto-discovery, two timezones)
+docs/                           Agent and project context (this system)
 ```
 
 `android/` and `ios/` are generated by `expo prebuild` and are gitignored. Don't hand-edit them; change the module

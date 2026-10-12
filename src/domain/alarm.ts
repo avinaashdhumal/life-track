@@ -203,6 +203,34 @@ export interface RecurringSchedule {
   };
 }
 
+/**
+ * Lets the native engine keep a series going without JS: when an occurrence fires, native schedules
+ * the same reminder `everyDays` later with id `${seriesPrefix}_${YYYYMMDD}_${seriesSuffix}`
+ * (local date), which is exactly the id the JS planner would generate for that day.
+ */
+export interface AlarmRepeat {
+  everyDays: number;
+  untilMs?: number;
+  seriesPrefix: string;
+  seriesSuffix: string;
+}
+
+export const SNOOZE_ID_SUFFIX = '_snooze';
+
+/** Occurrence id shared by the JS planner and the native engine. `dateStr` is local "YYYY-MM-DD". */
+export function buildOccurrenceId(seriesPrefix: string, dateStr: string, seriesSuffix: string): string {
+  return `${seriesPrefix}_${dateStr.replace(/-/g, '')}_${seriesSuffix}`;
+}
+
+/** Snoozing a snoozed alarm reuses the same snooze id instead of growing `_snooze_snooze`. */
+export function snoozeAlarmId(alarmId: string): string {
+  return alarmId.endsWith(SNOOZE_ID_SUFFIX) ? alarmId : `${alarmId}${SNOOZE_ID_SUFFIX}`;
+}
+
+export function isSnoozeAlarmId(alarmId: string): boolean {
+  return alarmId.endsWith(SNOOZE_ID_SUFFIX);
+}
+
 export interface AlarmItem {
   id: string;
   scheduleId?: string;
@@ -218,6 +246,7 @@ export interface AlarmItem {
   currentRepeatCount?: number;
   shiftTypeId?: string | null;
   payload?: Record<string, unknown>;
+  repeat?: AlarmRepeat;
 }
 
 export interface ReminderLogEntry {
@@ -244,6 +273,8 @@ export interface HealthCheckStatus {
   exactAlarmsAllowed: boolean;
   notificationsAllowed: boolean;
   batteryOptimizationsIgnored: boolean;
+  /** Android 14+: full-screen lock-screen alarms permitted. */
+  fullScreenIntentAllowed?: boolean;
   manufacturer: string;
   scheduledCount: number;
   nextScheduledTimeMs?: number;

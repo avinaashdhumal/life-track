@@ -4,6 +4,8 @@ import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { reminderService } from '../../services/AlarmEngineService';
+import { storageService } from '../../services/StorageService';
+import { reminderCoordinator } from '../../services/reminderCoordinator';
 import {
   AlarmItem,
   NotificationChannelId,
@@ -92,38 +94,28 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Poll service alarms, recurring schedules and logs
+  // Read-only refresh of alarms, schedules, and logs. Firing is owned by the alarm engine (native,
+  // or the in-app engine in App.tsx); this screen must never cancel or fire alarms itself.
   const refreshData = async () => {
-    const list = await reminderService.getScheduledAlarms();
-    const schedules = await reminderService.getRecurringSchedules();
-    const eventLogs = await reminderService.getLogs();
+    const [list, schedules, eventLogs] = await Promise.all([
+      reminderService.getScheduledAlarms(),
+      reminderService.getRecurringSchedules(),
+      reminderService.getLogs()
+    ]);
     setAlarms(list);
     setRecurringSchedules(schedules);
     setLogs(eventLogs);
-
-    // Check if any alarm reached its trigger time
-    const currentTime = Date.now();
-    for (const item of list) {
-      if (item.triggerTimeMs <= currentTime) {
-        await reminderService.cancelAlarm(item.id);
-        await reminderService.logAction({
-          profileId: 'default',
-          alarmId: item.id,
-          action: 'FIRED',
-          timestampMs: currentTime,
-          scheduledTimeMs: item.triggerTimeMs,
-          note: 'Alarm trigger time reached'
-        });
-        onTriggerAlarmDirectly(item);
-        break;
-      }
-    }
   };
 
   useEffect(() => {
     refreshData();
-    const interval = setInterval(refreshData, 1000);
-    return () => clearInterval(interval);
+    const unsubscribe = storageService.subscribe(() => refreshData());
+    // Native alarms change without a JS storage write (fired, snoozed from the notification).
+    const interval = setInterval(refreshData, 5000);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const executeSchedule = async (candidate: {
@@ -233,6 +225,8 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
 
   const handleClearAll = async () => {
     await reminderService.cancelAll();
+    // Medicine and recurring reminders are re-planned immediately; only one-off test alarms stay cleared.
+    await reminderCoordinator.rebuildAll();
     await refreshData();
   };
 

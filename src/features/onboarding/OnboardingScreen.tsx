@@ -4,6 +4,7 @@ import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { profileRepository } from '../../data/profileRepository';
+import { shiftRepository } from '../../data/shiftRepository';
 import {
   ShieldCheck,
   Bell,
@@ -50,9 +51,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         emergencyContactPhone: emergencyPhone.trim()
       });
 
-      // 2. Set shift preference: strictly OFF unless 'yes'
-      const shiftEnabled = shiftChoice === 'yes';
-      await profileRepository.setShiftFeatureEnabled(shiftEnabled);
+      // 2. Set shift preference on the switch the shift engine reads: strictly OFF unless 'yes'
+      await shiftRepository.setEnabled(shiftChoice === 'yes');
 
       // 3. Mark onboarding complete
       await profileRepository.setCompletedOnboarding(true);

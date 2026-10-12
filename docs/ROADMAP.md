@@ -14,37 +14,36 @@ Item IDs refer to [BACKLOG.md](BACKLOG.md).
 North-star metric (measured on the device only, never sent anywhere): **% of scheduled doses logged as taken within
 60 minutes.**
 
-## M1 — Make the core promise true (next)
+## M1 — Make the core promise true (in progress)
 Goal: a medicine added in the app rings on time, and acting on the notification updates the app.
 
-1. DEBT-001 decision (ADR-0003) — choose the store first, so M1 isn't built on the layer that will be deleted.
-   (The full migration can land in M2. M1 only needs medicine alarms to go through one well-defined path.)
-2. BUG-001 — medicine → alarm planning (pure domain + sync service + tests)
-3. BUG-002 — keep `scheduleId`/payload across the native sync
-4. BUG-004 — notification actions → dose log + stock
-5. BUG-005 — native self-rescheduling, so reminders never run out
-6. FEAT-002 — missed-dose follow-up
-7. FEAT-004 — refill notification
-8. FEAT-009 — reliability banner when permissions are missing
-9. DEBT-003 — remove the 1-second polling loop
+Done 2026-10-12 (JS verified; native pending DEBT-010): ~~ADR-0003~~, ~~BUG-001~~, ~~BUG-002~~, ~~BUG-004~~,
+~~BUG-005~~, ~~DEBT-003~~, plus BUG-008…024 found along the way.
 
-**Exit criteria:** README device Tests 1–4 pass for a *medicine* reminder, not just a test alarm. Results are recorded
-in PROGRESS_LOG.
+Remaining, in order:
+1. **DEBT-010**: compile the native module and run the device checklist. Nothing else in M1 ships before this.
+2. FEAT-002: missed-dose follow-up (re-notify, show `missedDoseAdvice`)
+3. FEAT-004: refill notification + days-of-stock estimate
+4. FEAT-009: reliability banner on Today when a permission is missing
+5. DEBT-009: translate the remaining hard-coded strings (Hindi/Marathi screen-reader users)
+
+**Exit criteria:** README device Tests 1–4 pass for a *medicine* reminder, plus the DEBT-010 checklist. Results are
+recorded in PROGRESS_LOG.
 
 ## M2 — Trust: never lose data, easy to use daily
-1. DEBT-001 / DEBT-002 — one storage layer + migration
-2. BUG-003 + FEAT-007 — complete versioned backup + automatic weekly backup
-3. FEAT-003 — adherence history (calendar, %, streak)
-4. FEAT-005 — navigation: Today · Medicines · History · More
-5. FEAT-011 — delete all my data
-6. BUG-006, BUG-007, DEBT-006, DEBT-007
+Done: ~~DEBT-001/002~~, ~~BUG-003~~, ~~BUG-006~~, ~~BUG-007~~, ~~DEBT-006~~, ~~DEBT-007~~.
+
+Remaining:
+1. FEAT-007: automatic weekly backup (format is ready)
+2. FEAT-003: adherence history (calendar, %, streak)
+3. FEAT-005: navigation: Today · Medicines · History · More
+4. FEAT-011: "Delete all my data" button (logic is ready)
 
 ## M3 — Share and ship
 1. FEAT-006 — doctor report (PDF/share)
 2. FEAT-008 — emergency card
 3. FEAT-012 — shift-aware dose times + shift-eve notice (the differentiator for shift workers)
-4. FEAT-015 — Play Store readiness
-5. DEBT-004 / DEBT-005 — remove the scaffold leftovers before a public release
+4. FEAT-015: Play Store readiness (exact-alarm permission decision, privacy policy, Data Safety)
 
 ## M4 — Broaden health tracking (README Phase 3 subset)
 Appointments (FEAT-010) and vitals (FEAT-013) first. Both reuse the reminder engine and feed the doctor report.

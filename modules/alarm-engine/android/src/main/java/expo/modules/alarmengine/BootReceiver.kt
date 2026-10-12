@@ -19,21 +19,46 @@ class BootReceiver : BroadcastReceiver() {
 
     private fun rescheduleAllAlarms(context: Context, reasonAction: String) {
         val now = System.currentTimeMillis()
+        val graceMs = 15 * 60 * 1000L
         val alarms = AlarmStorage.getAllAlarms(context)
 
         AlarmStorage.logEvent(context, "SYSTEM", "RESCHEDULE_TRIGGERED_$reasonAction", now)
 
         for (alarm in alarms) {
-            // Only re-schedule alarms that are in the future or within the last 15 minutes grace period
-            if (alarm.triggerTimeMs > now - (15 * 60 * 1000L)) {
-                // If it was supposed to trigger while the device was off, schedule immediately (+2 seconds)
-                val effectiveTrigger = if (alarm.triggerTimeMs < now) now + 2000L else alarm.triggerTimeMs
-                val updated = alarm.copy(triggerTimeMs = effectiveTrigger)
-                AlarmSchedulerHelper.scheduleExact(context, updated)
-            } else {
-                // Too old, mark as missed/clean up
-                AlarmStorage.removeAlarm(context, alarm.id)
-                AlarmStorage.logEvent(context, alarm.id, "EXPIRED_WHILE_OFF", now)
+            when {
+                alarm.triggerTimeMs > now -> {
+                    // Still upcoming: re-register with AlarmManager (registrations don't survive reboot).
+                    AlarmSchedulerHelper.scheduleExact(context, alarm)
+                }
+                alarm.triggerTimeMs > now - graceMs -> {
+                    // Due while the phone was off: keep the series on its normal time, then ring now.
+                    AlarmSchedulerHelper.scheduleNextInSeries(context, alarm)
+                    AlarmSchedulerHelper.scheduleExact(
+                        context,
+                        alarm.copy(
+                            triggerTimeMs = now + 2000L,
+                            repeatEveryDays = 0,
+                            repeatUntilMs = 0L,
+                            seriesPrefix = "",
+                            seriesSuffix = ""
+                        )
+                    )
+                }
+                else -> {
+                    // Too old to ring: record it as missed, but don't let the series die.
+                    AlarmSchedulerHelper.scheduleNextInSeries(context, alarm)
+                    AlarmStorage.removeAlarm(context, alarm.id)
+                    AlarmStorage.logEvent(context, alarm.id, "EXPIRED_WHILE_OFF", now)
+                    AlarmStorage.addPendingAction(
+                        context,
+                        alarm.id,
+                        AlarmActionHandler.MISSED,
+                        now,
+                        alarm.triggerTimeMs,
+                        alarm.title,
+                        alarm.payloadJson
+                    )
+                }
             }
         }
     }

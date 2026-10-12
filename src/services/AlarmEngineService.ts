@@ -1,35 +1,57 @@
 import { Platform, PermissionsAndroid } from 'react-native';
-import { AlarmItem, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } from '../domain/alarm';
+import {
+  AlarmCategory,
+  AlarmItem,
+  HealthCheckStatus,
+  RecurringSchedule,
+  ReminderLogEntry,
+  isSnoozeAlarmId,
+  snoozeAlarmId
+} from '../domain/alarm';
 import { IReminderService, ScheduleAlarmParams } from './ReminderService';
-import { planOccurrencesForRecurringSchedule } from '../domain/reminderPlanner';
+import { planScheduleWindow } from '../domain/reminderPlanner';
 import * as NativeAlarmEngine from '../../modules/alarm-engine';
-import { storageService, StorageInfo } from './StorageService';
+import { storageService } from './StorageService';
+import i18n from '../i18n';
 
+// Internal payload keys used to carry JS metadata through the native engine (BUG-002).
+const PAYLOAD_SCHEDULE_ID = '_scheduleId';
+const PAYLOAD_CATEGORY = '_category';
+
+interface SyncOptions {
+  /** Reschedule every desired alarm even if unchanged (after settings or language changes). */
+  force?: boolean;
+  /** Keep a snoozed copy whose owner still exists. */
+  keepSnooze?: (alarm: AlarmItem) => boolean;
+}
+
+function sameAlarm(a: AlarmItem, b: AlarmItem): boolean {
+  return (
+    a.triggerTimeMs === b.triggerTimeMs &&
+    a.title === b.title &&
+    a.message === b.message &&
+    a.style === b.style &&
+    a.snoozeIntervalMinutes === b.snoozeIntervalMinutes
+  );
+}
+
+/**
+ * JS side of the alarm engine. On Android with the native module, alarms live natively
+ * (AlarmManager + SharedPreferences). Without it (web, Expo Go) they live in StorageService and the
+ * in-app loop in App.tsx rings them.
+ */
 export class AlarmEngineService implements IReminderService {
-  private isInitialized = false;
-
-  constructor() {
-    this.initialize();
+  /** True when alarms are delivered by the Kotlin engine. */
+  get isNative(): boolean {
+    return NativeAlarmEngine.isAvailable();
   }
 
-  private async initialize() {
-    if (this.isInitialized) return;
-    this.isInitialized = true;
-    try {
-      // Ensure recurring schedules exist and plan occurrences
-      await this.replanRecurringSchedules();
-    } catch (err) {
-      console.warn('[AlarmEngineService] Error during persistent initialization:', err);
-    }
-  }
-
-  // --- RECURRING SCHEDULES (CRUD) ---
+  // --- RECURRING SCHEDULES ---
 
   async createRecurringSchedule(
     schedule: Omit<RecurringSchedule, 'id' | 'createdAt'>
   ): Promise<RecurringSchedule> {
     const fullSchedule = await storageService.createRecurringSchedule(schedule);
-
     await this.logAction({
       profileId: 'default',
       alarmId: fullSchedule.id,
@@ -38,7 +60,6 @@ export class AlarmEngineService implements IReminderService {
       scheduledTimeMs: Date.now(),
       note: `Created recurring schedule: ${fullSchedule.title} (${fullSchedule.recurrenceType})`
     });
-
     await this.replanRecurringSchedules();
     return fullSchedule;
   }
@@ -57,14 +78,6 @@ export class AlarmEngineService implements IReminderService {
   ): Promise<RecurringSchedule | null> {
     const updated = await storageService.updateRecurringSchedule(id, updates);
     if (updated) {
-      // Clean up previous occurrences for this schedule before re-planning
-      const activeAlarms = await this.getScheduledAlarms();
-      for (const a of activeAlarms) {
-        if (a.scheduleId === id) {
-          await this.cancelAlarm(a.id);
-        }
-      }
-
       await this.logAction({
         profileId: 'default',
         alarmId: id,
@@ -73,45 +86,25 @@ export class AlarmEngineService implements IReminderService {
         scheduledTimeMs: Date.now(),
         note: `Updated schedule: ${updated.title}`
       });
-
-      if (updated.isEnabled) {
-        await this.replanRecurringSchedules();
-      }
+      // Force: the time may be the same but title, message, or style may have changed.
+      await this.replanRecurringSchedules({ force: true });
     }
     return updated;
   }
 
   async toggleRecurringSchedule(id: string, isEnabled: boolean): Promise<boolean> {
     const success = await storageService.toggleRecurringSchedule(id, isEnabled);
-    if (!isEnabled) {
-      // Cancel upcoming occurrences for disabled schedule
-      const alarms = await this.getScheduledAlarms();
-      for (const a of alarms) {
-        if (a.scheduleId === id) {
-          await this.cancelAlarm(a.id);
-        }
-      }
-    } else {
-      await this.replanRecurringSchedules();
-    }
+    await this.replanRecurringSchedules();
     return success;
   }
 
   async deleteRecurringSchedule(id: string): Promise<boolean> {
-    // Remove all upcoming occurrences belonging to this schedule
-    const alarms = await this.getScheduledAlarms();
-    for (const a of alarms) {
-      if (a.scheduleId === id) {
-        await this.cancelAlarm(a.id);
-      }
-    }
-
     const deleted = await storageService.deleteRecurringSchedule(id);
     if (deleted) {
       await this.logAction({
         profileId: 'default',
         alarmId: id,
-        action: 'SKIPPED',
+        action: 'DISMISSED',
         timestampMs: Date.now(),
         scheduledTimeMs: Date.now(),
         note: `Deleted recurring schedule ${id}`
@@ -121,49 +114,95 @@ export class AlarmEngineService implements IReminderService {
     return deleted;
   }
 
-  async replanRecurringSchedules(): Promise<void> {
+  /**
+   * Brings scheduled alarms in line with the recurring schedules: adds missing occurrences, moves
+   * changed ones, and cancels occurrences of disabled or deleted schedules (including their snoozes).
+   */
+  async replanRecurringSchedules(options: { force?: boolean } = {}): Promise<void> {
     const nowMs = Date.now();
     const schedules = await storageService.getRecurringSchedules();
-    const activeAlarms = await storageService.getScheduledAlarms();
-    const activeAlarmIds = new Set(activeAlarms.map((a) => a.id));
+    const enabledIds = new Set(schedules.filter((s) => s.isEnabled).map((s) => s.id));
 
+    const desired: AlarmItem[] = [];
     for (const schedule of schedules) {
       if (!schedule.isEnabled) continue;
-      // Plan occurrences for next 14 days
-      const occurrences = planOccurrencesForRecurringSchedule(schedule, nowMs, 5, 14);
-      for (const occ of occurrences) {
-        if (!activeAlarmIds.has(occ.id)) {
-          await this.scheduleAlarm({
-            id: occ.id,
-            scheduleId: schedule.id,
-            category: occ.category || schedule.category,
-            triggerTimeMs: occ.triggerTimeMs,
-            title: occ.title,
-            message: occ.message,
-            channelId: occ.channelId,
-            isFullAlarm: occ.style === 'full_alarm',
-            snoozeIntervalMinutes: occ.snoozeIntervalMinutes,
-            payload: occ.payload
-          });
-          activeAlarmIds.add(occ.id);
-        }
+      desired.push(...planScheduleWindow(schedule, nowMs));
+    }
+
+    // Owned = any alarm generated from a recurring schedule. Older builds lost `scheduleId` on device,
+    // so ids starting with the schedule prefix count too; stale ones get cancelled here.
+    await this.syncAlarms(
+      desired,
+      (a) => !!a.scheduleId || a.id.startsWith('rec_'),
+      {
+        force: options.force,
+        keepSnooze: (a) => !!a.scheduleId && enabledIds.has(a.scheduleId)
       }
+    );
+  }
+
+  /**
+   * Generic diff-based sync for a family of alarms (`isOwned` selects the family): cancels owned
+   * alarms that aren't desired, and schedules desired alarms that are missing or changed.
+   */
+  async syncAlarms(
+    desired: AlarmItem[],
+    isOwned: (alarm: AlarmItem) => boolean,
+    options: SyncOptions = {}
+  ): Promise<void> {
+    const existing = (await this.getScheduledAlarms()).filter(isOwned);
+    const desiredIds = new Set(desired.map((d) => d.id));
+    const existingById = new Map(existing.map((a) => [a.id, a]));
+
+    for (const alarm of existing) {
+      if (desiredIds.has(alarm.id)) continue;
+      if (isSnoozeAlarmId(alarm.id) && options.keepSnooze?.(alarm)) continue;
+      await this.cancelAlarm(alarm.id);
+    }
+
+    for (const item of desired) {
+      const current = existingById.get(item.id);
+      const presented = await this.applyPresentation(item);
+      if (!options.force && current && sameAlarm(current, presented)) continue;
+      await this.scheduleAlarmItem(presented);
     }
   }
 
-  // --- SCHEDULED ALARMS (CRUD) ---
+  // --- SCHEDULING ---
 
-  async scheduleAlarm(params: ScheduleAlarmParams): Promise<boolean> {
-    const nativeSuccess = await NativeAlarmEngine.scheduleAlarm({
-      id: params.id,
-      triggerTimeMs: params.triggerTimeMs,
-      title: params.title,
-      message: params.message,
-      channelId: params.channelId ?? 'medicines',
-      isFullAlarm: params.isFullAlarm ?? true,
-      snoozeIntervalMinutes: params.snoozeIntervalMinutes ?? 10,
-      payload: params.payload
-    });
+  /** Applies user settings (full-screen on/off) to a planned alarm. */
+  private async applyPresentation(item: AlarmItem): Promise<AlarmItem> {
+    const settings = await storageService.getSettings();
+    const style = item.style === 'full_alarm' && settings.fullScreenAlarmEnabled ? 'full_alarm' : 'notification';
+    return { ...item, style };
+  }
+
+  /** Schedules a planned AlarmItem (keeps its repeat rule and metadata). */
+  async scheduleAlarmItem(item: AlarmItem, options: { log?: boolean } = {}): Promise<boolean> {
+    return this.scheduleAlarm(
+      {
+        id: item.id,
+        scheduleId: item.scheduleId,
+        category: item.category,
+        triggerTimeMs: item.triggerTimeMs,
+        title: item.title,
+        message: item.message,
+        channelId: item.channelId,
+        isFullAlarm: item.style === 'full_alarm',
+        snoozeIntervalMinutes: item.snoozeIntervalMinutes,
+        payload: item.payload,
+        repeat: item.repeat
+      },
+      options
+    );
+  }
+
+  async scheduleAlarm(params: ScheduleAlarmParams, options: { log?: boolean } = { log: true }): Promise<boolean> {
+    const settings = await storageService.getSettings();
+    const snoozeMinutes = params.snoozeIntervalMinutes ?? settings.defaultSnoozeMinutes;
+    const payload: Record<string, unknown> = { ...(params.payload || {}) };
+    if (params.scheduleId) payload[PAYLOAD_SCHEDULE_ID] = params.scheduleId;
+    if (params.category) payload[PAYLOAD_CATEGORY] = params.category;
 
     const alarmItem: AlarmItem = {
       id: params.id,
@@ -173,78 +212,140 @@ export class AlarmEngineService implements IReminderService {
       title: params.title,
       message: params.message,
       channelId: params.channelId ?? 'medicines',
-      style: params.isFullAlarm ? 'full_alarm' : 'notification',
+      style: params.isFullAlarm === false ? 'notification' : 'full_alarm',
       triggerTimeMs: params.triggerTimeMs,
-      snoozeIntervalMinutes: params.snoozeIntervalMinutes ?? 10,
-      payload: params.payload
+      snoozeIntervalMinutes: snoozeMinutes,
+      payload: params.payload,
+      repeat: params.repeat
     };
 
-    // Persist to phone storage
-    await storageService.saveScheduledAlarm(alarmItem);
+    let ok = true;
+    if (this.isNative) {
+      ok = await NativeAlarmEngine.scheduleAlarm({
+        id: params.id,
+        triggerTimeMs: params.triggerTimeMs,
+        title: params.title,
+        message: params.message,
+        channelId: alarmItem.channelId,
+        isFullAlarm: alarmItem.style === 'full_alarm',
+        snoozeIntervalMinutes: snoozeMinutes,
+        payload,
+        repeatEveryDays: params.repeat?.everyDays ?? 0,
+        repeatUntilMs: params.repeat?.untilMs ?? 0,
+        seriesPrefix: params.repeat?.seriesPrefix ?? '',
+        seriesSuffix: params.repeat?.seriesSuffix ?? '',
+        vibrate: settings.vibrationEnabled,
+        autoDismissMinutes: settings.autoDismissMinutes,
+        labels: {
+          taken: i18n.t('reminders.taken'),
+          snooze: i18n.t('reminders.snooze', { minutes: snoozeMinutes }),
+          skip: i18n.t('reminders.skip'),
+          badge: i18n.t('reminders.badge')
+        }
+      });
+    } else {
+      await storageService.saveScheduledAlarm(alarmItem);
+    }
 
-    await this.logAction({
-      profileId: 'default',
-      alarmId: params.id,
-      action: 'SCHEDULED',
-      timestampMs: Date.now(),
-      scheduledTimeMs: params.triggerTimeMs,
-      note: `Scheduled for ${new Date(params.triggerTimeMs).toLocaleTimeString()}`
-    });
+    if (options.log) {
+      await this.logAction({
+        profileId: 'default',
+        alarmId: params.id,
+        action: 'SCHEDULED',
+        timestampMs: Date.now(),
+        scheduledTimeMs: params.triggerTimeMs,
+        note: `Scheduled for ${new Date(params.triggerTimeMs).toLocaleString()}`
+      });
+    }
+    return ok;
+  }
 
-    return nativeSuccess || true;
+  /** Schedules a one-off snoozed copy of an alarm (used by the in-app ringing modal and Today). */
+  async snooze(alarm: AlarmItem, minutes: number): Promise<void> {
+    await this.scheduleAlarm(
+      {
+        id: snoozeAlarmId(alarm.id),
+        scheduleId: alarm.scheduleId,
+        category: alarm.category,
+        triggerTimeMs: Date.now() + minutes * 60 * 1000,
+        title: alarm.title,
+        message: alarm.message,
+        channelId: alarm.channelId,
+        isFullAlarm: alarm.style === 'full_alarm',
+        snoozeIntervalMinutes: minutes,
+        payload: alarm.payload
+      },
+      { log: false }
+    );
   }
 
   async cancelAlarm(id: string): Promise<boolean> {
-    await NativeAlarmEngine.cancelAlarm(id);
-    await storageService.deleteScheduledAlarm(id);
-
-    await this.logAction({
-      profileId: 'default',
-      alarmId: id,
-      action: 'SKIPPED',
-      timestampMs: Date.now(),
-      scheduledTimeMs: Date.now(),
-      note: 'Alarm cancelled'
-    });
+    if (this.isNative) {
+      await NativeAlarmEngine.cancelAlarm(id);
+    } else {
+      await storageService.deleteScheduledAlarm(id);
+    }
     return true;
   }
 
   async cancelAll(): Promise<boolean> {
-    await NativeAlarmEngine.cancelAll();
+    if (this.isNative) {
+      await NativeAlarmEngine.cancelAll();
+    }
     await storageService.clearAllScheduledAlarms();
     return true;
   }
 
+  /** Upcoming alarms. Read-only: never writes storage. */
   async getScheduledAlarms(): Promise<AlarmItem[]> {
-    const nativeAlarms = await NativeAlarmEngine.getScheduledAlarms();
-    if (nativeAlarms && nativeAlarms.length > 0) {
-      const mapped: AlarmItem[] = nativeAlarms.map((n) => ({
-        id: n.id,
-        profileId: 'default',
-        title: n.title,
-        message: n.message,
-        channelId: (n.channelId as any) || 'medicines',
-        style: n.isFullAlarm ? 'full_alarm' : 'notification',
-        triggerTimeMs: n.triggerTimeMs,
-        snoozeIntervalMinutes: n.snoozeIntervalMinutes,
-        payload: n.payloadJson ? JSON.parse(n.payloadJson) : undefined
-      }));
-      // Sync native alarms to persistent storage
-      await storageService.saveScheduledAlarms(mapped);
-      return mapped;
+    if (!this.isNative) {
+      return storageService.getScheduledAlarms();
     }
-
-    return storageService.getScheduledAlarms();
+    const nativeAlarms = await NativeAlarmEngine.getScheduledAlarms();
+    return nativeAlarms
+      .map((n) => {
+        let payload: Record<string, unknown> = {};
+        try {
+          payload = n.payloadJson ? JSON.parse(n.payloadJson) : {};
+        } catch {
+          payload = {};
+        }
+        const scheduleId = typeof payload[PAYLOAD_SCHEDULE_ID] === 'string' ? (payload[PAYLOAD_SCHEDULE_ID] as string) : undefined;
+        const category = typeof payload[PAYLOAD_CATEGORY] === 'string' ? (payload[PAYLOAD_CATEGORY] as AlarmCategory) : undefined;
+        delete payload[PAYLOAD_SCHEDULE_ID];
+        delete payload[PAYLOAD_CATEGORY];
+        const item: AlarmItem = {
+          id: n.id,
+          scheduleId,
+          category,
+          profileId: 'default',
+          title: n.title,
+          message: n.message,
+          channelId: (n.channelId as AlarmItem['channelId']) || 'medicines',
+          style: n.isFullAlarm ? 'full_alarm' : 'notification',
+          triggerTimeMs: n.triggerTimeMs,
+          snoozeIntervalMinutes: n.snoozeIntervalMinutes,
+          payload: Object.keys(payload).length > 0 ? payload : undefined
+        };
+        return item;
+      })
+      .sort((a, b) => a.triggerTimeMs - b.triggerTimeMs);
   }
 
-  // --- ACTION & AUDIT LOGS (CRUD) ---
+  /** Native actions (notification / lock-screen taps, misses) queued while JS wasn't looking. */
+  async drainNativeActions(): Promise<NativeAlarmEngine.NativePendingAction[]> {
+    if (!this.isNative) return [];
+    return NativeAlarmEngine.drainPendingActions();
+  }
+
+  // --- REMINDER LOGS ---
 
   async logAction(entry: Omit<ReminderLogEntry, 'id'>): Promise<void> {
     await storageService.addLog(entry);
   }
 
-  async getLogs(): Promise<ReminderLogEntry[]> {
-    return storageService.getLogs();
+  async getLogs(limit?: number): Promise<ReminderLogEntry[]> {
+    return storageService.getLogs(limit);
   }
 
   async clearLogs(): Promise<void> {
@@ -258,17 +359,21 @@ export class AlarmEngineService implements IReminderService {
   // --- HEALTH CHECK & DIAGNOSTICS ---
 
   async getHealthCheck(): Promise<HealthCheckStatus> {
-    const exactAllowed = await this.canScheduleExactAlarms();
-    const batteryIgnored = await this.isIgnoringBatteryOptimizations();
-    const manufacturer = await this.getManufacturer();
-    const alarms = await this.getScheduledAlarms();
-    const lastFired = await NativeAlarmEngine.getLastFiredAlarm();
+    const [exactAllowed, batteryIgnored, manufacturer, alarms, lastFired, channels, fullScreenAllowed] =
+      await Promise.all([
+        this.canScheduleExactAlarms(),
+        this.isIgnoringBatteryOptimizations(),
+        this.getManufacturer(),
+        this.getScheduledAlarms(),
+        NativeAlarmEngine.getLastFiredAlarm(),
+        this.getNotificationChannels(),
+        NativeAlarmEngine.canUseFullScreenIntent()
+      ]);
 
     const nextUpcoming = alarms.filter((a) => a.triggerTimeMs >= Date.now())[0];
-    const channels = await this.getNotificationChannels();
 
     let notifsAllowed = true;
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
+    if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
       try {
         notifsAllowed = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       } catch {
@@ -280,10 +385,10 @@ export class AlarmEngineService implements IReminderService {
       exactAlarmsAllowed: exactAllowed,
       notificationsAllowed: notifsAllowed,
       batteryOptimizationsIgnored: batteryIgnored,
+      fullScreenIntentAllowed: fullScreenAllowed,
       manufacturer: manufacturer || 'Android Device',
       scheduledCount: alarms.length,
       nextScheduledTimeMs: nextUpcoming?.triggerTimeMs,
-      foregroundServiceActive: true,
       notificationChannelsCount: channels.length,
       lastFiredAlarm: lastFired
         ? {
@@ -295,34 +400,20 @@ export class AlarmEngineService implements IReminderService {
     };
   }
 
-  async getStorageInfo(): Promise<StorageInfo> {
-    return storageService.getStorageInfo();
-  }
-
-  async exportAllData(): Promise<string> {
-    return storageService.exportAllData();
-  }
-
-  async importAllData(jsonString: string): Promise<boolean> {
-    const ok = await storageService.importAllData(jsonString);
-    if (ok) {
-      await this.replanRecurringSchedules();
-    }
-    return ok;
-  }
-
-  async clearAllData(): Promise<void> {
-    await this.cancelAll();
-    await storageService.clearAllData();
-    await this.replanRecurringSchedules();
-  }
-
   async canScheduleExactAlarms(): Promise<boolean> {
     return NativeAlarmEngine.canScheduleExactAlarms();
   }
 
   async openExactAlarmSettings(): Promise<boolean> {
     return NativeAlarmEngine.openExactAlarmSettings();
+  }
+
+  async canUseFullScreenIntent(): Promise<boolean> {
+    return NativeAlarmEngine.canUseFullScreenIntent();
+  }
+
+  async openFullScreenIntentSettings(): Promise<boolean> {
+    return NativeAlarmEngine.openFullScreenIntentSettings();
   }
 
   async isIgnoringBatteryOptimizations(): Promise<boolean> {
@@ -349,16 +440,15 @@ export class AlarmEngineService implements IReminderService {
     return NativeAlarmEngine.openAppNotificationSettings();
   }
 
-  async getNotificationChannels(): Promise<any[]> {
+  async getNotificationChannels(): Promise<NativeAlarmEngine.NativeChannelInfo[]> {
     return NativeAlarmEngine.getNotificationChannels();
   }
 
-  async requestBrowserNotificationPermission(): Promise<boolean> {
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
+  /** Asks for notification permission (Android 13+ runtime permission, or the browser on web). */
+  async requestNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
       try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
-        );
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } catch {
         return false;

@@ -15,6 +15,32 @@ Template:
 
 ---
 
+## 2026-10-12 — Fix session: every review finding (Claude Code)
+- **Changed:**
+  - Storage: single engine `kvStore`, one owner per datum, v1→v2 migration, full validated backup/restore with legacy
+    import (`DataManagementService`). Profile/settings duplicates removed.
+  - Reminders: medicine reminders planned and synced (`medicineReminders.ts`, `reminderCoordinator.ts`); diff-based
+    alarm sync; `scheduleId` kept on native; native action queue drained into dose logs; native series roll-forward
+    with shared id format (ADR-0004); local-date ids; per-rule plan horizons; settings applied to alarms; real Today
+    snooze; no more 1-second polling (App and Alarms tab).
+  - Native (Kotlin): `AlarmActionHandler`, pending-action queue, fired-alarm store, roll-forward, auto-dismiss →
+    MISSED + silent notification, single ringing source, localized labels, Boot receiver keeps series, full-screen
+    intent check/settings.
+  - UI: files moved out of `poc/`, big screens split, Health Check fixed (real notification status, full-screen row),
+    onboarding shift choice applied, Profile wake/sleep → routine, alarm form validation and no demo defaults, back
+    button + deep links, new strings in all 4 locales.
+  - Tooling: removed AI Studio/Vite leftovers and unused deps, `npm run web`, auto-discovering test runner in two
+    timezones, used-key i18n check, a11y audit auto-discovery, `.claude/launch.json` (web on port 8090).
+- **Backlog:** done: BUG-001…007, DEBT-001…008, FEAT-001, BUG-008…024 (found and fixed this session).
+  New open: DEBT-009 (≈70 hard-coded English labels), DEBT-010 (native compile + device tests). FEAT-015 in progress.
+- **Verified:** `npm test` ✅ (7 files × Asia/Kolkata + America/New_York) · `npm run lint` ✅ ·
+  `expo export` android ✅ web ✅ · browser run ✅: onboarding (shift "yes" → shift card shown), add medicine → 14
+  alarms with local-date ids → rang at 10:43 → Taken → dose logged, stock 30→29, series rolled, Today shows Taken;
+  backup JSON contains all 8 stores. · **Kotlin not compiled, no device test** (no JDK on this machine).
+- **Left / risks:** DEBT-010 first. A compile error in the new Kotlin files is possible; the APIs used are standard
+  (`ContextCompat.registerReceiver`, `NotificationCompat.setSilent`, `NotificationManager.canUseFullScreenIntent`
+  API 34, Expo `Record` fields). Then FEAT-002 / FEAT-004 / FEAT-009 to finish M1.
+
 ## 2026-10-12 — Project review + agent context system (Claude Code)
 - **Changed:** Added `AGENTS.md`, `CLAUDE.md`, and `docs/` (ARCHITECTURE, STATUS, BACKLOG, ROADMAP, CONVENTIONS,
   PROGRESS_LOG, decisions/). Added a pointer to `docs/` and corrected the Phase 2 status in README. No app code changed.

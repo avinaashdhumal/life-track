@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "LifeTrack",
-    "tagline": "Rastreador de salud y vida sin conexión"
+    "tagline": "Rastreador de salud y vida sin conexión",
+    "loading": "Cargando…"
   },
   "tabs": {
     "alarms": "Alarmas",
@@ -20,7 +21,8 @@
     "language": "Idioma",
     "theme": "Tema",
     "selectLanguage": "Seleccionar idioma",
-    "quickMenu": "Menú rápido"
+    "quickMenu": "Menú rápido",
+    "menuProfileDesc": "Perfil de salud, rutina y datos"
   },
   "common": {
     "enabled": "Activado",
@@ -118,7 +120,16 @@
     "sendTestAlarm": "Enviar alarma de prueba de 1 min",
     "troubleshooting": "Guía de solución de problemas",
     "troubleshootingDescription": "Soluciones específicas por marca para batería/alarma para una entrega confiable",
-    "inspectButton": "Inspeccionar"
+    "inspectButton": "Inspeccionar",
+    "menuDesc": "Permisos de alarma y batería",
+    "exactAllowedDesc": "Las alarmas suenan al minuto exacto",
+    "exactDeniedDesc": "El ahorro de energía de Android puede retrasar las alarmas",
+    "batteryExemptDesc": "Nunca se limita en segundo plano",
+    "batteryNotExemptDesc": "Permite el uso de batería sin restricciones para recordatorios fiables",
+    "notificationsDeniedDesc": "No se pueden mostrar recordatorios. Toca para permitir notificaciones.",
+    "fullScreenIntent": "Alarmas a pantalla completa",
+    "fullScreenAllowedDesc": "Las alarmas pueden mostrarse sobre la pantalla de bloqueo",
+    "fullScreenDeniedDesc": "Las alarmas solo aparecen como notificaciones. Permite alertas a pantalla completa."
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Superposición de alarma nativa de Android",
@@ -174,7 +185,16 @@
     "save": "Guardar alarma recurrente",
     "editSchedule": "Editar alarma recurrente",
     "updateSchedule": "Actualizar alarma recurrente",
-    "snoozeInterval": "Intervalo de aplazamiento"
+    "snoozeInterval": "Intervalo de aplazamiento",
+    "intervalHint": "p. ej. 2 para \"cada 2 días\"",
+    "decreaseInterval": "Reducir intervalo",
+    "increaseInterval": "Aumentar intervalo",
+    "anchorStartDate": "Fecha de inicio",
+    "invalidDate": "Escribe una fecha válida como AAAA-MM-DD, p. ej. 2026-10-15",
+    "removeDate": "Quitar fecha {{date}}",
+    "dayLabel": "Día {{day}}",
+    "monthsSelected": "Meses ({{count}}/12):",
+    "defaultTitle": "Recordatorio"
   },
   "conflict": {
     "title": "⚠️ Conflicto de alarma detectado",
@@ -283,7 +303,7 @@
   },
   "storage": {
     "title": "Motor de almacenamiento en el dispositivo",
-    "persistedBadge": "Persistente en el teléfono (AsyncStorage / SQLite)",
+    "persistedBadge": "Guardado en este teléfono",
     "crudStatus": "CRUD local completo activo",
     "schedulesCount": "{{count}} programaciones recurrentes",
     "alarmsCount": "{{count}} alarmas activas",
@@ -295,11 +315,18 @@
     "backupSuccess": "Copia de seguridad generada con éxito",
     "restoreSuccess": "Datos persistentes restaurados con éxito",
     "restoreFailed": "Formato de copia de seguridad no válido",
-    "restorePlaceholder": "Pegue el JSON exportado aquí para restaurar horarios, alarmas y configuraciones",
+    "restorePlaceholder": "Pega aquí una copia de LifeTrack para restaurarla",
     "modalTitle": "Copia de seguridad y restauración de almacenamiento",
     "close": "Cerrar",
-    "localDbEngineTitle": "Base de datos relacional local",
-    "localDbDescription": "Partición de almacenamiento móvil SQLite persistente con tablas relacionales, eliminación en cascada y migraciones de esquemas."
+    "localDbEngineTitle": "Datos en el dispositivo",
+    "localDbDescription": "Tus medicamentos, historial de dosis y perfil de salud se guardan solo en este teléfono. No se envía nada a ningún servidor.",
+    "rowCount": "{{count}} registros",
+    "restoreNewerVersion": "Esta copia se creó con una versión más nueva de LifeTrack. Actualiza la app primero.",
+    "restoreSuccessCounts": "Se restauraron {{medicines}} medicamentos, {{doses}} registros de dosis y {{schedules}} recordatorios.",
+    "restoreConfirmTitle": "¿Reemplazar todos los datos?",
+    "restoreConfirmMessage": "Restaurar reemplaza todos los medicamentos, registros, recordatorios y ajustes de este teléfono por la copia.",
+    "backupHelp": "Esta es una copia completa de tus datos. Compártela para guardarla en un lugar seguro, o pega una copia aquí y toca Restaurar.",
+    "shareBackup": "Compartir copia"
   },
   "profileSettings": {
     "title": "Perfil y ajustes",
@@ -329,7 +356,13 @@
     "emergencyContactPhoneLabel": "Teléfono del contacto de emergencia",
     "conditionsLabel": "Condiciones médicas crónicas / Notas",
     "wakeTimeLabel": "Hora objetivo para despertar",
-    "sleepTimeLabel": "Hora objetivo para dormir"
+    "sleepTimeLabel": "Hora objetivo para dormir",
+    "wakeShort": "Despertar",
+    "sleepShort": "Dormir",
+    "noPhone": "Sin número de teléfono",
+    "defaultName": "Usuario",
+    "notConfigured": "No configurado",
+    "conditionsPlaceholder": "p. ej. Hipertensión, Diabetes (separadas por comas)"
   },
   "profile": {
     "fullName": "Nombre completo",
@@ -363,7 +396,10 @@
     "shiftOptionYesDesc": "Habilita horarios de turnos para adaptar recordatorios a turnos de mañana, tarde y noche.",
     "shiftOptionLater": "Decidir más tarde",
     "shiftOptionLaterDesc": "Mantiene los turnos desactivados por ahora. Puede activarlo en cualquier momento en Perfil.",
-    "startApp": "Iniciar LifeTrack"
+    "startApp": "Iniciar LifeTrack",
+    "rerunTitle": "Repetir la bienvenida",
+    "rerunDesc": "Permisos, perfil y turnos",
+    "rerunLabel": "Repetir el proceso de bienvenida"
   },
   "medicines": {
     "title": "Medicamentos",
@@ -524,6 +560,16 @@
     "profileDesc": "Ciclos rotativos, turnos nocturnos y calendario de 90 días",
     "eveAlertTitle": "Notificación de cambio de turno",
     "invalidDays": "Ingresa una cantidad válida de días (1-30).",
-    "minOneStep": "Un ciclo de rotación requiere al menos 1 paso."
+    "minOneStep": "Un ciclo de rotación requiere al menos 1 paso.",
+    "overrideNotePlaceholder": "p. ej. Cambio con un compañero, vacaciones"
+  },
+  "reminders": {
+    "badge": "RECORDATORIO LIFETRACK",
+    "taken": "Tomado / Hecho",
+    "snooze": "Posponer {{minutes}} min",
+    "skip": "Omitir",
+    "medicineTitle": "Hora de {{name}}",
+    "medicineDefault": "Dosis programada a las {{time}}",
+    "snoozedNotice": "Te recordaremos {{name}} de nuevo en {{minutes}} minutos."
   }
 }

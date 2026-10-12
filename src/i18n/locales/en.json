@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "LifeTrack",
-    "tagline": "Offline Health & Life Tracker"
+    "tagline": "Offline Health & Life Tracker",
+    "loading": "Loading…"
   },
   "tabs": {
     "alarms": "Alarms",
@@ -20,7 +21,8 @@
     "language": "Language",
     "theme": "Theme",
     "selectLanguage": "Select Language",
-    "quickMenu": "Quick Menu"
+    "quickMenu": "Quick Menu",
+    "menuProfileDesc": "Health profile, routine & data"
   },
   "common": {
     "enabled": "Enabled",
@@ -118,7 +120,16 @@
     "sendTestAlarm": "Send 1-Min Test Alarm",
     "troubleshooting": "Troubleshooting Guide",
     "troubleshootingDescription": "Brand-specific battery/alarm workarounds for reliable delivery",
-    "inspectButton": "Inspect"
+    "inspectButton": "Inspect",
+    "menuDesc": "Alarm permissions & battery checks",
+    "exactAllowedDesc": "Alarms ring at the exact minute",
+    "exactDeniedDesc": "Alarms may be delayed by Android power saving",
+    "batteryExemptDesc": "Never throttled in the background",
+    "batteryNotExemptDesc": "Allow unrestricted battery use for reliable reminders",
+    "notificationsDeniedDesc": "Reminders cannot be shown. Tap to allow notifications.",
+    "fullScreenIntent": "Full-screen alarms",
+    "fullScreenAllowedDesc": "Alarms can show over the lock screen",
+    "fullScreenDeniedDesc": "Alarms only appear as notifications. Allow full-screen alerts."
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Android Native Alarm Overlay",
@@ -174,7 +185,16 @@
     "save": "Save Recurring Alarm",
     "editSchedule": "Edit Recurring Alarm",
     "updateSchedule": "Update Recurring Alarm",
-    "snoozeInterval": "Snooze Interval"
+    "snoozeInterval": "Snooze Interval",
+    "intervalHint": "e.g. 2 for \"every 2 days\"",
+    "decreaseInterval": "Decrease interval",
+    "increaseInterval": "Increase interval",
+    "anchorStartDate": "Start date",
+    "invalidDate": "Enter a real date as YYYY-MM-DD, e.g. 2026-10-15",
+    "removeDate": "Remove date {{date}}",
+    "dayLabel": "Day {{day}}",
+    "monthsSelected": "Months ({{count}}/12):",
+    "defaultTitle": "Reminder"
   },
   "conflict": {
     "title": "⚠️ Alarm Conflict Detected",
@@ -283,7 +303,7 @@
   },
   "storage": {
     "title": "On-Device Storage Engine",
-    "persistedBadge": "Persistent On Phone (AsyncStorage / SQLite)",
+    "persistedBadge": "Stored on this phone",
     "crudStatus": "Full Local CRUD Active",
     "schedulesCount": "{{count}} Recurring Schedules",
     "alarmsCount": "{{count}} Active Alarms",
@@ -295,11 +315,18 @@
     "backupSuccess": "Storage backup generated successfully",
     "restoreSuccess": "Persistent data restored successfully",
     "restoreFailed": "Invalid backup data format",
-    "restorePlaceholder": "Paste exported backup JSON here to restore schedules, alarms and settings",
+    "restorePlaceholder": "Paste a LifeTrack backup here to restore it",
     "modalTitle": "Storage Backup & Restore",
     "close": "Close",
-    "localDbEngineTitle": "Local Relational Database",
-    "localDbDescription": "Persistent SQLite / indexed mobile storage partition with relational tables, foreign key cascade, and schema migrations."
+    "localDbEngineTitle": "On-Device Data",
+    "localDbDescription": "Your medicines, dose history and health profile are stored only on this phone. Nothing is sent to any server.",
+    "rowCount": "{{count}} records",
+    "restoreNewerVersion": "This backup was made by a newer version of LifeTrack. Update the app first.",
+    "restoreSuccessCounts": "Restored {{medicines}} medicines, {{doses}} dose records and {{schedules}} reminders.",
+    "restoreConfirmTitle": "Replace all data?",
+    "restoreConfirmMessage": "Restoring replaces every medicine, dose record, reminder and setting on this phone with the backup.",
+    "backupHelp": "This is a full backup of your data. Share it to save it somewhere safe, or paste a backup here and tap Restore.",
+    "shareBackup": "Share backup"
   },
   "profileSettings": {
     "title": "Profile & Settings",
@@ -329,7 +356,13 @@
     "emergencyContactPhoneLabel": "Emergency Contact Phone Number",
     "conditionsLabel": "Chronic Medical Conditions / Notes",
     "wakeTimeLabel": "Target Wake Time",
-    "sleepTimeLabel": "Target Sleep Time"
+    "sleepTimeLabel": "Target Sleep Time",
+    "wakeShort": "Wake",
+    "sleepShort": "Sleep",
+    "noPhone": "No phone number added",
+    "defaultName": "User",
+    "notConfigured": "Not set",
+    "conditionsPlaceholder": "e.g. Hypertension, Diabetes (comma separated)"
   },
   "profile": {
     "fullName": "Full Name",
@@ -363,7 +396,10 @@
     "shiftOptionYesDesc": "Enable shift schedules to adapt reminder timings to Day, Evening, and Night shifts.",
     "shiftOptionLater": "Decide Later",
     "shiftOptionLaterDesc": "Keeps shifts OFF for now. You can turn it on anytime under Profile & Settings.",
-    "startApp": "Start LifeTrack"
+    "startApp": "Start LifeTrack",
+    "rerunTitle": "Re-run Onboarding",
+    "rerunDesc": "Permissions, profile & shift setup",
+    "rerunLabel": "Re-run onboarding flow"
   },
   "medicines": {
     "title": "Medicines",
@@ -524,6 +560,16 @@
     "profileDesc": "Rotating work cycles, night shifts & 90-day calendar",
     "eveAlertTitle": "Shift Change Notification",
     "invalidDays": "Please enter a valid number of days (1-30).",
-    "minOneStep": "A rotation cycle requires at least 1 step."
+    "minOneStep": "A rotation cycle requires at least 1 step.",
+    "overrideNotePlaceholder": "e.g. Swapped with colleague, annual leave"
+  },
+  "reminders": {
+    "badge": "LIFETRACK REMINDER",
+    "taken": "Taken / Done",
+    "snooze": "Snooze {{minutes}} min",
+    "skip": "Skip",
+    "medicineTitle": "Time for {{name}}",
+    "medicineDefault": "Scheduled dose at {{time}}",
+    "snoozedNotice": "We will remind you about {{name}} again in {{minutes}} minutes."
   }
 }

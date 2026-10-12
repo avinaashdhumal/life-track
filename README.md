@@ -16,7 +16,7 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 | :--- | :--- | :---: | :--- |
 | **Phase 0** | **Alarm Proof of Concept** | ✅ **Completed** | Native Kotlin module (`alarm-engine`), 7 notification channels, exact alarms, boot receivers, Doze bypass, full-screen lockscreen activity, test screen. |
 | **Phase 1** | **Foundation, Medicines, Basic Today, Onboarding, Profile & Local DB** | ✅ **Completed** | Persistent local DB & storage engine, bottom navigation, dark/light theme, 4-language i18n (`en`, `hi`, `mr`, `es`), full onboarding flow, complete Medicine CRUD with safety rules & stock tracking, zero mock data. |
-| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | 🟡 **In Progress** | Routine + rotating shift engine (domain, tests, screens) done. Not yet wired to reminders. See [docs/STATUS.md](docs/STATUS.md). |
+| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | 🟡 **In Progress** | Routine + rotating shift engine done; medicine reminders follow the routine. Per-shift dose times and shift-eve notices still to do. See [docs/STATUS.md](docs/STATUS.md). |
 | **Phase 3** | **Appointments, Treatments, Measurements, Symptoms & Sleep** | 📅 *Upcoming* | Doctor visits & reminders, treatment courses, vitals logging with target ranges & sparklines, symptom journal, sleep tracker. |
 | **Phase 4** | **Conditions, Precautions & Food Guidance** | 📅 *Upcoming* | 15+ built-in conditions, Indian food lists (prefer/avoid), doctor instructions, avoid-flagging in meal logging. |
 | **Phase 5** | **Fitness, Guided Session Player & Meditation Timer** | 📅 *Upcoming* | Workout library, yoga & pranayama, timestamp-based guided session player with Android foreground service, meditation timer. |
@@ -47,15 +47,16 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 
 ### ✅ Phase 1: Foundation, Local Storage, Medicines & Onboarding (Completed)
 - **Local Persistent Storage**:
-  - `DatabaseService.ts`: Relational database table manager with ACID-like transactions, foreign keys, and CRUD operations.
-  - `StorageService.ts`: AsyncStorage-backed persistent key-value store for app settings, user profile, alarms, and logs.
-  - `medicinesRepository.ts` & `profileRepository.ts`: Data repositories for clean domain interaction.
+  - `kvStore.ts`: the single AsyncStorage engine (in-memory fallback, sync cache for first render).
+  - `StorageService.ts` (documents: settings, schedules, logs, routine, shifts) and `DatabaseService.ts` (tables: medicines, dose history, health profile), with one owner per piece of data.
+  - Versioned migrations (`migrations.ts`) and a full, validated backup/restore (`DataManagementService.ts`).
+  - Repositories in `src/data/` for clean domain interaction.
   - Clean state: Starts with **0 mock records**, **0 dummy medicines**, and empty initial profile.
 - **Navigation & UI Shell**:
   - Bottom navigation bar: `Today`, `Medicines`, `Alarms`, `Health Check`, `Profile`.
-  - Top header with unified quick-action menu (modal settings, language, theme, native inspector).
+  - Top header with unified quick-action menu (profile, routine, shifts, tones, language, theme, health check).
 - **Internationalization & Accessibility**:
-  - 4 Locales (`en`, `hi`, `mr`, `es`) with 100% key parity (396 keys) and automated parity validation.
+  - 4 Locales (`en`, `hi`, `mr`, `es`) with 100% key parity and automated checks (parity + every key used in code exists).
   - Full high-contrast Light and Dark theme palette.
   - Proper accessibility roles and labels on all interactive elements.
 - **First-Launch Onboarding (`src/features/onboarding/OnboardingScreen.tsx`)**:
@@ -154,10 +155,23 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 npm test && npm run lint
 ```
 Runs:
-1. `test-i18n-theme.cjs`: 100% translation key parity across English, Hindi, Marathi, and Spanish, plus Accessibility (a11y) role audits.
-2. `src/domain/__tests__/alarm.test.ts`: Alarm calculations, snooze time, missed occurrence detection, recurring schedule planning.
-3. `src/domain/__tests__/medicine.test.ts`: Zod schema validation, dose gap safety intervals, max daily dose limits, stock calculations, local repository CRUD.
-4. `tsc --noEmit`: Strict TypeScript typechecking.
+1. `test-i18n-theme.cjs`: translation key parity across English, Hindi, Marathi, and Spanish; every `t('key')` used in the code exists; accessibility audit of every screen with interactive elements; theme tokens.
+2. `scripts/run-tests.mjs`: every `src/**/__tests__/*.test.ts`, each run in two timezones (Asia/Kolkata and America/New_York) to catch date and daylight-saving bugs:
+   - `alarm`, `alarmConflict`, `reminderPlanner`: recurrence rules, local-date occurrence ids, native roll-forward parity, DST.
+   - `medicine`, `medicineReminders`: safety rules, stock, dose times (fixed / interval / routine), medicine reminder planning.
+   - `shift`: rotation, overrides, midnight crossing, transition dose gaps.
+   - `dataManagement`: storage migration, full backup round trip, legacy backup restore, invalid-file rejection.
+3. `tsc --noEmit`: strict TypeScript typechecking.
+
+Other checks:
+```bash
+npx expo export --platform android
+```
+Bundles the Android JavaScript (catches Metro errors without a JDK).
+```bash
+npm run web
+```
+Runs the app in a browser with the in-app alarm engine (no native module), for quick UI checks.
 
 ---
 
@@ -186,7 +200,7 @@ npx expo run:android --device
 ### 4. Running Reliability Tests
 
 #### Test 1: Full Alarm 2 Minutes Ahead
-1. On the app home screen, tap **Schedule 2 Minutes Ahead**.
+1. Either add a medicine with a dose time 2 minutes from now (Medicines → Add Medicine), or open the **Alarms** tab and schedule a quick test alarm 2 minutes ahead.
 2. Press the power button to **turn off the screen and lock the phone**.
 3. Wait 2 minutes: The screen will turn on, show the full-screen alarm over the lock screen, ring, and vibrate.
 4. Tap **Taken / Done** or **Snooze 10 Minutes**.

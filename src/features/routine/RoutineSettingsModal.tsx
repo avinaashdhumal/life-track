@@ -23,7 +23,6 @@ import {
   minutesToTimeString
 } from '../../domain/routine';
 import { routineRepository } from '../../data/routineRepository';
-import { databaseService } from '../../services/DatabaseService';
 import {
   Sun,
   Moon,
@@ -139,11 +138,8 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
         updatedAt: Date.now()
       };
 
+      // Saving emits a routine change; reminders anchored to the routine re-sync automatically.
       await routineRepository.saveRoutine(updated);
-      await databaseService.updateUserProfile({
-        wakeTime,
-        sleepTime
-      });
 
       if (onRoutineUpdated) {
         onRoutineUpdated(updated);

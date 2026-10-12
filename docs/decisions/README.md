@@ -11,7 +11,8 @@ alternatives (storage engine, navigation library, a native approach, a permissio
 | --- | --- | --- |
 | [0001](0001-offline-first-no-cloud.md) | Offline-first, no accounts, no cloud | Accepted |
 | [0002](0002-native-alarm-engine.md) | Custom native Kotlin alarm engine instead of expo-notifications | Accepted |
-| [0003](0003-storage-consolidation.md) | Consolidate to one storage layer (expo-sqlite) | Proposed |
+| [0003](0003-storage-consolidation.md) | One storage engine (AsyncStorage now, SQLite later if needed) | Accepted |
+| [0004](0004-native-series-roll-forward.md) | Native series roll-forward with a shared occurrence-id format | Accepted |
 
 ## Template
 

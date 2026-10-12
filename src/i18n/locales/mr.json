@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "लाइफट्रॅक",
-    "tagline": "ऑफलाइन आरोग्य आणि जीवन ट्रॅकर"
+    "tagline": "ऑफलाइन आरोग्य आणि जीवन ट्रॅकर",
+    "loading": "लोड होत आहे…"
   },
   "tabs": {
     "alarms": "अलार्म",
@@ -20,7 +21,8 @@
     "language": "भाषा",
     "theme": "थीम",
     "selectLanguage": "भाषा निवडा",
-    "quickMenu": "जलद मेनू"
+    "quickMenu": "जलद मेनू",
+    "menuProfileDesc": "आरोग्य प्रोफाइल, दिनक्रम आणि डेटा"
   },
   "common": {
     "enabled": "सक्रिय",
@@ -118,7 +120,16 @@
     "sendTestAlarm": "1-मिनिट चाचणी अलार्म पाठवा",
     "troubleshooting": "समस्या निवारण मार्गदर्शक",
     "troubleshootingDescription": "विश्वसनीय डिलिव्हरीसाठी ब्रँड-विशिष्ट बॅटरी/अलार्म उपाय",
-    "inspectButton": "तपासा"
+    "inspectButton": "तपासा",
+    "menuDesc": "अलार्म परवानग्या आणि बॅटरी तपासणी",
+    "exactAllowedDesc": "अलार्म अचूक वेळी वाजतील",
+    "exactDeniedDesc": "Android पॉवर सेव्हिंगमुळे अलार्म उशिरा वाजू शकतात",
+    "batteryExemptDesc": "बॅकग्राउंडमध्ये कधीही थांबवले जाणार नाही",
+    "batteryNotExemptDesc": "विश्वसनीय स्मरणपत्रांसाठी बॅटरीचा अमर्याद वापर करू द्या",
+    "notificationsDeniedDesc": "स्मरणपत्रे दाखवता येत नाहीत. सूचना सुरू करण्यासाठी टॅप करा.",
+    "fullScreenIntent": "फुल-स्क्रीन अलार्म",
+    "fullScreenAllowedDesc": "अलार्म लॉक स्क्रीनवर दिसू शकतात",
+    "fullScreenDeniedDesc": "अलार्म फक्त सूचना म्हणून दिसतील. फुल-स्क्रीन अलर्टला परवानगी द्या."
   },
   "fullScreenAlarm": {
     "nativeOverlay": "Android मूळ अलार्म ओव्हरले",
@@ -174,7 +185,16 @@
     "save": "वारंवार होणारा अलार्म जतन करा",
     "editSchedule": "वारंवार होणारा अलार्म संपादित करा",
     "updateSchedule": "वारंवार होणारा अलार्म अपडेट करा",
-    "snoozeInterval": "स्नूझ अंतराल"
+    "snoozeInterval": "स्नूझ अंतराल",
+    "intervalHint": "उदा. \"दर 2 दिवसांनी\" साठी 2",
+    "decreaseInterval": "अंतर कमी करा",
+    "increaseInterval": "अंतर वाढवा",
+    "anchorStartDate": "सुरुवातीची तारीख",
+    "invalidDate": "योग्य तारीख YYYY-MM-DD मध्ये लिहा, उदा. 2026-10-15",
+    "removeDate": "तारीख {{date}} काढा",
+    "dayLabel": "दिवस {{day}}",
+    "monthsSelected": "महिने ({{count}}/12):",
+    "defaultTitle": "स्मरणपत्र"
   },
   "conflict": {
     "title": "⚠️ अलार्म टक्कर आढळली",
@@ -283,7 +303,7 @@
   },
   "storage": {
     "title": "ऑन-डिव्हाइस स्टोरेज इंजिन",
-    "persistedBadge": "फोनवर जतन केले (AsyncStorage / SQLite)",
+    "persistedBadge": "या फोनवर जतन केले",
     "crudStatus": "पूर्ण स्थानिक CRUD सक्रिय",
     "schedulesCount": "{{count}} आवर्ती वेळापत्रके",
     "alarmsCount": "{{count}} सक्रिय अलार्म",
@@ -295,11 +315,18 @@
     "backupSuccess": "स्टोरेज बॅकअप यशस्वीरीत्या तयार केला गेला",
     "restoreSuccess": "कायमस्वरूपी डेटा यशस्वीरीत्या पुनर्संचयित केला",
     "restoreFailed": "अवैध बॅकअप डेटा स्वरूप",
-    "restorePlaceholder": "वेळापत्रक, अलार्म आणि सेटिंग्ज पुनर्संचयित करण्यासाठी निर्यात केलेला बॅकअप JSON येथे पेस्ट करा",
+    "restorePlaceholder": "पुनर्संचयित करण्यासाठी LifeTrack बॅकअप इथे पेस्ट करा",
     "modalTitle": "स्टोरेज बॅकअप आणि पुनर्संचयित",
     "close": "बंद करा",
-    "localDbEngineTitle": "स्थानिक रिलेशनल डेटाबेस",
-    "localDbDescription": "रिलेशनल टेबल्स, फॉरेन की कॅस्केड आणि स्कीमा मायग्रेशनसह फोनवर कायमस्वरूपी SQLite / अनुक्रमित स्टोरेज."
+    "localDbEngineTitle": "डिव्हाइसवरील डेटा",
+    "localDbDescription": "तुमची औषधे, डोस इतिहास आणि आरोग्य प्रोफाइल फक्त याच फोनवर जतन केले जातात. काहीही कोणत्याही सर्व्हरवर पाठवले जात नाही.",
+    "rowCount": "{{count}} नोंदी",
+    "restoreNewerVersion": "हा बॅकअप LifeTrack च्या नवीन आवृत्तीने बनवला आहे. आधी ॲप अपडेट करा.",
+    "restoreSuccessCounts": "{{medicines}} औषधे, {{doses}} डोस नोंदी आणि {{schedules}} स्मरणपत्रे पुनर्संचयित केली.",
+    "restoreConfirmTitle": "सर्व डेटा बदलायचा?",
+    "restoreConfirmMessage": "पुनर्संचयित केल्याने या फोनवरील प्रत्येक औषध, डोस नोंद, स्मरणपत्र आणि सेटिंग बॅकअपने बदलेल.",
+    "backupHelp": "हा तुमच्या डेटाचा पूर्ण बॅकअप आहे. सुरक्षित ठिकाणी जतन करण्यासाठी शेअर करा, किंवा इथे बॅकअप पेस्ट करून पुनर्संचयित दाबा.",
+    "shareBackup": "बॅकअप शेअर करा"
   },
   "profileSettings": {
     "title": "प्रोफाइल आणि सेटिंग्ज",
@@ -329,7 +356,13 @@
     "emergencyContactPhoneLabel": "आपत्कालीन संपर्काचा फोन नंबर",
     "conditionsLabel": "आरोग्य समस्या / वैद्यकीय नोंदी",
     "wakeTimeLabel": "उठण्याची नियोजित वेळ",
-    "sleepTimeLabel": "झोपण्याची नियोजित वेळ"
+    "sleepTimeLabel": "झोपण्याची नियोजित वेळ",
+    "wakeShort": "उठणे",
+    "sleepShort": "झोप",
+    "noPhone": "फोन नंबर जोडलेला नाही",
+    "defaultName": "वापरकर्ता",
+    "notConfigured": "सेट केलेले नाही",
+    "conditionsPlaceholder": "उदा. उच्च रक्तदाब, मधुमेह (स्वल्पविरामाने वेगळे करा)"
   },
   "profile": {
     "fullName": "पूर्ण नाव",
@@ -363,7 +396,10 @@
     "shiftOptionYesDesc": "सकाळ, संध्याकाळ आणि रात्रीच्या शिफ्टनुसार अलार्मच्या वेळा जुळवण्याची सोय सुरू करा.",
     "shiftOptionLater": "नंतर ठरवा",
     "shiftOptionLaterDesc": "सध्या शिफ्ट बंद ठेवा. तुम्ही प्रोफाइल सेटिंग्जमधून हे कधीही सुरू करू शकता.",
-    "startApp": "लाइफट्रॅक सुरू करा"
+    "startApp": "लाइफट्रॅक सुरू करा",
+    "rerunTitle": "ऑनबोर्डिंग पुन्हा चालवा",
+    "rerunDesc": "परवानग्या, प्रोफाइल आणि शिफ्ट सेटअप",
+    "rerunLabel": "ऑनबोर्डिंग प्रक्रिया पुन्हा चालवा"
   },
   "medicines": {
     "title": "औषधे",
@@ -524,6 +560,16 @@
     "profileDesc": "रोटेटिंग कार्य चक्र, नाईट शिफ्ट आणि ९० दिवसांचे कॅलेंडर",
     "eveAlertTitle": "शिफ्ट बदलाची सूचना",
     "invalidDays": "कृपया वैध दिवसांची संख्या प्रविष्ट करा (१-३०).",
-    "minOneStep": "रोटेशन चक्रात किमान १ टप्पा असणे आवश्यक आहे."
+    "minOneStep": "रोटेशन चक्रात किमान १ टप्पा असणे आवश्यक आहे.",
+    "overrideNotePlaceholder": "उदा. सहकाऱ्याशी अदलाबदल, वार्षिक रजा"
+  },
+  "reminders": {
+    "badge": "लाइफट्रॅक स्मरणपत्र",
+    "taken": "घेतले / झाले",
+    "snooze": "{{minutes}} मिनिटांनी",
+    "skip": "वगळा",
+    "medicineTitle": "{{name}} घेण्याची वेळ",
+    "medicineDefault": "{{time}} वाजताचा डोस",
+    "snoozedNotice": "{{name}} ची आठवण {{minutes}} मिनिटांनी पुन्हा करून देऊ."
   }
 }

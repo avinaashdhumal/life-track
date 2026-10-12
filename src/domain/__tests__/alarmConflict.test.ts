@@ -1,7 +1,9 @@
+import assert from 'node:assert';
 import { detectAlarmConflict } from '../alarmConflict';
 import { AlarmItem } from '../alarm';
 
-describe('Alarm Conflict Detection System', () => {
+console.log('🧪 Starting Alarm Conflict Detection Tests...');
+{
   const baseTime = 1700000000000; // Reference timestamp
 
   const existingAlarms: AlarmItem[] = [
@@ -29,53 +31,68 @@ describe('Alarm Conflict Detection System', () => {
     }
   ];
 
-  test('detects exact time collision (0 minute diff)', () => {
+  {
+    const name = 'detects exact time collision (0 minute diff)';
     const result = detectAlarmConflict(baseTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(true);
-    expect(result.conflictingAlarms.length).toBe(1);
-    expect(result.conflictingAlarms[0].isExactOverlap).toBe(true);
-    expect(result.conflictingAlarms[0].alarm.title).toBe('Blood Pressure Tablet');
-  });
+    assert.strictEqual(result.hasConflict, true);
+    assert.strictEqual(result.conflictingAlarms.length, 1);
+    assert.strictEqual(result.conflictingAlarms[0].isExactOverlap, true);
+    assert.strictEqual(result.conflictingAlarms[0].alarm.title, 'Blood Pressure Tablet');
+    console.log(`✅ ${name}`);
+  }
 
-  test('detects collision within 5-minute window (3 minutes diff)', () => {
+  {
+    const name = 'detects collision within 5-minute window (3 minutes diff)';
     const candidateTime = baseTime + 3 * 60 * 1000; // 3 minutes later
     const result = detectAlarmConflict(candidateTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(true);
-    expect(result.conflictingAlarms[0].differenceMinutes).toBe(3);
-    expect(result.warningSummary).toContain('within 5-min window');
-  });
+    assert.strictEqual(result.hasConflict, true);
+    assert.strictEqual(result.conflictingAlarms[0].differenceMinutes, 3);
+    assert.ok(result.warningSummary.includes('within 5-min window'));
+    console.log(`✅ ${name}`);
+  }
 
-  test('no collision outside 5-minute window (10 minutes diff)', () => {
+  {
+    const name = 'no collision outside 5-minute window (10 minutes diff)';
     const candidateTime = baseTime + 10 * 60 * 1000; // 10 minutes later
     const result = detectAlarmConflict(candidateTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(false);
-    expect(result.conflictingAlarms.length).toBe(0);
-  });
+    assert.strictEqual(result.hasConflict, false);
+    assert.strictEqual(result.conflictingAlarms.length, 0);
+    console.log(`✅ ${name}`);
+  }
 
-  test('boundary test: exactly 5 minutes diff is flagged', () => {
+  {
+    const name = 'boundary test: exactly 5 minutes diff is flagged';
     const candidateTime = baseTime + 5 * 60 * 1000; // exactly 5 minutes
     const result = detectAlarmConflict(candidateTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(true);
-  });
+    assert.strictEqual(result.hasConflict, true);
+    console.log(`✅ ${name}`);
+  }
 
-  test('boundary test: 5 minutes and 1 second is clear', () => {
+  {
+    const name = 'boundary test: 5 minutes and 1 second is clear';
     const candidateTime = baseTime + (5 * 60 + 1) * 1000; // 5 min 1 sec
     const result = detectAlarmConflict(candidateTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(false);
-  });
+    assert.strictEqual(result.hasConflict, false);
+    console.log(`✅ ${name}`);
+  }
 
-  test('suggests alternative non-conflicting offset times', () => {
+  {
+    const name = 'suggests alternative non-conflicting offset times';
     const candidateTime = baseTime + 2 * 60 * 1000; // 2 minutes later (conflict)
     const result = detectAlarmConflict(candidateTime, existingAlarms, 5);
-    expect(result.hasConflict).toBe(true);
-    expect(result.suggestions.length).toBeGreaterThan(0);
+    assert.strictEqual(result.hasConflict, true);
+    assert.ok(result.suggestions.length > 0);
     // The suggestion should shift outside the conflict window
     const firstSuggestion = result.suggestions[0];
-    expect(Math.abs(firstSuggestion.suggestedTimeMs - baseTime)).toBeGreaterThan(5 * 60 * 1000);
-  });
+    assert.ok(Math.abs(firstSuggestion.suggestedTimeMs - baseTime) > 5 * 60 * 1000);
+    console.log(`✅ ${name}`);
+  }
 
-  test('excludes own alarm id when editing/rescheduling', () => {
+  {
+    const name = 'excludes own alarm id when editing/rescheduling';
     const result = detectAlarmConflict(baseTime, existingAlarms, 5, 'alarm_1');
-    expect(result.hasConflict).toBe(false);
-  });
-});
+    assert.strictEqual(result.hasConflict, false);
+    console.log(`✅ ${name}`);
+  }
+}
+console.log('🎉 ALL ALARM CONFLICT TESTS PASSED!');

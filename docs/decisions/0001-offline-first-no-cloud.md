@@ -19,4 +19,4 @@ comes from user-initiated local backup files (JSON) that the user stores whereve
 ## Consequences
 - Backup and restore are critical, because losing the phone means losing the data (BUG-003, FEAT-007).
 - Caregiver features have to be local, such as sharing a PDF or a message via the share sheet.
-- No network-dependent dependencies. `@google/genai` / `express` leftovers must be removed (DEBT-004).
+- No network-dependent dependencies. The `@google/genai` / `express` scaffold leftovers were removed (DEBT-004, 2026-10-12).

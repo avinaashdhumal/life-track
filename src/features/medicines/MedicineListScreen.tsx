@@ -70,6 +70,9 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
     loadData();
   }, [loadData]);
 
+  // Stay current when doses are logged elsewhere (Today, notification actions) and stock changes.
+  useEffect(() => medicinesRepository.changes.subscribe(() => loadData()), [loadData]);
+
   const onRefresh = () => {
     setRefreshing(true);
     loadData();

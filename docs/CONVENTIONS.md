@@ -9,9 +9,15 @@ Follow the existing code. These are the patterns it already uses, written down s
 - Domain code goes in `src/domain/<area>.ts`: pure functions, with zod schemas where data is persisted.
   Never import React, React Native, Expo, or services there.
 - Data access goes in `src/data/<area>Repository.ts`: a class with a singleton export
-  (`export const medicinesRepository = new MedicinesRepository()`). Screens call repositories, not services.
-- IDs are prefixed strings: `med_<ts>_<rand>`, `dose_…`, `rec_…`, `log_…`. Times of day are `"HH:mm"` strings. Dates
-  are `"YYYY-MM-DD"` strings in **local time**. Timestamps are epoch ms (`…Ms` suffix).
+  (`export const medicinesRepository = new MedicinesRepository()`). Screens call repositories, not stores.
+  Repositories emit change events (`ChangeEmitter`) and must not import native or UI code (they run in Node tests).
+- Reminders: anything that should change scheduled alarms goes through `reminderCoordinator` (or a repository change
+  event it already listens to). Screens must never fire or cancel alarms on their own timers.
+- IDs are prefixed strings: `med_<ts>_<rand>`, `dose_<ts>_<rand>` (dose logs), `rec_…`, `log_…`. Alarm occurrence
+  ids follow the shared format in ADR-0004; don't invent new alarm id shapes.
+- Times of day are `"HH:mm"` strings. Dates are `"YYYY-MM-DD"` strings in **local time**: use `src/domain/dates.ts`
+  (`toLocalDateString`, `addLocalDays`, `localDateTimeToMs`). **Never** `toISOString().split('T')[0]` for a calendar
+  date (that's the UTC date; it's wrong for early-morning times in India). Timestamps are epoch ms (`…Ms` suffix).
 - Everything is single-profile today but carries `profileId: 'default'`. Keep passing it.
 
 ## UI
@@ -37,20 +43,27 @@ When you add a new screen, also add it to `filesToCheck` in `test-i18n-theme.cjs
   crossing, DST, timezone change, interval across days).
 
 ## Persistence
-- New stored data needs a zod schema and a versioned key or table. Changing a shape requires a migration and a note in
-  ARCHITECTURE.md §3.
-- Until DEBT-001 is resolved, new domain data goes into `DatabaseService` tables through a repository.
+- Only `src/services/kvStore.ts` touches AsyncStorage. Pick **one** owner store for new data (StorageService document
+  or DatabaseService table, see ARCHITECTURE.md §3) and access it through a repository.
+- New stored data needs a zod schema. Changing a stored shape requires a step in `src/services/migrations.ts`
+  (bump `CURRENT_SCHEMA_VERSION`) and a note in ARCHITECTURE.md §3.
+- New stores must be added to the backup (`DataManagementService`) and its round-trip test.
 
 ## Native module (`modules/alarm-engine`)
 - Kotlin changes must keep working with JS dead (receivers read `AlarmStorage`, not JS).
+- Every user/timeout action goes through `AlarmActionHandler` and is queued for JS (`pending_actions`). Only
+  `AlarmForegroundService` makes sound or vibrates.
+- The series id format and window are a contract with the JS planner (ADR-0004).
 - Keep the JS wrapper in `modules/alarm-engine/index.ts` safe on web: every export checks the native function exists
   and returns a fallback.
 - Manifest changes go through `plugins/withAlarmEngine.cjs` / the module manifest, never `android/` directly.
 
 ## Tests
-- Domain tests: `src/domain/__tests__/<area>.test.ts`, plain `node:assert`, run with `npx tsx`. Print `✅ <case>` lines.
-  Add each new file to `scripts.test` in `package.json`.
-- Don't use Jest globals (`describe`/`it`). They aren't installed as a runner.
+- Tests live in `src/**/__tests__/<area>.test.ts`, plain `node:assert`, printing `✅ <case>` lines.
+  `scripts/run-tests.mjs` finds them automatically and runs each in two timezones (Asia/Kolkata, America/New_York).
+  Async tests wrap their body in `main().catch(err => { console.error(err); process.exit(1); })`.
+- Don't use Jest globals (`describe`/`it`). There is no Jest.
+- Date/time logic: assert with local `Date` getters (`getHours()`), never with hard-coded UTC strings.
 
 ## Git
 - Conventional Commits: `feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`, optional scope, and the backlog ID

@@ -1,31 +1,32 @@
-# 0003 — Consolidate to one storage layer (expo-sqlite)
-- **Status:** Proposed (needs the project owner's sign-off before implementation)
+# 0003 — One storage engine (AsyncStorage now, SQLite later if needed)
+- **Status:** Accepted (2026-10-12), amends the original "move to expo-sqlite" proposal
 - **Date:** 2026-10-12
 
 ## Context
-There are two AsyncStorage-backed layers (see ARCHITECTURE.md §3):
-- `StorageService`: KV blobs for schedules, alarms, logs, settings, routine, and shift.
-- `DatabaseService`: JSON-array "tables" for medicines, doses, profile, and app_settings, plus unused or mirror tables.
+v1 had two independent AsyncStorage layers, `StorageService` (KV documents) and `DatabaseService` (JSON-array
+"tables"), with overlapping data: profile, settings, schedules, alarms, logs, routine, shift. This caused incomplete
+backups (BUG-003), "Clear logs" hitting the wrong store (BUG-007), and duplicated settings (DEBT-002).
 
-Several things overlap, and that has already caused bugs: incomplete backup (BUG-003), "Clear logs" hitting the
-wrong store (BUG-007), and duplicated settings (DEBT-002). Each write re-serializes a whole table. Dose logs grow by
-about 1,000–3,000 rows a year per user, and analytics (adherence %, doctor report) need range queries.
+## Decision
+1. **One engine:** `src/services/kvStore.ts` is the only code that touches AsyncStorage (with in-memory fallback and a
+   sync cache for first render).
+2. **Two typed views, one owner per datum:** `StorageService` owns settings, schedules, logs, routine, shift config
+   (and the JS alarm list for the no-native fallback). `DatabaseService` owns medicines, dose history, health profile.
+   See ARCHITECTURE.md §3.
+3. **Versioned migrations** in `src/services/migrations.ts` (`@lifetrack:schema_version`); v2 removed the duplicates.
+4. **One backup format** covering every store (`DataManagementService`), validated with zod.
+5. **SQLite is deferred**, not rejected. Repositories are the only API the UI uses, so swapping the engine later
+   changes only `src/services/*` plus a migration.
 
-## Decision (proposed)
-1. Use **`expo-sqlite`** as the single store, with real tables and indexes (`medicine_doses(medicineId, takenTimestampMs)`).
-2. Keep the repository interfaces in `src/data/` as the only API the UI uses. Swap their internals.
-3. Add a one-time migration that reads every `@lifetrack:*:v1` key and `@lifetrack:db:*` table, writes SQLite,
-   sets `migration_version`, and keeps the old keys for one release as a rollback path.
-4. Keep a tiny synchronous settings cache for first-frame theme and language.
-5. One backup format = a dump of all tables + `schemaVersion`, validated with zod on import.
+## Why not SQLite now
+`expo-sqlite` adds a native dependency that needs a new dev build and device testing, while the native alarm module
+already needs device verification (DEBT-010). Data volumes are small today (about 1,000–3,000 dose rows/year/user;
+whole-table writes are still in milliseconds).
 
-## Alternatives considered
-- **Keep `DatabaseService` only (AsyncStorage JSON tables):** smallest change, but whole-table rewrites and no queries.
-  Acceptable as an interim step if SQLite is deferred.
-- **WatermelonDB / Realm:** more power than needed, and heavier native dependencies.
-- **MMKV:** fast KV, but still not relational.
+## Revisit when
+- Dose history reads/writes become noticeably slow on a low-end phone, or
+- FEAT-003 (adherence history) / FEAT-006 (doctor report) need range queries over a year or more of doses.
 
 ## Consequences
-- Fixes the root cause of BUG-003, BUG-007, and DEBT-002. Makes FEAT-003 and FEAT-006 cheap.
-- Migration risk: it must be idempotent and tested with real exported data before release.
-- Domain code is unaffected.
+- Fixed BUG-003, BUG-007, DEBT-002 at the root.
+- Any new data must pick one owner store, add a zod schema, and (if the shape changes) a migration step.

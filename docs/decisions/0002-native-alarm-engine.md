@@ -21,6 +21,6 @@ It keeps working with no JS runtime.
 ## Consequences
 - Android only. iOS needs a separate design.
 - JS and native each hold a copy of the alarm state, and they must stay in sync (BUG-002, BUG-004).
-- Recurrence lives in JS today, so the native side needs a way to top itself up (BUG-005).
+- Recurrence lives in JS, so the native side needs a way to top itself up (BUG-005, solved by ADR-0004).
 - Play Store exact-alarm and full-screen-intent policies apply (FEAT-015).
 - Every change here needs a manual device test.

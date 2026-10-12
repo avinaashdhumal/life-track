@@ -90,24 +90,18 @@ console.log('✅ Theme color palettes and semantic tokens verified');
 
 // 5. Verify Accessibility attributes in components
 console.log('\n♿ Testing Accessibility (a11y) attributes in source files...');
-const filesToCheck = [
-  'src/App.tsx',
-  'src/features/poc/AlarmTestScreen.tsx',
-  'src/features/poc/AlarmFormScreen.tsx',
-  'src/features/poc/Alarm24hTimelineChart.tsx',
-  'src/features/poc/HealthCheckScreen.tsx',
-  'src/features/poc/FullScreenAlarmModal.tsx',
-  'src/features/poc/AlarmConflictModal.tsx',
-  'src/features/poc/LanguageThemeModal.tsx',
-  'src/features/poc/NotificationToneSettingsModal.tsx',
-  'src/features/poc/ProfileSettingsScreen.tsx',
-  'src/features/onboarding/OnboardingScreen.tsx',
-  'src/features/medicines/MedicineListScreen.tsx',
-  'src/features/medicines/MedicineFormModal.tsx',
-  'src/features/today/TodayScreen.tsx',
-  'src/features/routine/RoutineSettingsModal.tsx',
-  'src/features/shift/ShiftScheduleScreen.tsx'
-];
+// Every UI file with interactive elements is audited (found automatically, so new or moved
+// screens can't silently skip the check).
+const listTsxFiles = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return listTsxFiles(full);
+    return entry.name.endsWith('.tsx') ? [path.relative(__dirname, full)] : [];
+  });
+const filesToCheck = ['src/App.tsx', ...listTsxFiles(path.join(__dirname, 'src/features'))].filter((file) => {
+  const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
+  return /onPress=|<TouchableOpacity|<Switch|<TextInput/.test(content);
+});
 
 for (const file of filesToCheck) {
   const content = fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -116,6 +110,25 @@ for (const file of filesToCheck) {
   assert(content.includes('accessibilityLabel='), `${file} contains accessibilityLabel`);
   console.log(`✅ ${file} passed accessibility attributes check`);
 }
+
+// 5b. Every translation key used in the code exists (a missing key shows the raw key to users)
+console.log('\n🔎 Checking that every t(\'key\') used in src/ exists in en.json...');
+const listSourceFiles = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === '__tests__' ? [] : listSourceFiles(full);
+    return /\.(ts|tsx)$/.test(entry.name) ? [full] : [];
+  });
+const hasKey = (key) => key.split('.').reduce((obj, part) => (obj ? obj[part] : undefined), localeData.en) !== undefined;
+const missingKeys = [];
+for (const file of listSourceFiles(path.join(__dirname, 'src'))) {
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/\bt\(\s*['"]([a-zA-Z0-9_]+\.[a-zA-Z0-9_.]+)['"]/g)) {
+    if (!hasKey(match[1])) missingKeys.push(`${path.relative(__dirname, file)}: ${match[1]}`);
+  }
+}
+assert.deepStrictEqual(missingKeys, [], `Translation keys used in code but missing from en.json:\n${missingKeys.join('\n')}`);
+console.log('✅ All translation keys used in code exist');
 
 // 6. Test runtime translation resolution with i18next
 console.log('\n🌐 Testing runtime i18next translation resolution and language switching...');

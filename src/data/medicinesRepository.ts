@@ -1,5 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { databaseService, DB_TABLES } from '../services/DatabaseService';
+import { ChangeEmitter } from './changeEmitter';
 import {
   Medicine,
   MedicineSchema,
@@ -22,15 +22,17 @@ export interface LogDoseResult {
   isLowStock: boolean;
 }
 
-export class MedicinesRepository {
-  private seeded: boolean = false;
+export type MedicineChangeEvent =
+  | { type: 'upserted'; medicineId: string }
+  | { type: 'deleted'; medicineId: string }
+  | { type: 'stock'; medicineId: string }
+  | { type: 'dose'; medicineId: string; log: DoseLogEntry };
 
-  private async ensureSeed(): Promise<void> {
-    this.seeded = true;
-  }
+export class MedicinesRepository {
+  /** Fires after any medicine or dose change. Reminder sync and screens subscribe to this. */
+  readonly changes = new ChangeEmitter<MedicineChangeEvent>();
 
   async getAll(profileId: string = 'default'): Promise<Medicine[]> {
-    await this.ensureSeed();
     const list = await databaseService.query<Medicine>(
       DB_TABLES.MEDICINES,
       (m) => m.profileId === profileId
@@ -39,7 +41,6 @@ export class MedicinesRepository {
   }
 
   async getActive(profileId: string = 'default'): Promise<Medicine[]> {
-    await this.ensureSeed();
     const list = await databaseService.query<Medicine>(
       DB_TABLES.MEDICINES,
       (m) => m.profileId === profileId && m.isActive
@@ -48,12 +49,10 @@ export class MedicinesRepository {
   }
 
   async getById(id: string): Promise<Medicine | null> {
-    await this.ensureSeed();
     return databaseService.selectById<Medicine>(DB_TABLES.MEDICINES, id);
   }
 
   async upsert(medicineData: Partial<Medicine> & { name: string }): Promise<Medicine> {
-    await this.ensureSeed();
     const now = Date.now();
     const existing = medicineData.id ? await this.getById(medicineData.id) : null;
     const id = medicineData.id || `med_${now}_${Math.random().toString(36).substring(2, 7)}`;
@@ -97,27 +96,21 @@ export class MedicinesRepository {
 
     const validated = MedicineSchema.parse(candidate);
     await databaseService.insert(DB_TABLES.MEDICINES, validated);
+    this.changes.emit({ type: 'upserted', medicineId: validated.id });
     return validated;
   }
 
   async delete(id: string): Promise<boolean> {
-    await this.ensureSeed();
     const deleted = await databaseService.delete(DB_TABLES.MEDICINES, id);
     if (deleted) {
-      // Remove all dose logs associated with this medicine
-      const logs = await databaseService.query<DoseLogEntry>(
-        DB_TABLES.MEDICINE_DOSES,
-        (l) => l.medicineId === id
-      );
-      for (const log of logs) {
-        await databaseService.delete(DB_TABLES.MEDICINE_DOSES, log.id);
-      }
+      // Remove all dose logs associated with this medicine in one write
+      await databaseService.deleteWhere<DoseLogEntry>(DB_TABLES.MEDICINE_DOSES, (l) => l.medicineId === id);
+      this.changes.emit({ type: 'deleted', medicineId: id });
     }
     return deleted;
   }
 
   async refillStock(medicineId: string, quantityToAdd: number): Promise<Medicine | null> {
-    await this.ensureSeed();
     const current = await this.getById(medicineId);
     if (!current) return null;
 
@@ -126,6 +119,7 @@ export class MedicinesRepository {
       stockCount: newStock,
       updatedAt: Date.now()
     });
+    this.changes.emit({ type: 'stock', medicineId });
     return updated;
   }
 
@@ -135,7 +129,6 @@ export class MedicinesRepository {
   async logDose(
     entry: Omit<DoseLogEntry, 'id' | 'createdAt'>
   ): Promise<LogDoseResult> {
-    await this.ensureSeed();
     const medicine = await this.getById(entry.medicineId);
     if (!medicine) {
       throw new Error(`Medicine with id ${entry.medicineId} not found`);
@@ -211,6 +204,7 @@ export class MedicinesRepository {
 
     const validatedLog = DoseLogEntrySchema.parse(logRecord);
     await databaseService.insert(DB_TABLES.MEDICINE_DOSES, validatedLog);
+    this.changes.emit({ type: 'dose', medicineId: medicine.id, log: validatedLog });
 
     const stockStatus = calculateStockLevel(updatedStock, medicine.refillThreshold);
 
@@ -224,7 +218,6 @@ export class MedicinesRepository {
   }
 
   async getDosesForDay(profileId: string = 'default', dateStr: string): Promise<DoseLogEntry[]> {
-    await this.ensureSeed();
     const dayStart = new Date(`${dateStr}T00:00:00`).getTime();
     const dayEnd = new Date(`${dateStr}T23:59:59.999`).getTime();
 
@@ -239,8 +232,19 @@ export class MedicinesRepository {
     return list.sort((a, b) => a.takenTimestampMs - b.takenTimestampMs);
   }
 
+  /** Dose logs whose scheduled (or taken) time is at or after `fromMs`. */
+  async getDosesSince(fromMs: number, profileId: string = 'default'): Promise<DoseLogEntry[]> {
+    return databaseService.query<DoseLogEntry>(
+      DB_TABLES.MEDICINE_DOSES,
+      (l) => l.profileId === profileId && (l.scheduledTimestampMs ?? l.takenTimestampMs) >= fromMs
+    );
+  }
+
+  async getAllDoses(): Promise<DoseLogEntry[]> {
+    return databaseService.selectAll<DoseLogEntry>(DB_TABLES.MEDICINE_DOSES);
+  }
+
   async getHistoryForMedicine(medicineId: string, limit: number = 50): Promise<DoseLogEntry[]> {
-    await this.ensureSeed();
     const list = await databaseService.query<DoseLogEntry>(
       DB_TABLES.MEDICINE_DOSES,
       (l) => l.medicineId === medicineId
@@ -249,7 +253,6 @@ export class MedicinesRepository {
   }
 
   async getLowStockMedicines(profileId: string = 'default'): Promise<Medicine[]> {
-    await this.ensureSeed();
     const list = await this.getActive(profileId);
     return list.filter((m) => m.stockCount <= m.refillThreshold);
   }

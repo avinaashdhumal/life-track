@@ -3,8 +3,57 @@
  * No React or native imports.
  */
 
-import { AlarmItem, AlarmStyle, NotificationChannelId, RecurringSchedule } from './alarm';
+import { AlarmItem, AlarmRepeat, AlarmStyle, NotificationChannelId, RecurringSchedule, buildOccurrenceId } from './alarm';
 import { DailyRoutine, calculateRoutineRelativeClockTime } from './routine';
+import { toLocalDateString, toCompactDateString } from './dates';
+
+/** Days of reminders kept scheduled ahead. The native engine rolls each series forward by this. */
+export const ROLLING_WINDOW_DAYS = 14;
+
+export interface SchedulePlanPolicy {
+  /** How far ahead to plan. */
+  horizonDays: number;
+  /** Safety cap on occurrences per schedule. */
+  maxCount: number;
+  /** Native roll-forward period in days (0 = JS replans this schedule; no native repeat). */
+  repeatEveryDays: number;
+}
+
+/**
+ * How far ahead each recurrence type is planned, and how the native engine continues it.
+ * Periodic rules (daily, weekly, every N days) plan exactly one roll period, so when occurrence D
+ * fires, native schedules D + period, which is never already in the planned set. Irregular rules
+ * (monthly, custom dates, once) are planned far enough ahead that they don't need native help.
+ */
+export function getSchedulePlanPolicy(schedule: RecurringSchedule): SchedulePlanPolicy {
+  switch (schedule.recurrenceType) {
+    case 'daily':
+    case 'weekly':
+      return { horizonDays: ROLLING_WINDOW_DAYS, maxCount: 100, repeatEveryDays: ROLLING_WINDOW_DAYS };
+    case 'every_n_days': {
+      const n = Math.max(1, schedule.intervalDays || 2);
+      const period = n * Math.ceil(ROLLING_WINDOW_DAYS / n);
+      return { horizonDays: period, maxCount: 100, repeatEveryDays: period };
+    }
+    case 'monthly':
+      return { horizonDays: 366, maxCount: 13, repeatEveryDays: 0 };
+    case 'custom_dates':
+      return { horizonDays: 3 * 366, maxCount: 200, repeatEveryDays: 0 };
+    case 'once':
+    default:
+      return { horizonDays: 10 * 366, maxCount: 1, repeatEveryDays: 0 };
+  }
+}
+
+/** Plans the occurrences that should currently be scheduled for a schedule, using its policy. */
+export function planScheduleWindow(
+  schedule: RecurringSchedule,
+  nowMs: number,
+  routineResolver?: (dateStr: string) => DailyRoutine | undefined
+): AlarmItem[] {
+  const policy = getSchedulePlanPolicy(schedule);
+  return planOccurrencesForRecurringSchedule(schedule, nowMs, policy.maxCount, policy.horizonDays, routineResolver);
+}
 
 export interface ScheduleDefinition {
   id: string;
@@ -73,7 +122,10 @@ export function planOccurrencesForRecurringSchedule(
   const results: AlarmItem[] = [];
   const defaultTime = parseTimeOfDay(schedule.timeOfDay);
   const { hours, minutes } = defaultTime;
-  const startDateObj = schedule.startDate ? new Date(schedule.startDate + 'T00:00:00') : new Date(startFromMs);
+  // Without a start date, anchor to creation (not "now"), so every-N-days doesn't shift phase on each replan.
+  const startDateObj = schedule.startDate
+    ? new Date(schedule.startDate + 'T00:00:00')
+    : new Date(schedule.createdAt || startFromMs);
   const endDateMs = schedule.endDate ? new Date(schedule.endDate + 'T23:59:59').getTime() : Infinity;
 
   const horizonEndMs = startFromMs + horizonDays * 24 * 60 * 60 * 1000;
@@ -81,7 +133,7 @@ export function planOccurrencesForRecurringSchedule(
 
   switch (schedule.recurrenceType) {
     case 'once': {
-      const dateStr = schedule.startDate || new Date(startFromMs).toISOString().split('T')[0];
+      const dateStr = schedule.startDate || toLocalDateString(startFromMs);
       const trigger = new Date(dateStr + 'T00:00:00');
       trigger.setHours(hours, minutes, 0, 0);
       const timeMs = trigger.getTime();
@@ -99,7 +151,7 @@ export function planOccurrencesForRecurringSchedule(
       }
 
       while (cursor.getTime() <= effectiveEndMs && results.length < maxCount) {
-        const dateStr = cursor.toISOString().split('T')[0];
+        const dateStr = toLocalDateString(cursor);
         const effectiveTime = resolveScheduleTimeForDate(schedule, dateStr, routineResolver);
         const trigger = new Date(cursor);
         trigger.setHours(effectiveTime.hours, effectiveTime.minutes, 0, 0);
@@ -123,7 +175,7 @@ export function planOccurrencesForRecurringSchedule(
       while (cursor.getTime() <= effectiveEndMs && results.length < maxCount) {
         if (targetDays.includes(cursor.getDay())) {
           const timeMs = cursor.getTime();
-          const dateStr = cursor.toISOString().split('T')[0];
+          const dateStr = toLocalDateString(cursor);
           results.push(createAlarmOccurrence(schedule, timeMs, dateStr));
         }
         cursor.setDate(cursor.getDate() + 1);
@@ -144,7 +196,7 @@ export function planOccurrencesForRecurringSchedule(
 
       while (cursor.getTime() <= effectiveEndMs && results.length < maxCount) {
         const timeMs = cursor.getTime();
-        const dateStr = cursor.toISOString().split('T')[0];
+        const dateStr = toLocalDateString(cursor);
         results.push(createAlarmOccurrence(schedule, timeMs, dateStr));
         cursor.setDate(cursor.getDate() + interval);
       }
@@ -209,10 +261,19 @@ export function planOccurrencesForRecurringSchedule(
 }
 
 function createAlarmOccurrence(schedule: RecurringSchedule, triggerTimeMs: number, dateStr: string): AlarmItem {
-  const timeFormatted = schedule.timeOfDay.replace(':', '');
-  const occurrenceId = `${schedule.id}_${dateStr.replace(/-/g, '')}_${timeFormatted}`;
+  const seriesSuffix = schedule.timeOfDay.replace(':', '');
+  const policy = getSchedulePlanPolicy(schedule);
+  const repeat: AlarmRepeat | undefined =
+    policy.repeatEveryDays > 0
+      ? {
+          everyDays: policy.repeatEveryDays,
+          untilMs: schedule.endDate ? new Date(schedule.endDate + 'T23:59:59').getTime() : undefined,
+          seriesPrefix: schedule.id,
+          seriesSuffix
+        }
+      : undefined;
   return {
-    id: occurrenceId,
+    id: buildOccurrenceId(schedule.id, dateStr, seriesSuffix),
     scheduleId: schedule.id,
     category: schedule.category,
     profileId: schedule.profileId || 'default',
@@ -223,7 +284,8 @@ function createAlarmOccurrence(schedule: RecurringSchedule, triggerTimeMs: numbe
     triggerTimeMs,
     snoozeIntervalMinutes: schedule.snoozeIntervalMinutes || 10,
     payload: schedule.payload,
-    shiftTypeId: schedule.shiftTypeId || null
+    shiftTypeId: schedule.shiftTypeId || null,
+    repeat
   };
 }
 
@@ -260,7 +322,7 @@ export function planRollingWindowOccurrences(
       // Only include occurrences in the future
       if (triggerTimeMs > startFromMs) {
         result.push({
-          id: `${schedule.id}_${triggerDate.getFullYear()}${(triggerDate.getMonth() + 1).toString().padStart(2, '0')}${triggerDate.getDate().toString().padStart(2, '0')}_${hoursStr}${minutesStr}`,
+          id: `${schedule.id}_${toCompactDateString(triggerDate)}_${hoursStr}${minutesStr}`,
           profileId: schedule.profileId,
           title: schedule.title,
           message: schedule.message,
@@ -297,4 +359,27 @@ export function reconcilePassedOccurrences(
   }
 
   return { missedAlarmIds };
+}
+
+/**
+ * JS twin of the native `AlarmSchedulerHelper.scheduleNextInSeries`: the occurrence that should be
+ * scheduled after `alarm` fires, or null if it doesn't repeat or the series has ended.
+ * Used by the in-app engine (web / no native module) so both behave the same.
+ */
+export function planNextInSeries(alarm: AlarmItem, nowMs: number): AlarmItem | null {
+  const repeat = alarm.repeat;
+  if (!repeat || repeat.everyDays <= 0 || !repeat.seriesPrefix) return null;
+
+  const next = new Date(alarm.triggerTimeMs);
+  do {
+    next.setDate(next.getDate() + repeat.everyDays);
+  } while (next.getTime() <= nowMs);
+
+  if (repeat.untilMs && next.getTime() > repeat.untilMs) return null;
+
+  return {
+    ...alarm,
+    id: buildOccurrenceId(repeat.seriesPrefix, toLocalDateString(next), repeat.seriesSuffix),
+    triggerTimeMs: next.getTime()
+  };
 }

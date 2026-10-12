@@ -268,6 +268,44 @@ export function incrementStock(currentStock: number, amount: number): number {
  * Generate Today's Dose Slots for a given medicine:
  * Merges scheduled times with dose logs recorded today.
  */
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+/**
+ * The clock times ("HH:mm", sorted) a medicine is due each day. Shared by the Today screen and the
+ * reminder planner so both always agree.
+ * - fixed_time: `timesOfDay`
+ * - interval: first dose at `timesOfDay[0]`, then every `intervalHours` around the clock
+ *   (floor(24 / intervalHours) doses per day; e.g. every 8 h from 06:00 = 06:00, 14:00, 22:00)
+ * - routine_relative: the routine anchor + offset (falls back to `timesOfDay` without a routine)
+ * - prn_as_needed: none (taken on demand)
+ */
+export function getMedicineDoseTimes(medicine: Medicine, dailyRoutine?: DailyRoutine): string[] {
+  const configured = medicine.timesOfDay && medicine.timesOfDay.length > 0 ? medicine.timesOfDay : ['08:00'];
+
+  if (medicine.scheduleType === 'prn_as_needed') {
+    return [];
+  }
+
+  if (medicine.scheduleType === 'routine_relative' && medicine.routineTiming && dailyRoutine) {
+    return [calculateRoutineRelativeClockTime(dailyRoutine, medicine.routineTiming)];
+  }
+
+  if (medicine.scheduleType === 'interval' && medicine.intervalHours && medicine.intervalHours > 0) {
+    const [h, m] = configured[0].split(':').map(Number);
+    const firstMinutes = (h || 0) * 60 + (m || 0);
+    const stepMinutes = Math.round(medicine.intervalHours * 60);
+    const dosesPerDay = Math.max(1, Math.floor((24 * 60) / stepMinutes));
+    const times = new Set<string>();
+    for (let i = 0; i < dosesPerDay; i++) {
+      const total = (firstMinutes + i * stepMinutes) % (24 * 60);
+      times.add(`${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`);
+    }
+    return Array.from(times).sort();
+  }
+
+  return Array.from(new Set(configured)).sort();
+}
+
 export function generateTodayDoseSlots(
   medicine: Medicine,
   todayDateStr: string, // YYYY-MM-DD
@@ -306,12 +344,7 @@ export function generateTodayDoseSlots(
 
   // Fixed time, interval, or routine-relative schedules:
   const slots: TodayDoseSlot[] = [];
-  let times = medicine.timesOfDay && medicine.timesOfDay.length > 0 ? medicine.timesOfDay : ['08:00'];
-
-  if (medicine.scheduleType === 'routine_relative' && medicine.routineTiming && dailyRoutine) {
-    const resolvedTime = calculateRoutineRelativeClockTime(dailyRoutine, medicine.routineTiming);
-    times = [resolvedTime];
-  }
+  const times = getMedicineDoseTimes(medicine, dailyRoutine);
 
   for (const timeStr of times) {
     const [hours, minutes] = timeStr.split(':').map(Number);
@@ -319,9 +352,16 @@ export function generateTodayDoseSlots(
     const scheduledTimestampMs = scheduledDate.getTime();
 
     // Check if there is an existing log for this scheduled time
-    const matchingLog = logsForMed.find(
-      (l) => l.scheduledTime === timeStr || (l.scheduledTimestampMs && Math.abs(l.scheduledTimestampMs - scheduledTimestampMs) < 60 * 60 * 1000)
-    );
+    // Prefer the log recorded for this exact slot; fall back to a nearby log only when the log has
+    // no slot time (older entries), so close interval doses never steal each other's logs.
+    const matchingLog =
+      [...logsForMed].reverse().find((l) => l.scheduledTime === timeStr) ||
+      logsForMed.find(
+        (l) =>
+          !l.scheduledTime &&
+          l.scheduledTimestampMs !== undefined &&
+          Math.abs(l.scheduledTimestampMs - scheduledTimestampMs) < 60 * 60 * 1000
+      );
 
     let status: TodayDoseSlot['status'] = 'pending';
     if (matchingLog) {

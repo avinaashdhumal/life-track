@@ -29,6 +29,8 @@ import {
   convertMedicineToFixedTime
 } from '../../domain/shift';
 import { shiftRepository } from '../../data/shiftRepository';
+import { ShiftOverrideModal } from './ShiftOverrideModal';
+import { AddRotationStepModal } from './AddRotationStepModal';
 import { medicinesRepository } from '../../data/medicinesRepository';
 import { routineRepository } from '../../data/routineRepository';
 import { Medicine } from '../../domain/medicine';
@@ -82,13 +84,10 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   // Single date override modal state
   const [showOverrideModal, setShowOverrideModal] = useState<boolean>(false);
   const [overrideDate, setOverrideDate] = useState<string>('');
-  const [selectedOverrideShiftId, setSelectedOverrideShiftId] = useState<string>('shift_morning');
-  const [overrideNote, setOverrideNote] = useState<string>('');
+  const [overrideInitialShiftId, setOverrideInitialShiftId] = useState<string>('shift_morning');
 
   // Add step modal state
   const [showAddStepModal, setShowAddStepModal] = useState<boolean>(false);
-  const [newStepShiftId, setNewStepShiftId] = useState<string>('shift_morning');
-  const [newStepDays, setNewStepDays] = useState<string>('5');
 
   const todayDateStr = useMemo(() => {
     const d = new Date();
@@ -97,6 +96,12 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   }, []);
+
+  // Configured shift types (custom ones included), used by the override and rotation pickers.
+  const shiftTypes = useMemo(
+    () => (config.customShiftTypes && config.customShiftTypes.length > 0 ? config.customShiftTypes : DEFAULT_SHIFT_TYPES),
+    [config.customShiftTypes]
+  );
 
   const loadAllData = useCallback(async () => {
     try {
@@ -240,16 +245,8 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   };
 
   // Rotation cycle builder: add step
-  const handleAddStep = async () => {
-    const count = parseInt(newStepDays, 10);
-    if (isNaN(count) || count <= 0) {
-      Alert.alert(t('common.error'), t('shift.invalidDays', 'Please enter a valid number of days (1-30).'));
-      return;
-    }
-    const newStep: RotationCycleStep = {
-      shiftTypeId: newStepShiftId,
-      count: Math.min(30, count)
-    };
+  const handleAddStep = async (shiftTypeId: string, days: number) => {
+    const newStep: RotationCycleStep = { shiftTypeId, count: days };
     const updated: ShiftConfig = {
       ...config,
       rotationPattern: [...config.rotationPattern, newStep],
@@ -263,18 +260,17 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   const handleOpenOverride = (dateStr: string) => {
     const currentShift = getShiftForDate(config, dateStr);
     setOverrideDate(dateStr);
-    setSelectedOverrideShiftId(currentShift.shiftType.id);
-    setOverrideNote(config.overrides[dateStr]?.notes || '');
+    setOverrideInitialShiftId(currentShift.shiftType.id);
     setShowOverrideModal(true);
   };
 
   // Single date override: save
-  const handleSaveOverride = async () => {
+  const handleSaveOverride = async (shiftTypeId: string, note: string) => {
     const newOverride: ShiftOverride = {
       date: overrideDate,
-      shiftTypeId: selectedOverrideShiftId,
+      shiftTypeId,
       overrideType: 'swap',
-      notes: overrideNote.trim() || undefined,
+      notes: note || undefined,
       createdAt: Date.now()
     };
     const updated: ShiftConfig = {
@@ -913,219 +909,24 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
         </View>
       </View>
 
-      {/* Single-Date Manual Override Modal */}
-      <Modal
+      <ShiftOverrideModal
         visible={showOverrideModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowOverrideModal(false)}
-      >
-        <View style={tw`flex-1 bg-black/60 items-center justify-center p-4`}>
-          <View
-            style={[
-              tw`w-full max-w-sm rounded-3xl p-5 border shadow-2xl`,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            <View style={tw`flex-row items-center justify-between mb-4`}>
-              <View>
-                <Text style={[tw`text-base font-bold`, { color: colors.text }]}>
-                  {t('shift.overrideModalTitle', 'Manual Shift Override')}
-                </Text>
-                <Text style={[tw`text-xs font-mono`, { color: colors.primary }]}>
-                  {overrideDate}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowOverrideModal(false)}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={t('accessibility.close')}
-                style={tw`p-1.5 rounded-full bg-zinc-800`}
-              >
-                <X size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
+        dateStr={overrideDate}
+        shiftTypes={shiftTypes}
+        initialShiftId={overrideInitialShiftId}
+        initialNote={config.overrides[overrideDate]?.notes || ''}
+        hasOverride={!!config.overrides[overrideDate]}
+        onSave={handleSaveOverride}
+        onRemove={handleRemoveOverride}
+        onClose={() => setShowOverrideModal(false)}
+      />
 
-            <Text style={[tw`text-xs font-bold mb-2`, { color: colors.textMuted }]}>
-              {t('shift.selectShiftType', 'Assign Shift for this date:')}
-            </Text>
-
-            <View style={tw`gap-1.5 mb-3`}>
-              {DEFAULT_SHIFT_TYPES.map((st) => (
-                <TouchableOpacity
-                  key={st.id}
-                  onPress={() => setSelectedOverrideShiftId(st.id)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select ${st.name}`}
-                  style={[
-                    tw`p-2.5 rounded-xl border flex-row items-center justify-between`,
-                    selectedOverrideShiftId === st.id
-                      ? { backgroundColor: `${st.color}20`, borderColor: st.color }
-                      : { backgroundColor: colors.card, borderColor: colors.borderLight }
-                  ]}
-                >
-                  <View style={tw`flex-row items-center gap-2`}>
-                    <View style={[tw`w-3 h-3 rounded-full`, { backgroundColor: st.color }]} />
-                    <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
-                      {st.name}
-                    </Text>
-                  </View>
-                  <Text style={[tw`text-[10px] font-mono`, { color: colors.textMuted }]}>
-                    {st.startTime} - {st.endTime}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={[tw`text-xs font-bold mb-1`, { color: colors.textMuted }]}>
-              {t('shift.overrideNoteLabel', 'Reason / Note (Optional):')}
-            </Text>
-            <TextInput
-              value={overrideNote}
-              onChangeText={setOverrideNote}
-              placeholder="e.g. Swapped with colleague, annual leave"
-              placeholderTextColor={colors.textMuted}
-              accessible={true}
-              accessibilityLabel="Override reason input"
-              style={[
-                tw`p-2.5 rounded-xl border text-xs mb-4`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text
-                }
-              ]}
-            />
-
-            <View style={tw`flex-row items-center gap-2`}>
-              {config.overrides[overrideDate] && (
-                <TouchableOpacity
-                  onPress={handleRemoveOverride}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Revert to cycle"
-                  style={tw`flex-1 p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/30 items-center`}
-                >
-                  <Text style={tw`text-xs font-bold text-rose-400`}>
-                    {t('shift.revertCycle', 'Revert to Cycle')}
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                onPress={handleSaveOverride}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Apply override"
-                style={tw`flex-1 p-2.5 rounded-xl bg-amber-500 items-center shadow-md`}
-              >
-                <Text style={tw`text-xs font-bold text-white`}>
-                  {t('shift.saveOverride', 'Save Override')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Add Rotation Step Modal */}
-      <Modal
+      <AddRotationStepModal
         visible={showAddStepModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowAddStepModal(false)}
-      >
-        <View style={tw`flex-1 bg-black/60 items-center justify-center p-4`}>
-          <View
-            style={[
-              tw`w-full max-w-sm rounded-3xl p-5 border shadow-2xl`,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border
-              }
-            ]}
-          >
-            <Text style={[tw`text-base font-bold mb-3`, { color: colors.text }]}>
-              {t('shift.addStepTitle', 'Add Rotation Cycle Step')}
-            </Text>
-
-            <Text style={[tw`text-xs font-bold mb-2`, { color: colors.textMuted }]}>
-              {t('shift.chooseShiftType', 'Shift Type:')}
-            </Text>
-            <View style={tw`gap-1.5 mb-3`}>
-              {DEFAULT_SHIFT_TYPES.map((st) => (
-                <TouchableOpacity
-                  key={st.id}
-                  onPress={() => setNewStepShiftId(st.id)}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Pick ${st.name}`}
-                  style={[
-                    tw`p-2.5 rounded-xl border flex-row items-center justify-between`,
-                    newStepShiftId === st.id
-                      ? { backgroundColor: `${st.color}20`, borderColor: st.color }
-                      : { backgroundColor: colors.card, borderColor: colors.borderLight }
-                  ]}
-                >
-                  <View style={tw`flex-row items-center gap-2`}>
-                    <View style={[tw`w-3 h-3 rounded-full`, { backgroundColor: st.color }]} />
-                    <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>
-                      {st.name}
-                    </Text>
-                  </View>
-                  <Text style={[tw`text-[10px] font-mono`, { color: colors.textMuted }]}>
-                    {st.startTime} - {st.endTime}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={[tw`text-xs font-bold mb-1`, { color: colors.textMuted }]}>
-              {t('shift.daysCount', 'Consecutive Days (1 - 30):')}
-            </Text>
-            <TextInput
-              value={newStepDays}
-              onChangeText={setNewStepDays}
-              keyboardType="numeric"
-              accessible={true}
-              accessibilityLabel="Days count input"
-              style={[
-                tw`p-2.5 rounded-xl border text-sm mb-4 font-mono`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text
-                }
-              ]}
-            />
-
-            <View style={tw`flex-row justify-end gap-2`}>
-              <TouchableOpacity
-                onPress={() => setShowAddStepModal(false)}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel={t('common.cancel')}
-                style={tw`px-4 py-2 rounded-xl bg-zinc-800`}
-              >
-                <Text style={tw`text-xs font-semibold text-zinc-300`}>{t('common.cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleAddStep}
-                accessible={true}
-                accessibilityRole="button"
-                accessibilityLabel="Add Step"
-                style={tw`px-4 py-2 rounded-xl bg-amber-500 shadow-md`}
-              >
-                <Text style={tw`text-xs font-bold text-white`}>{t('shift.addStep', 'Add Step')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        shiftTypes={shiftTypes}
+        onAdd={handleAddStep}
+        onClose={() => setShowAddStepModal(false)}
+      />
     </Modal>
   );
 };

@@ -5,8 +5,34 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 object AlarmSchedulerHelper {
+
+    /**
+     * Keeps a repeating series alive without JS: schedules the next occurrence `repeatEveryDays`
+     * local calendar days after this one (skipping any that are already in the past). The id uses
+     * the same `${prefix}_${yyyyMMdd}_${suffix}` format as the JS planner, so a later JS replan
+     * recognises it instead of scheduling a duplicate.
+     */
+    fun scheduleNextInSeries(context: Context, alarm: NativeAlarm) {
+        if (alarm.repeatEveryDays <= 0 || alarm.seriesPrefix.isBlank()) return
+        val now = System.currentTimeMillis()
+        val cal = Calendar.getInstance().apply { timeInMillis = alarm.triggerTimeMs }
+        do {
+            cal.add(Calendar.DAY_OF_YEAR, alarm.repeatEveryDays)
+        } while (cal.timeInMillis <= now)
+        if (alarm.repeatUntilMs > 0L && cal.timeInMillis > alarm.repeatUntilMs) return
+
+        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(cal.time)
+        val nextId = "${alarm.seriesPrefix}_${dateStr}_${alarm.seriesSuffix}"
+        if (AlarmStorage.getAlarm(context, nextId) != null) return
+
+        scheduleExact(context, alarm.copy(id = nextId, triggerTimeMs = cal.timeInMillis))
+        AlarmStorage.logEvent(context, nextId, "SERIES_ROLLED_FROM_${alarm.id}", now)
+    }
 
     fun canScheduleExact(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

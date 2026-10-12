@@ -1,3 +1,10 @@
+export interface NativeAlarmLabels {
+  taken?: string;
+  snooze?: string;
+  skip?: string;
+  badge?: string;
+}
+
 export interface NativeAlarmOptions {
   id: string;
   triggerTimeMs: number;
@@ -7,6 +14,16 @@ export interface NativeAlarmOptions {
   isFullAlarm?: boolean;
   snoozeIntervalMinutes?: number;
   payload?: Record<string, unknown>;
+  /** Native roll-forward: when this fires, schedule `${seriesPrefix}_${yyyyMMdd}_${seriesSuffix}` this many days later. */
+  repeatEveryDays?: number;
+  repeatUntilMs?: number;
+  seriesPrefix?: string;
+  seriesSuffix?: string;
+  vibrate?: boolean;
+  /** Stop ringing after this many minutes without user action (0 = ring until acted on). */
+  autoDismissMinutes?: number;
+  /** Localized button and badge text for the native notification and lock-screen alarm. */
+  labels?: NativeAlarmLabels;
 }
 
 export interface NativeAlarmInfo {
@@ -18,7 +35,20 @@ export interface NativeAlarmInfo {
   isFullAlarm: boolean;
   snoozeIntervalMinutes: number;
   payloadJson?: string;
+  repeatEveryDays?: number;
   firedAtMs?: number;
+}
+
+export type NativeAlarmAction = 'TAKEN' | 'SNOOZED' | 'SKIPPED' | 'DISMISSED' | 'MISSED' | 'FIRED';
+
+/** An alarm event that happened natively (possibly while JS was dead), waiting for JS to apply it. */
+export interface NativePendingAction {
+  alarmId: string;
+  action: NativeAlarmAction;
+  atMs: number;
+  triggerTimeMs: number;
+  title: string;
+  payloadJson: string;
 }
 
 // In Expo Native Environment, this is resolved via requireNativeModule('AlarmEngine')
@@ -31,6 +61,11 @@ try {
   // Web / fallback environment
 }
 
+/** True when the Kotlin alarm engine is present (Android dev/preview/production builds). */
+export function isAvailable(): boolean {
+  return !!NativeAlarmModule?.scheduleAlarm;
+}
+
 export async function scheduleAlarm(options: NativeAlarmOptions): Promise<boolean> {
   if (NativeAlarmModule?.scheduleAlarm) {
     const sanitized: Record<string, unknown> = {
@@ -40,7 +75,19 @@ export async function scheduleAlarm(options: NativeAlarmOptions): Promise<boolea
       message: String(options.message || ''),
       channelId: String(options.channelId || 'medicines'),
       isFullAlarm: options.isFullAlarm !== false,
-      snoozeIntervalMinutes: Number(options.snoozeIntervalMinutes || 10)
+      snoozeIntervalMinutes: Number(options.snoozeIntervalMinutes || 10),
+      repeatEveryDays: Math.max(0, Math.floor(Number(options.repeatEveryDays || 0))),
+      repeatUntilMs: Number(options.repeatUntilMs || 0),
+      seriesPrefix: String(options.seriesPrefix || ''),
+      seriesSuffix: String(options.seriesSuffix || ''),
+      vibrate: options.vibrate !== false,
+      autoDismissMinutes: Math.max(0, Math.floor(Number(options.autoDismissMinutes ?? 5))),
+      labels: {
+        taken: String(options.labels?.taken || ''),
+        snooze: String(options.labels?.snooze || ''),
+        skip: String(options.labels?.skip || ''),
+        badge: String(options.labels?.badge || '')
+      }
     };
     if (options.payload && typeof options.payload === 'object') {
       sanitized.payload = options.payload;
@@ -69,6 +116,29 @@ export async function getScheduledAlarms(): Promise<NativeAlarmInfo[]> {
     return NativeAlarmModule.getScheduledAlarms();
   }
   return [];
+}
+
+/** Returns and clears the native action queue (notification/lock-screen taps, misses). */
+export async function drainPendingActions(): Promise<NativePendingAction[]> {
+  if (NativeAlarmModule?.drainPendingActions) {
+    return NativeAlarmModule.drainPendingActions();
+  }
+  return [];
+}
+
+/** Android 14+: whether the system lets LifeTrack show full-screen alarms over the lock screen. */
+export async function canUseFullScreenIntent(): Promise<boolean> {
+  if (NativeAlarmModule?.canUseFullScreenIntent) {
+    return NativeAlarmModule.canUseFullScreenIntent();
+  }
+  return true;
+}
+
+export async function openFullScreenIntentSettings(): Promise<boolean> {
+  if (NativeAlarmModule?.openFullScreenIntentSettings) {
+    return NativeAlarmModule.openFullScreenIntentSettings();
+  }
+  return false;
 }
 
 export async function canScheduleExactAlarms(): Promise<boolean> {

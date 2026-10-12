@@ -1,4 +1,4 @@
-import { AlarmCategory, AlarmItem, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } from '../domain/alarm';
+import { AlarmCategory, AlarmItem, AlarmRepeat, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } from '../domain/alarm';
 
 export interface ScheduleAlarmParams {
   id: string;
@@ -11,6 +11,7 @@ export interface ScheduleAlarmParams {
   isFullAlarm?: boolean;
   snoozeIntervalMinutes?: number;
   payload?: Record<string, unknown>;
+  repeat?: AlarmRepeat;
 }
 
 export interface IReminderService {
@@ -55,9 +56,9 @@ export interface IReminderService {
   deleteRecurringSchedule(id: string): Promise<boolean>;
 
   /**
-   * Re-plans all recurring schedule occurrences for the next 7 days and schedules them.
+   * Re-plans recurring schedule occurrences for their rolling window and syncs them with scheduled alarms.
    */
-  replanRecurringSchedules(): Promise<void>;
+  replanRecurringSchedules(options?: { force?: boolean }): Promise<void>;
 
   /**
    * Get reminder health check diagnostics.
@@ -95,9 +96,6 @@ export interface IReminderService {
   openAutostartSettings(): Promise<boolean>;
 
   /**
-   * Log a reminder action (Taken, Snoozed, Skipped, etc.).
-   */
-  /**
    * Update an existing recurring schedule and re-plan occurrences.
    */
   updateRecurringSchedule(id: string, updates: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>): Promise<RecurringSchedule | null>;
@@ -115,7 +113,7 @@ export interface IReminderService {
   /**
    * Retrieve logged reminder events.
    */
-  getLogs(): Promise<ReminderLogEntry[]>;
+  getLogs(limit?: number): Promise<ReminderLogEntry[]>;
 
   /**
    * Clear all reminder event logs.

@@ -66,7 +66,9 @@ export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsMod
   const loadChannels = async () => {
     try {
       const list = await reminderService.getNotificationChannels();
-      setChannels(list);
+      // Native returns every channel on the app; keep only LifeTrack's known channel ids.
+      const known = new Set<string>(['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries']);
+      setChannels(list.filter((c) => known.has(c.id)) as ChannelToneInfo[]);
     } catch {
       // Fallback
     }

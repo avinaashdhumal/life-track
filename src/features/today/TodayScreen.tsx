@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,8 @@ import {
   Alert,
   Modal,
   TextInput,
-  RefreshControl
+  RefreshControl,
+  AppState
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,8 @@ import { DailyRoutine } from '../../domain/routine';
 import { ShiftScheduleScreen } from '../shift/ShiftScheduleScreen';
 import { RoutineSettingsModal } from '../routine/RoutineSettingsModal';
 import { UserProfileRecord } from '../../services/DatabaseService';
+import { reminderCoordinator } from '../../services/reminderCoordinator';
+import { addLocalDays, toLocalDateString } from '../../domain/dates';
 import {
   CheckCircle2,
   Clock,
@@ -75,22 +78,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const [skipSlot, setSkipSlot] = useState<TodayDoseSlot | null>(null);
   const [skipReason, setSkipReason] = useState<string>('');
 
-  const todayDateStr = useMemo(() => {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const d = String(now.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }, []);
-
-  const tomorrowDateStr = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }, []);
+  // Recomputed on every load so the screen rolls over at midnight instead of showing yesterday.
+  const [todayDateStr, setTodayDateStr] = useState<string>(() => toLocalDateString(Date.now()));
+  const tomorrowDateStr = useMemo(() => addLocalDays(todayDateStr, 1), [todayDateStr]);
 
   const formattedDate = useMemo(() => {
     const now = new Date();
@@ -109,11 +99,13 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   }, [t]);
 
   const loadData = useCallback(async () => {
+    const dateStr = toLocalDateString(Date.now());
+    setTodayDateStr(dateStr);
     try {
       const [userProfile, allMeds, logs, shiftConf, dailyRout] = await Promise.all([
         profileRepository.getProfile(),
         medicinesRepository.getActive('default'),
-        medicinesRepository.getDosesForDay('default', todayDateStr),
+        medicinesRepository.getDosesForDay('default', dateStr),
         shiftRepository.getConfig(),
         routineRepository.getRoutine('default')
       ]);
@@ -128,10 +120,33 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [todayDateStr]);
+  }, []);
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // Reload when doses or medicines change elsewhere (e.g. "Taken" pressed on a notification and
+  // applied when the app comes back), when the routine changes, or when the app returns to the foreground.
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const scheduleReload = () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+      reloadTimer.current = setTimeout(loadData, 300);
+    };
+    const unsubMeds = medicinesRepository.changes.subscribe(scheduleReload);
+    const unsubRoutine = routineRepository.changes.subscribe(scheduleReload);
+    const unsubShift = shiftRepository.changes.subscribe(scheduleReload);
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') scheduleReload();
+    });
+    return () => {
+      unsubMeds();
+      unsubRoutine();
+      unsubShift();
+      appStateSub.remove();
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+    };
   }, [loadData]);
 
   const onRefresh = () => {
@@ -211,24 +226,15 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   const handleSnoozeSlot = async (slot: TodayDoseSlot) => {
     try {
-      await medicinesRepository.logDose({
-        profileId: 'default',
-        medicineId: slot.medicineId,
-        medicineName: slot.medicineName,
-        scheduledTime: slot.scheduledTime,
-        scheduledTimestampMs: slot.scheduledTimestampMs,
-        takenTimestampMs: Date.now(),
-        status: 'snoozed',
-        quantityTaken: 0,
-        notes: 'Snoozed 15 minutes'
-      });
+      // Logs the snooze and schedules a real reminder after the default snooze time.
+      const minutes = await reminderCoordinator.snoozeDose(slot);
       Alert.alert(
         t('today.snoozedTitle', 'Reminder Snoozed'),
-        `${slot.medicineName} reminder snoozed by 15 minutes.`
+        t('reminders.snoozedNotice', { name: slot.medicineName, minutes })
       );
       await loadData();
     } catch (err: any) {
-      Alert.alert(t('common.error', 'Error'), err?.message || 'Could not snooze');
+      Alert.alert(t('common.error', 'Error'), err?.message || t('common.error'));
     }
   };
 

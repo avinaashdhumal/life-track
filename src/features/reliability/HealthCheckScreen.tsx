@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, AppState } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,7 +16,8 @@ import {
   ExternalLink,
   ChevronLeft,
   RefreshCw,
-  Database
+  Database,
+  Maximize
 } from 'lucide-react-native';
 
 interface HealthCheckScreenProps {
@@ -48,7 +49,26 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
 
   useEffect(() => {
     loadHealthData();
+    // Re-check after the user returns from a system settings screen.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadHealthData();
+    });
+    return () => sub.remove();
   }, []);
+
+  const handleOpenFullScreenSettings = async () => {
+    await reminderService.openFullScreenIntentSettings();
+  };
+
+  const handleOpenNotificationSettings = async () => {
+    if (status && !status.notificationsAllowed) {
+      const granted = await reminderService.requestNotificationPermission();
+      if (!granted) await reminderService.openAppNotificationSettings();
+      loadHealthData();
+      return;
+    }
+    handleOpenToneSettings();
+  };
 
   const handleOpenExactAlarmSettings = async () => {
     await reminderService.openExactAlarmSettings();
@@ -216,14 +236,14 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
             </View>
             <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
               {status?.exactAlarmsAllowed
-                ? `${t('healthCheck.allowed')}: AlarmClock & exact wakeups active`
-                : `${t('healthCheck.denied')}: May be delayed by Android Doze`}
+                ? `${t('healthCheck.allowed')}: ${t('healthCheck.exactAllowedDesc')}`
+                : `${t('healthCheck.denied')}: ${t('healthCheck.exactDeniedDesc')}`}
             </Text>
             <TouchableOpacity
               onPress={handleOpenExactAlarmSettings}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel={`${t('healthCheck.openSettings')}: Exact Alarms`}
+              accessibilityLabel={`${t('healthCheck.openSettings')}: ${t('healthCheck.exactAlarms')}`}
               style={[
                 tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
                 {
@@ -255,13 +275,19 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
                   {t('healthCheck.notifications')}
                 </Text>
               </View>
-              <CheckCircle size={20} color="#10b981" />
+              {status?.notificationsAllowed === false ? (
+                <AlertCircle size={20} color="#ef4444" />
+              ) : (
+                <CheckCircle size={20} color="#10b981" />
+              )}
             </View>
             <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
-              {status?.notificationChannelsCount || 7} {t('soundSettings.channelsSectionHeader')} ({t('healthCheck.allowed')})
+              {status?.notificationsAllowed === false
+                ? `${t('healthCheck.denied')}: ${t('healthCheck.notificationsDeniedDesc')}`
+                : `${status?.notificationChannelsCount || 7} ${t('soundSettings.channelsSectionHeader')} (${t('healthCheck.allowed')})`}
             </Text>
             <TouchableOpacity
-              onPress={handleOpenToneSettings}
+              onPress={handleOpenNotificationSettings}
               accessible={true}
               accessibilityRole="button"
               accessibilityLabel={t('soundSettings.title')}
@@ -304,20 +330,61 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
             </View>
             <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
               {status?.batteryOptimizationsIgnored
-                ? `${t('healthCheck.exempt')}: Never throttled in background`
-                : `${t('healthCheck.notExempt')}: Recommend requesting exemption`}
+                ? `${t('healthCheck.exempt')}: ${t('healthCheck.batteryExemptDesc')}`
+                : `${t('healthCheck.notExempt')}: ${t('healthCheck.batteryNotExemptDesc')}`}
             </Text>
             <TouchableOpacity
               onPress={handleRequestBatteryExemption}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel={`${t('healthCheck.openSettings')}: Battery Optimization`}
+              accessibilityLabel={`${t('healthCheck.openSettings')}: ${t('healthCheck.batteryOptimization')}`}
               style={[
                 tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
                 {
                   backgroundColor: colors.card,
                   borderColor: colors.border
                 }
+              ]}
+            >
+              <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>
+                {t('healthCheck.openSettings')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Full-screen lock-screen alarms (Android 14+ can revoke this) */}
+          <View
+            style={[
+              tw`p-4 rounded-2xl border flex flex-col justify-between`,
+              { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+            ]}
+          >
+            <View style={tw`flex-row items-center justify-between mb-2`}>
+              <View style={tw`flex-row items-center gap-2`}>
+                <Maximize size={16} color={colors.primary} />
+                <Text style={[tw`text-sm font-semibold`, { color: colors.text }]}>
+                  {t('healthCheck.fullScreenIntent')}
+                </Text>
+              </View>
+              {status?.fullScreenIntentAllowed === false ? (
+                <AlertCircle size={20} color="#f59e0b" />
+              ) : (
+                <CheckCircle size={20} color="#10b981" />
+              )}
+            </View>
+            <Text style={[tw`text-xs mb-3`, { color: colors.textMuted }]}>
+              {status?.fullScreenIntentAllowed === false
+                ? `${t('healthCheck.denied')}: ${t('healthCheck.fullScreenDeniedDesc')}`
+                : `${t('healthCheck.allowed')}: ${t('healthCheck.fullScreenAllowedDesc')}`}
+            </Text>
+            <TouchableOpacity
+              onPress={handleOpenFullScreenSettings}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('healthCheck.openSettings')}: ${t('healthCheck.fullScreenIntent')}`}
+              style={[
+                tw`mt-auto w-full py-2.5 rounded-xl items-center justify-center border`,
+                { backgroundColor: colors.card, borderColor: colors.border }
               ]}
             >
               <Text style={[tw`text-xs font-semibold`, { color: colors.textSecondary }]}>

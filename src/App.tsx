@@ -1,26 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StatusBar, View, Text, TouchableOpacity, ScrollView, Image, Modal } from 'react-native';
+import {
+  SafeAreaView,
+  StatusBar,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Modal,
+  Alert,
+  AppState,
+  BackHandler,
+  Linking,
+  ActivityIndicator,
+  Platform
+} from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { LanguageThemeModal } from './features/poc/LanguageThemeModal';
-import { getCurrentLanguage, SUPPORTED_LANGUAGES } from './i18n';
+import { LanguageThemeModal } from './features/settings/LanguageThemeModal';
+import i18n, { getCurrentLanguage, SUPPORTED_LANGUAGES } from './i18n';
 import appIcon from '../assets/icon.png';
 import { TodayScreen } from './features/today/TodayScreen';
 import { MedicineListScreen } from './features/medicines/MedicineListScreen';
-import { AlarmTestScreen } from './features/poc/AlarmTestScreen';
-import { HealthCheckScreen } from './features/poc/HealthCheckScreen';
-import { ProfileSettingsScreen } from './features/poc/ProfileSettingsScreen';
+import { AlarmTestScreen } from './features/alarms/AlarmTestScreen';
+import { HealthCheckScreen } from './features/reliability/HealthCheckScreen';
+import { ProfileSettingsScreen } from './features/settings/ProfileSettingsScreen';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
-import { FullScreenAlarmModal } from './features/poc/FullScreenAlarmModal';
-import { NotificationToneSettingsModal } from './features/poc/NotificationToneSettingsModal';
+import { FullScreenAlarmModal } from './features/alarms/FullScreenAlarmModal';
+import { NotificationToneSettingsModal } from './features/alarms/NotificationToneSettingsModal';
 import { RoutineSettingsModal } from './features/routine/RoutineSettingsModal';
 import { ShiftScheduleScreen } from './features/shift/ShiftScheduleScreen';
 import { profileRepository } from './data/profileRepository';
 
 import { AlarmItem } from './domain/alarm';
 import { reminderService } from './services/AlarmEngineService';
+import { reminderCoordinator, InAppAlarmAction } from './services/reminderCoordinator';
+import { storageService } from './services/StorageService';
+import { runMigrations } from './services/migrations';
 import {
   Bell,
   Activity,
@@ -42,6 +60,37 @@ import {
 
 export type MainTabType = 'today' | 'medicines' | 'poc_test' | 'health_check' | 'profile_settings';
 
+// Deep links: lifetrack://today, lifetrack://medicines, lifetrack://alarms, lifetrack://health, lifetrack://profile
+const DEEP_LINK_TABS: Record<string, MainTabType> = {
+  today: 'today',
+  medicines: 'medicines',
+  alarms: 'poc_test',
+  health: 'health_check',
+  profile: 'profile_settings'
+};
+
+export function tabFromDeepLink(url: string | null): MainTabType | null {
+  if (!url) return null;
+  const match = /^lifetrack:\/\/([a-z_-]+)/i.exec(url.trim());
+  return match ? DEEP_LINK_TABS[match[1].toLowerCase()] ?? null : null;
+}
+
+/**
+ * Startup order matters: load settings into the sync cache, migrate stored data, then start the
+ * reminder coordinator and top up alarms. Nothing reads app data before this finishes.
+ */
+async function bootstrapApp(): Promise<{ hasCompletedOnboarding: boolean }> {
+  await storageService.preload();
+  const migration = await runMigrations();
+  const settings = await storageService.getSettings();
+  if (settings.language && i18n.language !== settings.language) {
+    await i18n.changeLanguage(settings.language);
+  }
+  reminderCoordinator.start();
+  reminderCoordinator.refresh({ force: migration.alarmsNeedRebuild });
+  return { hasCompletedOnboarding: settings.hasCompletedOnboarding };
+}
+
 function AppContent() {
   const { t } = useTranslation();
   const { colors, isDark, toggleTheme } = useTheme();
@@ -57,59 +106,89 @@ function AppContent() {
   const currentLangCode = getCurrentLanguage();
   const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
 
-  // Load onboarding completion status
+  // Bootstrap: migrations, reminder sync, onboarding status
   useEffect(() => {
-    const checkOnboarding = async () => {
-      try {
-        const completed = await profileRepository.hasCompletedOnboarding();
-        setHasCompletedOnboarding(completed);
-      } catch {
-        setHasCompletedOnboarding(true);
-      }
+    let cancelled = false;
+    bootstrapApp()
+      .then(({ hasCompletedOnboarding: completed }) => {
+        if (!cancelled) setHasCompletedOnboarding(completed);
+      })
+      .catch((err) => {
+        console.warn('[App] bootstrap failed:', err);
+        if (!cancelled) setHasCompletedOnboarding(true);
+      });
+    return () => {
+      cancelled = true;
     };
-    checkOnboarding();
   }, []);
 
-  // Global background and foreground alarm engine loop
+  // Ask for notification permission once the user is past onboarding
   useEffect(() => {
-    reminderService.requestBrowserNotificationPermission();
+    if (hasCompletedOnboarding) {
+      reminderService.requestNotificationPermission();
+    }
+  }, [hasCompletedOnboarding]);
 
-    const checkAlarms = async () => {
-      const list = await reminderService.getScheduledAlarms();
-      const now = Date.now();
-      for (const item of list) {
-        if (item.triggerTimeMs <= now) {
-          await reminderService.cancelAlarm(item.id);
-          await reminderService.logAction({
-            profileId: 'default',
-            alarmId: item.id,
-            action: 'FIRED',
-            timestampMs: now,
-            scheduledTimeMs: item.triggerTimeMs,
-            note: 'Alarm triggered (foreground/background engine)'
+  // Back on screen: apply notification actions taken meanwhile and top up reminders
+  useEffect(() => {
+    const onActive = () => {
+      reminderCoordinator.refresh();
+    };
+    const changeSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') onActive();
+    });
+    // Android: pulling down the shade and tapping an action doesn't change AppState, only focus.
+    // The 'focus' event exists only on Android (subscribing elsewhere throws).
+    const focusSub = Platform.OS === 'android' ? AppState.addEventListener('focus', onActive) : null;
+    return () => {
+      changeSub.remove();
+      focusSub?.remove();
+    };
+  }, []);
+
+  // In-app alarm engine (only when the native engine is missing: web, Expo Go)
+  useEffect(() => {
+    return reminderCoordinator.startInAppEngine((item) => {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification(item.title, {
+            body: item.message || t('fullScreenAlarm.defaultMessage'),
+            icon: typeof appIcon === 'string' ? appIcon : undefined
           });
-
-          // Browser notification if app/tab is in background
-          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            try {
-              new Notification(item.title, {
-                body: item.message || t('fullScreenAlarm.defaultMessage'),
-                icon: typeof appIcon === 'string' ? appIcon : undefined
-              });
-            } catch {
-              // Ignore notification fallback error
-            }
-          }
-
-          setRingingAlarm(item);
-          break;
+        } catch {
+          // Ignore notification fallback error
         }
       }
-    };
-
-    const interval = setInterval(checkAlarms, 1000);
-    return () => clearInterval(interval);
+      setRingingAlarm(item);
+    });
   }, [t]);
+
+  // Android hardware back: return to Today before leaving the app
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (activeTab !== 'today') {
+        setActiveTab('today');
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [activeTab]);
+
+  // Deep links (lifetrack://medicines etc.)
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then((url) => {
+        const tab = tabFromDeepLink(url);
+        if (tab) setActiveTab(tab);
+      })
+      .catch(() => undefined);
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      const tab = tabFromDeepLink(url);
+      if (tab) setActiveTab(tab);
+    });
+    return () => sub.remove();
+  }, []);
 
   const handleTriggerAlarmDirectly = (alarm: AlarmItem) => {
     setRingingAlarm(alarm);
@@ -117,49 +196,13 @@ function AppContent() {
 
   const handleModalAction = async (action: 'TAKEN' | 'SNOOZE_10' | 'DISMISS') => {
     if (!ringingAlarm) return;
-    const now = Date.now();
-
-    if (action === 'TAKEN') {
-      await reminderService.logAction({
-        profileId: 'default',
-        alarmId: ringingAlarm.id,
-        action: 'TAKEN',
-        timestampMs: now,
-        scheduledTimeMs: ringingAlarm.triggerTimeMs,
-        note: `${ringingAlarm.title} marked taken by user`
-      });
-      await reminderService.cancelAlarm(ringingAlarm.id);
-    } else if (action === 'SNOOZE_10') {
-      const snoozeTarget = now + 10 * 60 * 1000;
-      await reminderService.logAction({
-        profileId: 'default',
-        alarmId: ringingAlarm.id,
-        action: 'SNOOZED',
-        timestampMs: now,
-        scheduledTimeMs: ringingAlarm.triggerTimeMs,
-        note: `Snoozed for 10 minutes (until ${new Date(snoozeTarget).toLocaleTimeString()})`
-      });
-      await reminderService.scheduleAlarm({
-        id: `${ringingAlarm.id}_snooze`,
-        triggerTimeMs: snoozeTarget,
-        title: `${ringingAlarm.title} (Snoozed)`,
-        message: ringingAlarm.message,
-        channelId: ringingAlarm.channelId,
-        isFullAlarm: ringingAlarm.style === 'full_alarm',
-        snoozeIntervalMinutes: 10
-      });
-    } else {
-      await reminderService.logAction({
-        profileId: 'default',
-        alarmId: ringingAlarm.id,
-        action: 'DISMISSED',
-        timestampMs: now,
-        scheduledTimeMs: ringingAlarm.triggerTimeMs,
-        note: 'Alarm dismissed / skipped'
-      });
-    }
-
+    const alarm = ringingAlarm;
     setRingingAlarm(null);
+    const mapped: InAppAlarmAction = action === 'TAKEN' ? 'TAKEN' : action === 'SNOOZE_10' ? 'SNOOZE' : 'DISMISS';
+    const warning = await reminderCoordinator.handleInAppAction(alarm, mapped);
+    if (warning) {
+      Alert.alert(t('medicines.safetyWarningTitle'), warning, [{ text: t('common.ok') }]);
+    }
   };
 
   const handleScheduleQuickTestAlarm = async (secondsAhead: number = 5) => {
@@ -179,6 +222,15 @@ function AppContent() {
     await handleScheduleQuickTestAlarm(60);
     setActiveTab('poc_test');
   };
+
+  if (hasCompletedOnboarding === null) {
+    return (
+      <SafeAreaView style={[tw`flex-1 items-center justify-center`, { backgroundColor: colors.bg }]}>
+        <StatusBar barStyle={colors.statusBarStyle} backgroundColor={colors.statusBarBg} />
+        <ActivityIndicator color={colors.primary} accessibilityLabel={t('app.loading')} />
+      </SafeAreaView>
+    );
+  }
 
   // If first launch and onboarding not completed, display OnboardingScreen
   if (hasCompletedOnboarding === false) {
@@ -537,7 +589,7 @@ function AppContent() {
                     {t('profileSettings.title')}
                   </Text>
                   <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
-                    Health ID, Routine & Local DB
+                    {t('settings.menuProfileDesc')}
                   </Text>
                 </View>
               </View>
@@ -698,7 +750,7 @@ function AppContent() {
               </View>
               <View style={tw`px-2.5 py-1 rounded-full border border-zinc-700 bg-zinc-800`}>
                 <Text style={tw`text-[10px] font-bold text-zinc-300`}>
-                  {isDark ? '🌙 Dark' : '☀️ Light'}
+                  {isDark ? `🌙 ${t('theme.dark')}` : `☀️ ${t('theme.light')}`}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -728,7 +780,7 @@ function AppContent() {
                     {t('healthCheck.systemHealth')}
                   </Text>
                   <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
-                    AlarmManager & Doze Diagnostics
+                    {t('healthCheck.menuDesc')}
                   </Text>
                 </View>
               </View>
@@ -744,7 +796,7 @@ function AppContent() {
               }}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel="Re-run onboarding flow"
+              accessibilityLabel={t('onboarding.rerunLabel')}
               style={[
                 tw`p-3 rounded-2xl border flex-row items-center justify-between min-h-12`,
                 { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
@@ -756,10 +808,10 @@ function AppContent() {
                 </View>
                 <View style={tw`flex-1 min-w-0`}>
                   <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
-                    {t('onboarding.welcomeTitle', 'Re-run Onboarding')}
+                    {t('onboarding.rerunTitle')}
                   </Text>
                   <Text style={[tw`text-[10px]`, { color: colors.textMuted }]} numberOfLines={1}>
-                    Permissions, Routine & Shift Setup
+                    {t('onboarding.rerunDesc')}
                   </Text>
                 </View>
               </View>

@@ -1,6 +1,5 @@
 package expo.modules.alarmengine
 
-import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -8,19 +7,27 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.core.content.ContextCompat
 
+/**
+ * The only component that makes noise for a full alarm: looping tone, vibration (if enabled), and
+ * an auto-dismiss timer. AlarmFullScreenActivity is UI only.
+ */
 class AlarmForegroundService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var activeAlarmId: String = ""
+    private val handler = Handler(Looper.getMainLooper())
+    private var autoDismissRunnable: Runnable? = null
 
     companion object {
         const val ACTION_START_ALARM = "expo.modules.alarmengine.START_ALARM_SERVICE"
@@ -29,13 +36,7 @@ class AlarmForegroundService : Service() {
         fun startAlarm(context: Context, alarm: NativeAlarm) {
             val intent = Intent(context, AlarmForegroundService::class.java).apply {
                 action = ACTION_START_ALARM
-                putExtra("ALARM_ID", alarm.id)
-                putExtra("ALARM_TITLE", alarm.title)
-                putExtra("ALARM_MESSAGE", alarm.message)
-                putExtra("ALARM_CHANNEL", alarm.channelId)
-                putExtra("ALARM_IS_FULL", alarm.isFullAlarm)
-                putExtra("ALARM_SNOOZE", alarm.snoozeIntervalMinutes)
-                putExtra("ALARM_PAYLOAD", alarm.payloadJson)
+                putExtra("ALARM_JSON", alarm.toJson().toString())
             }
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -67,57 +68,59 @@ class AlarmForegroundService : Service() {
 
         when (intent.action) {
             ACTION_START_ALARM -> {
-                handleStartAlarm(intent)
+                val alarm = NativeAlarm.fromJsonString(intent.getStringExtra("ALARM_JSON"))
+                if (alarm != null) {
+                    handleStartAlarm(alarm)
+                } else {
+                    stopSelf()
+                }
             }
-            ACTION_STOP_ALARM -> {
-                handleStopAlarm()
-            }
+            ACTION_STOP_ALARM -> handleStopAlarm()
         }
 
         return START_NOT_STICKY
     }
 
-    private fun handleStartAlarm(intent: Intent) {
-        activeAlarmId = intent.getStringExtra("ALARM_ID") ?: ""
-        val title = intent.getStringExtra("ALARM_TITLE") ?: "LifeTrack Reminder"
-        val message = intent.getStringExtra("ALARM_MESSAGE") ?: "Scheduled alarm active"
-        val channelId = intent.getStringExtra("ALARM_CHANNEL") ?: AlarmNotificationHelper.CHANNEL_MEDICINES
-        val isFullAlarm = intent.getBooleanExtra("ALARM_IS_FULL", true)
-        val snoozeIntervalMinutes = intent.getIntExtra("ALARM_SNOOZE", 10)
-        val payloadJson = intent.getStringExtra("ALARM_PAYLOAD") ?: "{}"
+    private fun handleStartAlarm(alarm: NativeAlarm) {
+        activeAlarmId = alarm.id
+        val ringMinutes = if (alarm.autoDismissMinutes > 0) alarm.autoDismissMinutes else 10
 
-        val alarm = NativeAlarm(
-            id = activeAlarmId,
-            triggerTimeMs = System.currentTimeMillis(),
-            title = title,
-            message = message,
-            channelId = channelId,
-            isFullAlarm = isFullAlarm,
-            snoozeIntervalMinutes = snoozeIntervalMinutes,
-            payloadJson = payloadJson
-        )
-
-        // Acquire WakeLock to keep device awake while ringing
+        // Keep the CPU awake while ringing (released on stop or after the ring window)
         try {
+            wakeLock?.let { if (it.isHeld) it.release() }
             val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
             wakeLock = powerManager?.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
                 "LifeTrack:ForegroundAlarmWakeLock"
             )
-            wakeLock?.acquire(120_000) // 2 minutes max ring timeout
+            wakeLock?.acquire(ringMinutes * 60_000L + 30_000L)
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        // Build notification and start foreground
         val notifBuilder = AlarmNotificationHelper.buildAlarmNotification(this, alarm)
-        val notifId = activeAlarmId.hashCode()
-        startForeground(notifId, notifBuilder.build())
+        startForeground(alarm.id.hashCode(), notifBuilder.build())
 
-        // Start playing the channel's custom tone or system alarm tone
-        if (isFullAlarm) {
-            startAudioPlayback(channelId)
-            startVibration()
+        if (alarm.isFullAlarm) {
+            startAudioPlayback(alarm.channelId)
+            if (alarm.vibrate) {
+                startVibration()
+            } else {
+                stopVibration()
+            }
+        }
+
+        // Auto-dismiss: stop ringing and record the reminder as missed (it stays in the shade).
+        autoDismissRunnable?.let { handler.removeCallbacks(it) }
+        if (alarm.autoDismissMinutes > 0) {
+            val alarmId = alarm.id
+            val runnable = Runnable {
+                if (activeAlarmId == alarmId) {
+                    AlarmActionHandler.handle(applicationContext, alarmId, AlarmActionHandler.MISSED)
+                }
+            }
+            autoDismissRunnable = runnable
+            handler.postDelayed(runnable, alarm.autoDismissMinutes * 60_000L)
         }
     }
 
@@ -147,6 +150,7 @@ class AlarmForegroundService : Service() {
 
     private fun startVibration() {
         try {
+            stopVibration()
             vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
                 vibratorManager?.defaultVibrator
@@ -171,29 +175,30 @@ class AlarmForegroundService : Service() {
         try {
             mediaPlayer?.stop()
             mediaPlayer?.release()
-            mediaPlayer = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        mediaPlayer = null
     }
 
     private fun stopVibration() {
         try {
             vibrator?.cancel()
-            vibrator = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        vibrator = null
     }
 
     private fun handleStopAlarm() {
+        autoDismissRunnable?.let { handler.removeCallbacks(it) }
+        autoDismissRunnable = null
+        activeAlarmId = ""
         stopAudioPlayback()
         stopVibration()
 
         try {
-            wakeLock?.let {
-                if (it.isHeld) it.release()
-            }
+            wakeLock?.let { if (it.isHeld) it.release() }
             wakeLock = null
         } catch (e: Exception) {
             e.printStackTrace()
@@ -211,6 +216,9 @@ class AlarmForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        handleStopAlarm()
+        autoDismissRunnable?.let { handler.removeCallbacks(it) }
+        stopAudioPlayback()
+        stopVibration()
+        wakeLock?.let { if (it.isHeld) it.release() }
     }
 }

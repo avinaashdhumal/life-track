@@ -5,133 +5,130 @@ item, and add new findings with the next free ID. Don't renumber or delete items
 
 **Statuses:** `todo` · `in-progress` · `blocked` · `done` · `wontfix`
 **Priority:** **P0** breaks the core promise or loses data · **P1** big user value · **P2** worthwhile · **P3** nice to have
-**Next free IDs:** BUG-008 · DEBT-009 · FEAT-016
+**Next free IDs:** BUG-025 · DEBT-011 · FEAT-016
 
 ---
 
-## 🐞 Bugs
+## 🔴 Open
 
-### BUG-001 · P0 · todo — Medicines never schedule reminders
-- **Where:** `src/data/medicinesRepository.ts`, `src/features/medicines/*`, `src/services/AlarmEngineService.ts`
-- **Problem:** Creating, editing, pausing, or deleting a medicine never calls `reminderService`. Users get no alarm for
-  their doses. This is the app's core promise.
-- **Fix outline:** Add a `MedicineReminderPlanner` in `src/domain/` (pure) that turns a `Medicine` (+ routine + shift
-  config) into dose occurrences for the next N days, with deterministic ids `med_<medId>_<YYYY-MM-DD>_<HH:mm>`.
-  Call it from a `medicineReminderSync` service on medicine upsert, delete, and toggle, and on routine/shift change.
-  Cancel the stale ids first. Put `{medicineId, scheduledTime}` in the alarm `payload`.
-- **Acceptance:** Adding a fixed-time medicine for 2 minutes from now rings on a locked phone. Pausing it cancels the
-  alarm. Changing its time moves it. Routine-relative medicines move when the routine changes. Domain tests cover
-  fixed, routine-relative, interval, and PRN (no alarm).
+### DEBT-010 · P0 · todo — Native (Kotlin) changes are not compiled or device-tested yet
+- **Why:** The 2026-10-12 fix session rewrote most of `modules/alarm-engine` (roll-forward, pending-action queue,
+  action handler, auto-dismiss, localized labels, full-screen-intent check). There was no JDK on the dev machine, so
+  it has **not been compiled**. JS side is verified (tests, Metro bundle, web run).
+- **Do:** `npx expo prebuild -p android --clean && npx expo run:android --device`, fix any compile errors, then run
+  README device Tests 1–4 **with a medicine reminder**, plus:
+  1. Tap *Taken* on the notification with the app killed → reopen → Today shows Taken, stock −1.
+  2. Let a full alarm ring untouched → stops after 5 min (default), a silent "missed" notification remains.
+  3. Open the alarm-clock icon in the status bar before an alarm → the lock-screen UI must **not** ring.
+  4. Snooze from the lock screen → rings again after the configured snooze minutes, same medicine.
+  5. Reboot with an alarm due 2 min later → still rings; after a missed one, the next day's occurrence exists.
+- Record the device, Android version, and results in PROGRESS_LOG.md.
 
-### BUG-002 · P0 · todo — Native alarm sync drops `scheduleId`/`category`
-- **Where:** `AlarmEngineService.getScheduledAlarms()` maps `NativeAlarmInfo` → `AlarmItem` without `scheduleId` and
-  `category`, then overwrites the JS store with that list.
-- **Effect:** On a device, editing, disabling, or deleting a recurring schedule filters by `a.scheduleId === id`, finds
-  nothing, and leaves the old alarms ringing.
-- **Fix:** Put `scheduleId` and `category` into the native payload (or the native record) and map them back, or merge
-  with the JS record by id instead of overwriting it.
+### DEBT-009 · P1 · todo — ~70 hard-coded English UI strings remain
+- Mostly `accessibilityLabel="..."` (screen-reader text) plus some visible text and placeholders in
+  `MedicineFormModal` (21), `OnboardingScreen` (17), `MedicineListScreen` (11), `TodayScreen` (10),
+  `ShiftScheduleScreen` (7), `RoutineSettingsModal` (4), and a few others. Hindi/Marathi users with TalkBack hear
+  English. Move each to i18n keys in all four locales. `npm test` already fails on missing keys; consider extending it
+  to flag string-literal `accessibilityLabel`/`placeholder` props.
 
-### BUG-003 · P0 · todo — Backup/restore is incomplete
-- **Where:** `ProfileSettingsScreen` uses `databaseService.exportDatabaseDump/importDatabaseDump`.
-- **Problem:** The export leaves out StorageService data: recurring schedules, settings, the real routine, and the real
-  shift config. On restore, routine and shift are written into DB mirror tables that nobody reads. `shift_config` rows
-  have no `id`/`key`, so they're dropped. There's no schema validation, and alarms aren't replanned after restore.
-- **Fix:** Write one versioned backup format covering every store, with zod validation, a migration hook, and a replan
-  after import. Best done together with DEBT-001.
-- **Acceptance:** Export, clear the app, import: medicines, dose history, profile, routine, shift, settings, and
-  schedules all come back, and alarms are rescheduled.
-
-### BUG-004 · P1 · todo — Notification "Taken/Skip/Snooze" never reaches app data
-- **Where:** `AlarmReceiver.kt` handles the actions natively and only writes `alarm_event_logs` to SharedPreferences.
-  JS never reads them (no `getEventLog` export in `modules/alarm-engine/index.ts`).
-- **Effect:** Tapping "Taken" on the notification doesn't log a dose or decrement stock, and Today still says pending.
-- **Fix:** Add `getPendingActions()` + `clearPendingActions()` to the native module. On app start and on foreground
-  (`AppState`), drain them and call `medicinesRepository.logDose` using the payload's `medicineId`. Optionally emit an
-  Expo event when JS is alive.
-
-### BUG-005 · P1 · todo — Alarms run out if the app isn't opened for 14 days
-- **Where:** `replanRecurringSchedules()` only runs when the app starts.
-- **Fix:** Native self-rescheduling. Either store the recurrence rule natively and schedule the next occurrence when
-  one fires, or add a daily `WorkManager` job that tops up the window. Applies to medicine reminders too (BUG-001).
-
-### BUG-006 · P2 · todo — `interval` medicines ignore `intervalHours`
-- **Where:** `generateTodayDoseSlots` in `src/domain/medicine.ts` falls through to `timesOfDay`.
-- **Fix:** Generate slots from the first dose time, stepping by `intervalHours` within the waking window. Add tests.
-
-### BUG-007 · P2 · todo — "Clear logs" in Profile clears the wrong store
-- **Where:** `ProfileSettingsScreen.handleClearLogs` → `databaseService.clearLogs()` (the unused `reminder_logs`
-  table). The real logs are in `@lifetrack:event_logs:v1`. The Profile log list reads the empty DB table too.
-- **Fix:** Point both at `reminderService.getLogs/clearLogs` (or the unified store after DEBT-001).
-
----
-
-## 🧱 Tech debt
-
-### DEBT-001 · P0 · todo — Two parallel persistence layers
-`StorageService` (KV) and `DatabaseService` (tables) overlap: profile, settings, schedules, alarms, logs, routine, and
-shift. This is the root cause of BUG-003, BUG-007, and DEBT-002. See [ADR-0003](decisions/0003-storage-consolidation.md).
-Plan: choose one store (recommended: `expo-sqlite` behind the existing repository interfaces, since years of dose
-logs will outgrow JSON blobs), migrate the `v1` keys once with a migration marker, and delete the other layer.
-
-### DEBT-002 · P1 · todo — Duplicated settings and profile fields
-`defaultSnoozeMinutes` (StorageService settings vs `app_settings` row), wake/sleep (profile `wakeTime/sleepTime` vs
-`DailyRoutine`), onboarding and shift flags (loose AsyncStorage keys + `app_settings`), and two profile types
-(`UserProfile` vs `UserProfileRecord`). Keep one of each.
-
-### DEBT-003 · P1 · todo — 1-second polling loop writes storage every tick
-`src/App.tsx` calls `getScheduledAlarms()` every second. On a device, that calls the native module and rewrites
-`@lifetrack:active_alarms:v1` each time, which costs battery and churns storage. Replace it with a single timeout for
-the next due alarm, re-armed on change, and `AppState` foreground checks. Don't write on read.
-
-### DEBT-004 · P2 · todo — AI Studio scaffold leftovers
-Unused deps `@google/genai`, `express`, `dotenv`, `recharts`, `motion`, `lucide-react`, `@types/jest`.
-Files `metadata.json` (declares server-side Gemini, which contradicts the privacy promise), `.env.example` (Gemini key),
-`convert.cjs`, `convert.js`, `fix-imports.cjs`, `scratch/`, and `features/poc/NativeCodeInspectorModal.tsx` (not
-imported). Also rename `package.json` `name` → `lifetrack` and give it a real version.
-
-### DEBT-005 · P2 · todo — Web preview is broken
-Vite has no `react-native` → `react-native-web` alias, so the build fails with `Flow is not supported`. Decide:
-either delete the Vite path (`index.html`, `src/main.tsx`, `vite.config.ts`, `src/index.css`) and use
-`npx expo start --web`, or add the alias. Recommended: delete it. Android is the target, and the web path hides
-native-only bugs.
-
-### DEBT-006 · P2 · todo — `alarmConflict.test.ts` doesn't run
-It uses Jest `describe/it`. Convert it to `node:assert` like the other tests and add it to `scripts.test`.
-Consider a tiny runner (`node --test` with tsx) so new test files are picked up automatically.
-
-### DEBT-007 · P2 · todo — `features/poc/` holds production screens
-Move `ProfileSettingsScreen`, `HealthCheckScreen`, `FullScreenAlarmModal`, `LanguageThemeModal`, and
-`NotificationToneSettingsModal` into feature folders (`settings/`, `reliability/`, `alarms/`). Split screens over
-1,000 lines (`ProfileSettingsScreen` 1,232, `ShiftScheduleScreen` 1,144, `AlarmFormScreen` 1,048).
-
-### DEBT-008 · P3 · todo — Hand-rolled navigation
-`activeTab` state in `App.tsx` has no back-button handling and no deep links (the `lifetrack://` scheme is declared
-but unused). Adopt `expo-router` or React Navigation when adding the next major screen.
-
----
-
-## ✨ Features (ordered by user value; see ROADMAP for milestones)
+### Features (ordered by user value; see ROADMAP for milestones)
 
 | ID | P | Status | Feature | Milestone |
 | --- | :-: | --- | --- | --- |
-| FEAT-001 | P0 | todo | Medicine reminders end to end (BUG-001 + BUG-004 + BUG-005) | M1 |
-| FEAT-002 | P1 | todo | Missed-dose follow-up: re-notify after X min, then mark `missed` and show `missedDoseAdvice` | M1 |
-| FEAT-003 | P1 | todo | Adherence history: per-medicine calendar, 7/30-day %, streak (pure domain + screen) | M2 |
+| FEAT-002 | P1 | todo | Missed-dose follow-up: re-notify after X min, then mark `missed` and show `missedDoseAdvice` (auto-dismiss → MISSED already logged; add the re-notify + advice UI) | M1 |
 | FEAT-004 | P1 | todo | Refill reminder notification when stock ≤ threshold, plus "days of stock left" estimate | M1 |
+| FEAT-009 | P2 | todo | Reliability nudge: a Today banner when exact-alarm, notification, full-screen, or battery permission is missing (`reminderService.getHealthCheck()` has all of them) | M1 |
+| FEAT-003 | P1 | todo | Adherence history: per-medicine calendar, 7/30-day %, streak (pure domain + screen) | M2 |
 | FEAT-005 | P1 | todo | Simplify navigation: Today · Medicines · History · More (Alarms/Health Check move under More → Reliability) | M2 |
+| FEAT-007 | P1 | todo | Automatic local backup (weekly, SAF folder) + one-tap restore (backup format is ready: `DataManagementService`) | M2 |
+| FEAT-011 | P2 | todo | "Delete all my data" button in Settings (logic exists: `dataManagementService.clearAllData()` + `reminderService.cancelAll()`) | M2 |
 | FEAT-006 | P1 | todo | Doctor report: share a PDF of medicines and 30-day adherence (`expo-print` + `expo-sharing`) | M3 |
-| FEAT-007 | P1 | todo | Automatic local backup (weekly, SAF folder) + one-tap restore | M2 |
 | FEAT-008 | P2 | todo | Emergency card (blood group, allergies, conditions, contacts) on lock screen / quick share | M3 |
-| FEAT-009 | P2 | todo | Reliability nudge: a Today banner when exact-alarm, notification, or battery permission is missing | M1 |
-| FEAT-010 | P2 | todo | Appointments with reminders (Phase 3 start) | M4 |
-| FEAT-011 | P2 | todo | "Delete all my data" in Settings (clears every store + native alarms) | M2 |
 | FEAT-012 | P2 | todo | Shift-aware dose times: use the current shift's routine template; shift-eve notification | M3 |
+| FEAT-015 | P1 | in-progress | Play Store readiness: full-screen-intent check + settings link **done**; still to do: decide `USE_EXACT_ALARM` vs user-granted `SCHEDULE_EXACT_ALARM` under current Play policy, privacy policy URL, Data Safety form | M3 |
+| FEAT-010 | P2 | todo | Appointments with reminders (Phase 3 start) | M4 |
 | FEAT-013 | P2 | todo | Vitals log (BP, sugar, weight) with target ranges (Phase 3) | M4 |
 | FEAT-014 | P3 | todo | Home-screen widget "Next dose" (Phase 10) | M5 |
-| FEAT-015 | P1 | todo | Play Store readiness: exact-alarm policy, full-screen-intent check (Android 14+), privacy policy, Data Safety | M3 |
 
 ---
 
 ## ✅ Done
 
-_(Move items here with the completion date and commit, e.g. `BUG-001 · 2026-10-20 · a1b2c3d`.)_
+All of these landed in the 2026-10-12 fix session (uncommitted at time of writing; see PROGRESS_LOG). JS is verified by
+`npm test` (7 suites × 2 timezones), `tsc`, Metro Android + web bundles, and a browser run. Native parts depend on
+DEBT-010.
+
+### Original review findings
+- **BUG-001 · P0 — Medicines never scheduled reminders.** `src/domain/medicineReminders.ts` plans 14 days of dose
+  alarms (`dose_<medId>_<YYYYMMDD>_<HHmm>`, payload `{kind, medicineId, scheduledTime}`); `reminderCoordinator`
+  syncs them on medicine edit/delete/pause, dose logs, routine changes, settings changes, startup, and foreground.
+  Verified in browser: add medicine → 14 alarms → rings → Taken logs dose and stock 30→29.
+- **BUG-002 · P0 — Native sync dropped `scheduleId`/`category`.** Carried in the native payload (`_scheduleId`,
+  `_category`) and mapped back; `getScheduledAlarms()` no longer overwrites the JS store.
+- **BUG-003 · P0 — Backup/restore incomplete.** `src/services/DataManagementService.ts`: one versioned file
+  (`lifetrack-backup` v2) with every store, zod-validated, all-or-nothing, accepts both v1 legacy formats, alarms
+  re-planned after restore; share-sheet export. Covered by `src/services/__tests__/dataManagement.test.ts`.
+- **BUG-004 · P1 — Notification actions never reached app data.** Native queues every action (FIRED, TAKEN,
+  SNOOZED, SKIPPED, DISMISSED, MISSED) in `AlarmStorage` pending actions; JS drains them at startup and on
+  foreground/focus and logs the dose + stock via `reminderCoordinator.processNativeActions()`.
+- **BUG-005 · P1 — Alarms ran out after 14 days without opening the app.** Native roll-forward: each occurrence
+  carries a repeat rule; when it fires (or is acted on early, or is missed while the phone was off) native schedules
+  the same reminder one window later with the id the JS planner would generate. See ADR-0004.
+- **BUG-006 · P2 — `interval` medicines ignored `intervalHours`.** `getMedicineDoseTimes()` shared by Today and
+  the planner (floor(24/interval) doses around the clock). Slot/log matching is exact-time first.
+- **BUG-007 · P2 — "Clear logs" cleared the wrong store.** Logs live only in StorageService; Profile reads and
+  clears them through `reminderService`.
+- **DEBT-001 · P0 — Two persistence layers.** One engine (`src/services/kvStore.ts`) under both StorageService
+  (documents) and DatabaseService (tables), one owner per piece of data, duplicate tables/keys removed by
+  `src/services/migrations.ts` (v1 → v2). ADR-0003 updated.
+- **DEBT-002 · P1 — Duplicated settings/profile fields.** Onboarding flag → `settings.hasCompletedOnboarding`; shift
+  on/off → `shiftConfig.isEnabled` only; wake/sleep → routine only (profile fields removed); default snooze →
+  settings only; single profile type `UserProfileRecord`; language/theme no longer mirrored to extra localStorage keys.
+- **DEBT-003 · P1 — 1-second polling loop.** Removed. Native rings by itself; the in-app engine (web/no module)
+  sleeps until the next due alarm (max 60 s) and never writes on read. The Alarms tab's own 1 s fire-and-cancel loop
+  was removed too (BUG-020).
+- **DEBT-004 · P2 — AI Studio leftovers.** Removed `@google/genai`, `express`, `dotenv`, `recharts`, `motion`,
+  `lucide-react`, `vite` + plugins, `tailwindcss`, `autoprefixer`, `esbuild`, `@types/jest`, `@types/express`,
+  `metadata.json`, `.env.example`, codemod scripts, `scratch/`, `NativeCodeInspectorModal`. Package renamed
+  `lifetrack@1.0.0`.
+- **DEBT-005 · P2 — Broken web preview.** Vite path deleted; `npm run web` (`expo start --web`) bundles and runs.
+  `.claude/launch.json` has a `web` config on port 8090.
+- **DEBT-006 · P2 — `alarmConflict.test.ts` never ran.** Converted to `node:assert`; `scripts/run-tests.mjs`
+  auto-discovers every `__tests__/*.test.ts` and runs each in Asia/Kolkata and America/New_York.
+- **DEBT-007 · P2 — `features/poc/` + 1,000-line screens.** Moved to `alarms/`, `reliability/`, `settings/`;
+  extracted `EditProfileModal`, `ReminderLogsModal`, `BackupRestoreModal`, `ShiftOverrideModal`,
+  `AddRotationStepModal`, `ShiftTypePicker`, `RecurrenceOptions`. Largest screen is now 945 lines.
+- **DEBT-008 · P3 — Navigation.** Android back button returns to Today before exiting; deep links
+  `lifetrack://today|medicines|alarms|health|profile`. (A navigation library is still optional; revisit with FEAT-005.)
+- **FEAT-001 · P0 — Medicine reminders end to end** (BUG-001 + BUG-004 + BUG-005).
+
+### Found and fixed during the fix session
+- **BUG-008 · P0** Occurrence ids and default dates used the UTC date (`toISOString`), so early-morning doses in
+  India got yesterday's id. All calendar dates are local now (`src/domain/dates.ts`); tests run in two timezones.
+- **BUG-009 · P1** Replanning passed `maxCount = 5`, so daily schedules covered 5 days, not 14. Per-rule policy in
+  `getSchedulePlanPolicy()`.
+- **BUG-010 · P1** Full alarms played two tones at once (service + activity), and opening the status-bar alarm-clock
+  shortcut started ringing. Only the foreground service makes sound now.
+- **BUG-011 · P1** Lock-screen Snooze used a hard-coded 10 minutes and the medicines channel and dropped the payload;
+  Dismiss didn't clear the alarm. All buttons go through `AlarmActionHandler`.
+- **BUG-012 · P1** Onboarding's "I work shifts" wrote a flag nothing read. It now sets `shiftConfig.isEnabled`
+  (migration carries old choices over). Verified in browser.
+- **BUG-013 · P1** Vibration, full-screen, default snooze, and auto-dismiss settings were saved but never applied to
+  alarms. Applied on every schedule; changing them re-syncs all alarms.
+- **BUG-014 · P2** Wake/sleep edited on the Profile screen never reached the routine (so reminders ignored it).
+- **BUG-015 · P1** Today's "Snooze" said "snoozed 15 minutes" but scheduled nothing. It now schedules a real reminder
+  using the default snooze setting.
+- **BUG-016 · P1** A full alarm rang forever (`autoDismissMinutes` unused). Service auto-stops, logs MISSED, leaves a
+  silent notification with the actions.
+- **BUG-017 · P1** `BootReceiver` dropped alarms missed while the phone was off and broke their repeating series.
+  It now records MISSED and keeps the series going; late alarms ring once without shifting the series time.
+- **BUG-018 · P2** Every-N-days schedules without a start date re-anchored to "today" on each replan (phase drift).
+- **BUG-019 · P2** Health Check showed notifications as allowed even when denied. Added full-screen-intent row.
+- **BUG-020 · P1** The Alarms tab polled every second and fired/cancelled due alarms itself, racing the engine and
+  breaking native series. Display-only now; "Clear all" re-plans managed reminders.
+- **BUG-021 · P3** Shift override and rotation pickers ignored custom shift types.
+- **BUG-022 · P2** New-alarm form was pre-filled with "Daily Insulin Dose / 10 units before dinner"; date fields
+  accepted any text (invalid dates silently produced no alarms). Empty defaults + validation.
+- **BUG-023 · P2** Native notification/lock-screen buttons were English only. Labels come from i18n per alarm.
+- **BUG-024 · P3** Today kept showing yesterday's schedule after midnight (date memoized once); reloads on
+  foreground and data changes.

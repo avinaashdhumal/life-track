@@ -11,6 +11,7 @@ import {
   calculateRoutineRelativeClockTime
 } from './routine';
 import { Medicine } from './medicine';
+import { toLocalDateString } from './dates';
 
 export interface ShiftType {
   id: string;
@@ -219,7 +220,7 @@ export const DEFAULT_ROTATION_PATTERN: RotationCycleStep[] = [
 ];
 
 export function getDefaultShiftConfig(): ShiftConfig {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateString(new Date());
   return {
     isEnabled: false, // Default is strictly OFF as per specification
     workMode: 'rotating',
