@@ -523,7 +523,7 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
               </View>
 
               {/* Anchor Picker */}
-              <Text style={[tw`text-2xs font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
                 {t('medicines.selectAnchor', 'Anchor Event')}
               </Text>
               <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
@@ -562,7 +562,7 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
               </View>
 
               {/* Offset Picker */}
-              <Text style={[tw`text-2xs font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
                 {t('medicines.selectOffset', 'Timing Offset')}
               </Text>
               <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>

@@ -83,6 +83,8 @@ class AppStorageService {
   private inMemoryCache: Map<string, string> = new Map();
   private listeners: Set<StorageChangeListener> = new Set();
   private isInitialized = false;
+  private isAsyncStorageAvailable = true;
+  private warnedUnavailable = false;
 
   constructor() {
     this.initSyncMemoryFallback();
@@ -126,16 +128,32 @@ class AppStorageService {
     const serialized = JSON.stringify(value);
     this.inMemoryCache.set(key, serialized);
 
-    try {
-      await AsyncStorage.setItem(key, serialized);
-    } catch (err) {
-      console.warn(`[StorageService] AsyncStorage.setItem failed for ${key}, falling back:`, err);
-      if (typeof window !== 'undefined' && window.localStorage) {
-        try {
-          window.localStorage.setItem(key, serialized);
-        } catch {
-          // ignore
+    if (this.isAsyncStorageAvailable) {
+      try {
+        await AsyncStorage.setItem(key, serialized);
+      } catch (err: any) {
+        if (err?.message?.includes('Native module is null') || err?.name === 'AsyncStorageError') {
+          this.isAsyncStorageAvailable = false;
+          if (!this.warnedUnavailable) {
+            this.warnedUnavailable = true;
+            console.warn('[StorageService] AsyncStorage native module unavailable. Running in robust in-memory mode.');
+          }
+        } else {
+          console.warn(`[StorageService] AsyncStorage.setItem failed for ${key}, falling back:`, err);
         }
+        if (typeof window !== 'undefined' && window.localStorage) {
+          try {
+            window.localStorage.setItem(key, serialized);
+          } catch {
+            // ignore
+          }
+        }
+      }
+    } else if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(key, serialized);
+      } catch {
+        // ignore
       }
     }
 
@@ -143,14 +161,24 @@ class AppStorageService {
   }
 
   private async getItem<T>(key: string, defaultValue: T): Promise<T> {
-    try {
-      const fromAsync = await AsyncStorage.getItem(key);
-      if (fromAsync !== null) {
-        this.inMemoryCache.set(key, fromAsync);
-        return JSON.parse(fromAsync) as T;
+    if (this.isAsyncStorageAvailable) {
+      try {
+        const fromAsync = await AsyncStorage.getItem(key);
+        if (fromAsync !== null) {
+          this.inMemoryCache.set(key, fromAsync);
+          return JSON.parse(fromAsync) as T;
+        }
+      } catch (err: any) {
+        if (err?.message?.includes('Native module is null') || err?.name === 'AsyncStorageError') {
+          this.isAsyncStorageAvailable = false;
+          if (!this.warnedUnavailable) {
+            this.warnedUnavailable = true;
+            console.warn('[StorageService] AsyncStorage native module unavailable. Running in robust in-memory mode.');
+          }
+        } else {
+          console.warn(`[StorageService] AsyncStorage.getItem failed for ${key}, checking fallback:`, err);
+        }
       }
-    } catch (err) {
-      console.warn(`[StorageService] AsyncStorage.getItem failed for ${key}, checking fallback:`, err);
     }
 
     // Fallback to cache or localStorage

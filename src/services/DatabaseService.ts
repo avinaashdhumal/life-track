@@ -112,6 +112,8 @@ class LocalDatabaseService {
   private initialized: boolean = false;
   private memoryCache: Map<string, Map<string, any>> = new Map();
   private lastOptimizedMs: number = Date.now();
+  private isAsyncStorageAvailable: boolean = true;
+  private warnedUnavailable: boolean = false;
 
   constructor() {
     for (const table of Object.values(DB_TABLES)) {
@@ -138,19 +140,27 @@ class LocalDatabaseService {
         }
         try {
           const storageKey = `${DB_PREFIX}${table}`;
-          const raw = await AsyncStorage.getItem(storageKey);
-          if (raw) {
-            const parsed: Record<string, any>[] = JSON.parse(raw);
-            const tableMap = this.getTableMap(table);
-            for (const row of parsed) {
-              const primaryKey = row.id || row.key || row.name;
-              if (primaryKey) {
-                tableMap.set(String(primaryKey), row);
+          if (this.isAsyncStorageAvailable) {
+            const raw = await AsyncStorage.getItem(storageKey);
+            if (raw) {
+              const parsed: Record<string, any>[] = JSON.parse(raw);
+              const tableMap = this.getTableMap(table);
+              for (const row of parsed) {
+                const primaryKey = row.id || row.key || row.name;
+                if (primaryKey) {
+                  tableMap.set(String(primaryKey), row);
+                }
               }
             }
           }
-        } catch {
-          // Ignore individual table load error
+        } catch (err: any) {
+          if (err?.message?.includes('Native module is null') || err?.name === 'AsyncStorageError') {
+            this.isAsyncStorageAvailable = false;
+            if (!this.warnedUnavailable) {
+              this.warnedUnavailable = true;
+              console.warn('[LocalDB] AsyncStorage native module unavailable. Running in robust in-memory mode.');
+            }
+          }
         }
       }
 
@@ -174,13 +184,22 @@ class LocalDatabaseService {
   }
 
   private async persistTable(tableName: DbTableName): Promise<void> {
+    if (!this.isAsyncStorageAvailable) return;
     const tableMap = this.getTableMap(tableName);
     const records = Array.from(tableMap.values());
     const storageKey = `${DB_PREFIX}${tableName}`;
     try {
       await AsyncStorage.setItem(storageKey, JSON.stringify(records));
-    } catch (e) {
-      console.warn(`[LocalDB] Error persisting table ${tableName}:`, e);
+    } catch (e: any) {
+      if (e?.message?.includes('Native module is null') || e?.name === 'AsyncStorageError') {
+        this.isAsyncStorageAvailable = false;
+        if (!this.warnedUnavailable) {
+          this.warnedUnavailable = true;
+          console.warn('[LocalDB] AsyncStorage native module unavailable. Running in robust in-memory mode.');
+        }
+      } else {
+        console.warn(`[LocalDB] Error persisting table ${tableName}:`, e);
+      }
     }
   }
 

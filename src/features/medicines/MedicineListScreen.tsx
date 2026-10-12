@@ -434,7 +434,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
                   {med.minGapMinutes ? (
                     <Text
                       style={[
-                        tw`text-2xs font-semibold px-2 py-0.5 rounded-full`,
+                        tw`text-[10px] font-semibold px-2 py-0.5 rounded-full`,
                         {
                           backgroundColor: `${colors.primary}15`,
                           color: colors.primary
@@ -448,7 +448,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
                   {med.maxDailyDoses ? (
                     <Text
                       style={[
-                        tw`text-2xs font-semibold px-2 py-0.5 rounded-full`,
+                        tw`text-[10px] font-semibold px-2 py-0.5 rounded-full`,
                         {
                           backgroundColor: isDark ? '#27272a' : '#f1f5f9',
                           color: colors.textSecondary
@@ -469,7 +469,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
                     ]}
                   >
                     <HelpCircle size={13} color="#0284c7" style={tw`mr-1.5 mt-0.5`} />
-                    <Text style={[tw`text-2xs leading-3.5 flex-1`, { color: colors.textSecondary }]}>
+                    <Text style={[tw`text-[10px] leading-3.5 flex-1`, { color: colors.textSecondary }]}>
                       <Text style={tw`font-bold text-sky-500`}>
                         {t('medicines.missedAdvicePrefix', 'Doctor Advice: ')}
                       </Text>
@@ -513,14 +513,14 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
                     </Text>
                     {stockStatus.isLowStock || stockStatus.isOutOfStock ? (
                       <View style={tw`ml-1.5 px-1.5 py-0.5 rounded bg-red-500/20`}>
-                        <Text style={tw`text-red-500 text-2xs font-black`}>
+                        <Text style={tw`text-red-500 text-[10px] font-black`}>
                           {stockStatus.isOutOfStock
                             ? t('medicines.empty', 'OUT')
                             : t('medicines.low', 'LOW')}
                         </Text>
                       </View>
                     ) : null}
-                    <Text style={[tw`text-2xs font-semibold ml-2 text-sky-500 underline`]}>
+                    <Text style={[tw`text-[10px] font-semibold ml-2 text-sky-500 underline`]}>
                       {t('medicines.refill', '+ Refill')}
                     </Text>
                   </TouchableOpacity>

@@ -405,14 +405,14 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 <Clock size={20} color="#ffffff" />
               </View>
               <View style={tw`flex-1`}>
-                <Text style={[tw`text-2xs font-bold uppercase tracking-wider`, { color: colors.primary }]}>
+                <Text style={[tw`text-[10px] font-bold uppercase tracking-wider`, { color: colors.primary }]}>
                   {t('today.nextUp', 'Next Up')} • {nextUpcomingSlot.scheduledTime}
                 </Text>
                 <Text style={[tw`text-sm font-bold mt-0.5`, { color: colors.text }]}>
                   {nextUpcomingSlot.medicineName}{' '}
                   {nextUpcomingSlot.strength ? `(${nextUpcomingSlot.strength})` : ''}
                 </Text>
-                <Text style={[tw`text-2xs`, { color: colors.textSecondary }]}>
+                <Text style={[tw`text-[10px]`, { color: colors.textSecondary }]}>
                   {nextUpcomingSlot.foodRelation === 'with'
                     ? t('medicines.foodWith', 'With Meal')
                     : nextUpcomingSlot.foodRelation === 'before'
@@ -455,7 +455,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 <Text style={tw`text-xs font-bold text-red-500`}>
                   {t('today.refillNeeded', 'Refill Alert')}
                 </Text>
-                <Text style={[tw`text-2xs leading-3.5`, { color: colors.textSecondary }]}>
+                <Text style={[tw`text-[10px] leading-3.5`, { color: colors.textSecondary }]}>
                   {lowStockMedicines.map((m) => `${m.name} (${m.stockCount})`).join(', ')}
                 </Text>
               </View>
@@ -469,7 +469,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 accessibilityRole="button"
                 accessibilityLabel="View low stock medicines"
               >
-                <Text style={tw`text-white text-2xs font-bold`}>
+                <Text style={tw`text-white text-[10px] font-bold`}>
                   {t('today.viewStock', 'View Stock')}
                 </Text>
               </TouchableOpacity>
@@ -553,7 +553,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
                     {isOverdue && !isTaken ? (
                       <View style={tw`ml-2 px-1.5 py-0.5 rounded bg-red-500/20`}>
-                        <Text style={tw`text-red-500 text-2xs font-bold`}>
+                        <Text style={tw`text-red-500 text-[10px] font-bold`}>
                           {t('today.overdue', 'OVERDUE')}
                         </Text>
                       </View>
@@ -561,7 +561,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
                     {isPRN ? (
                       <View style={tw`ml-2 px-1.5 py-0.5 rounded bg-sky-500/20`}>
-                        <Text style={tw`text-sky-500 text-2xs font-bold`}>
+                        <Text style={tw`text-sky-500 text-[10px] font-bold`}>
                           {t('medicines.asNeeded', 'AS NEEDED')}
                         </Text>
                       </View>
@@ -724,7 +724,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
                 >
                   <Text
                     style={[
-                      tw`text-2xs font-semibold`,
+                      tw`text-[10px] font-semibold`,
                       skipReason === reason ? tw`text-white` : { color: colors.text }
                     ]}
                   >
