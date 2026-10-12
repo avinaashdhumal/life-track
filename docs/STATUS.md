@@ -11,10 +11,12 @@
 | Check | Result |
 | --- | --- |
 | `npm test` (i18n parity + used-key check + a11y audit, then 7 test files × 2 timezones) | ✅ passing |
-| `npm run lint` (`tsc --noEmit`) | ✅ clean |
+| `npm run lint` (`tsc --noEmit` strict + no-unused, then ESLint with `eslint-config-expo`) | ✅ 0 errors, 0 warnings |
+| `npx expo-doctor` | ✅ 21/21 checks |
 | Metro bundle: `npx expo export --platform android` / `--platform web` | ✅ both bundle |
 | Web run (`npm run web`): onboarding → add medicine → alarm rings → Taken | ✅ verified in browser 2026-10-12 |
-| **Kotlin compile + device tests** after the native rewrite | 🟡 **not yet run** (no JDK on dev machine), see DEBT-010 |
+| Kotlin compile (`:alarm-engine:compileDebugKotlin`) | ✅ builds, no warnings |
+| **Device/emulator tests** after the native rewrite | 🟡 **not yet run**, see DEBT-010 |
 
 ## Feature matrix
 

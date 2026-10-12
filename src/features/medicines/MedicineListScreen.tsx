@@ -14,7 +14,7 @@ import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { medicinesRepository } from '../../data/medicinesRepository';
-import { Medicine, DoseLogEntry, calculateStockLevel } from '../../domain/medicine';
+import { Medicine, calculateStockLevel } from '../../domain/medicine';
 import { MedicineFormModal } from './MedicineFormModal';
 import {
   Plus,
@@ -24,12 +24,8 @@ import {
   Clock,
   CheckCircle2,
   HelpCircle,
-  RefreshCw,
   Edit3,
-  Trash2,
-  Calendar,
-  Sparkles,
-  ChevronRight
+  Trash2
 } from 'lucide-react-native';
 
 interface MedicineListScreenProps {
@@ -56,8 +52,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const all = await medicinesRepository.getAll('default');
-      setMedicines(all);
+      setMedicines(await medicinesRepository.getAll('default'));
     } catch (e) {
       console.warn('Error loading medicines:', e);
     } finally {
@@ -66,12 +61,27 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
     }
   }, []);
 
+  // Initial load, then stay current when doses are logged elsewhere (Today, notification actions).
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  // Stay current when doses are logged elsewhere (Today, notification actions) and stock changes.
-  useEffect(() => medicinesRepository.changes.subscribe(() => loadData()), [loadData]);
+    let active = true;
+    const load = () => {
+      medicinesRepository
+        .getAll('default')
+        .then((all) => {
+          if (active) setMedicines(all);
+        })
+        .catch((e) => console.warn('Error loading medicines:', e))
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    };
+    load();
+    const unsubscribe = medicinesRepository.changes.subscribe(load);
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -226,7 +236,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         contentContainerStyle={tw`p-5 pb-28`}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -326,7 +336,7 @@ export const MedicineListScreen: React.FC<MedicineListScreenProps> = () => {
         </View>
 
         {/* Medicines List */}
-        {filteredMedicines.length === 0 ? (
+        {loading ? null : filteredMedicines.length === 0 ? (
           <View
             style={[
               tw`p-8 rounded-2xl border items-center justify-center my-6`,

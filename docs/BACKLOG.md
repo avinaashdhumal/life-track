@@ -5,13 +5,21 @@ item, and add new findings with the next free ID. Don't renumber or delete items
 
 **Statuses:** `todo` · `in-progress` · `blocked` · `done` · `wontfix`
 **Priority:** **P0** breaks the core promise or loses data · **P1** big user value · **P2** worthwhile · **P3** nice to have
-**Next free IDs:** BUG-025 · DEBT-011 · FEAT-016
+**Next free IDs:** BUG-027 · DEBT-013 · FEAT-016
 
 ---
 
 ## 🔴 Open
 
-### DEBT-010 · P0 · todo — Native (Kotlin) changes are not compiled or device-tested yet
+### DEBT-010 · P0 · in-progress — Native (Kotlin) changes need device testing
+- **2026-10-12:** ✅ `:alarm-engine:compileDebugKotlin` builds with JDK 17 (zulu) and SDK 36, with no warnings
+  after removing a no-op `ACQUIRE_CAUSES_WAKEUP` flag. Device/emulator checklist below is still open.
+- **2026-10-12, emulator (`medium_phone`, API 36):** ✅ full debug APK builds and installs; ✅ AsyncStorage 2.2.0
+  persists data (the old build logged "Native module is null" every second, confirming BUG-025); ✅ medicine reminder
+  registered 15 `RTC_WAKEUP` alarms with local-date ids; ✅ fired at 12:22:00 with the screen locked, foreground
+  service started, lock-screen activity shown via full-screen intent in 0.6 s; ✅ series rolled forward natively;
+  ✅ lock-screen Skip queued and applied by JS on return (reminder log). Still to do: Taken from the notification →
+  stock −1, snooze, auto-dismiss, reboot, and checking that the clock-icon shortcut doesn't ring (checklist items 1–5).
 - **Why:** The 2026-10-12 fix session rewrote most of `modules/alarm-engine` (roll-forward, pending-action queue,
   action handler, auto-dismiss, localized labels, full-screen-intent check). There was no JDK on the dev machine, so
   it has **not been compiled**. JS side is verified (tests, Metro bundle, web run).
@@ -101,6 +109,26 @@ DEBT-010.
 - **DEBT-008 · P3 — Navigation.** Android back button returns to Today before exiting; deep links
   `lifetrack://today|medicines|alarms|health|profile`. (A navigation library is still optional; revisit with FEAT-005.)
 - **FEAT-001 · P0 — Medicine reminders end to end** (BUG-001 + BUG-004 + BUG-005).
+
+### Lint and health pass (2026-10-12, later the same day)
+- **DEBT-011 · P1 — No real linter.** `npm run lint` was only `tsc` without `strict`. Now: tsconfig `strict`,
+  `noUnusedLocals`, `noUnusedParameters` + ESLint 9 with `eslint-config-expo` (React, React Hooks/Compiler rules,
+  import rules). Fixed 79 unused imports/variables and 42 ESLint problems (hooks: synchronous setState in effects,
+  impure `Date.now()` during render, functions used before declaration). Result: 0 errors, 0 warnings.
+- **BUG-025 · P0 — AsyncStorage 3.1.1 installed but SDK 57 expects 2.2.0.** Native/JS mismatch is the likely cause
+  of the earlier "AsyncStorage native module is null → in-memory" fallback, i.e. data lost on restart. Pinned to
+  2.2.0 via `expo install`; `kvStore` accepts both export shapes. Re-verify persistence on device (part of DEBT-010).
+- **BUG-026 · P2 — Invalid `splash` key in app.json for SDK 57** (splash config ignored). Moved to the
+  `expo-splash-screen` config plugin. `expo-doctor`: 21/21 checks pass.
+- **DEBT-012 · P3 — Theme/language still mirrored to web-only localStorage keys.** Removed; migration v2 deletes the
+  old keys.
+- With the keyboard open, the first tap on any button only closed the keyboard (seen on the emulator in the medicine
+  form). Every ScrollView now sets `keyboardShouldPersistTaps="handled"`.
+- Quick menu (App.tsx): the backdrop touchable wrapped the whole menu, giving nested `<button>`s on web (invalid HTML)
+  and making TalkBack treat the entire menu as one element. The backdrop is now a sibling `Pressable` behind the card.
+- Also: new-medicine form leaked the previous medicine's routine anchor/offset (forms now mount fresh on open);
+  Today's "overdue / next up" now refresh every minute; dead in-app tone-picker state and an unused 5 s log fetch on
+  the Alarms tab removed.
 
 ### Found and fixed during the fix session
 - **BUG-008 · P0** Occurrence ids and default dates used the UTC date (`toISOString`), so early-morning doses in

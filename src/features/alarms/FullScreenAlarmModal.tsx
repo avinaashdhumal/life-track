@@ -66,7 +66,7 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
       </View>
 
       {/* Main Alert Card */}
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         style={tw`w-full my-auto`}
         contentContainerStyle={tw`flex flex-col items-center justify-center py-4`}
         showsVerticalScrollIndicator={false}

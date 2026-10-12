@@ -15,6 +15,17 @@ Template:
 
 ---
 
+## 2026-10-12 — Lint and health pass (Claude Code)
+- **Changed:** tsconfig `strict` + no-unused; ESLint 9 + `eslint-config-expo` (`eslint.config.cjs`, `npm run lint`
+  runs both); removed 79 unused imports/vars; fixed all React Hooks lint errors (fetch-then-set effects, pure renders,
+  modal forms mount on open); AsyncStorage pinned to SDK 57's 2.2.0; splash moved to `expo-splash-screen` plugin;
+  web-only theme/language key duplicates removed; native loader uses `requireOptionalNativeModule` from `expo`.
+- **Backlog:** done DEBT-011, DEBT-012, BUG-025, BUG-026.
+- **Verified:** `npm run lint` ✅ 0/0 · `npm test` ✅ · `expo-doctor` ✅ 21/21 · `expo export` android ✅ web ✅ ·
+  browser: data written before the AsyncStorage change reads back after reload, no runtime errors.
+- **Left / risks:** DEBT-010 still first (native compile + device). After installing `expo-splash-screen` and changing
+  AsyncStorage, a fresh `npx expo prebuild -p android --clean` is required before `run:android`.
+
 ## 2026-10-12 — Fix session: every review finding (Claude Code)
 - **Changed:**
   - Storage: single engine `kvStore`, one owner per datum, v1→v2 migration, full validated backup/restore with legacy

@@ -15,27 +15,14 @@ import { ReminderLogsModal } from './ReminderLogsModal';
 import { BackupRestoreModal } from './BackupRestoreModal';
 import { SUPPORTED_LANGUAGES, getCurrentLanguage, changeLanguage } from '../../i18n';
 import {
-  User,
-  Settings,
   ChevronLeft,
   Database,
   ShieldCheck,
-  Bell,
   Volume2,
-  Globe,
-  Sun,
-  Moon,
-  Smartphone,
   Heart,
   Phone,
-  FileText,
   Clock,
-  Trash2,
-  RefreshCw,
   Download,
-  Upload,
-  CheckCircle,
-  X,
   Edit3,
   Activity,
   Layers,
@@ -45,6 +32,25 @@ import {
 } from 'lucide-react-native';
 import { RoutineSettingsModal } from '../routine/RoutineSettingsModal';
 import { ShiftScheduleScreen } from '../shift/ShiftScheduleScreen';
+
+interface ProfileScreenData {
+  profile: UserProfileRecord;
+  routine: DailyRoutine;
+  stats: DatabaseStats;
+  logs: ReminderLogEntry[];
+  settings: AppSettings;
+}
+
+async function fetchProfileScreenData(): Promise<ProfileScreenData> {
+  const [profile, routine, stats, logs, settings] = await Promise.all([
+    profileRepository.getProfile(),
+    routineRepository.getRoutine('default'),
+    databaseService.getDatabaseStats(),
+    reminderService.getLogs(300),
+    storageService.getSettings()
+  ]);
+  return { profile, routine, stats, logs, settings };
+}
 
 interface ProfileSettingsScreenProps {
   onBack: () => void;
@@ -73,28 +79,33 @@ export const ProfileSettingsScreen: React.FC<ProfileSettingsScreenProps> = ({
   const [showRoutineModal, setShowRoutineModal] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const applyData = (data: ProfileScreenData) => {
+    setProfile(data.profile);
+    setRoutine(data.routine);
+    setDbStats(data.stats);
+    setLogs(data.logs);
+    setSettings(data.settings);
+  };
 
   const loadData = async () => {
     try {
-      const [p, r, stats, l, s] = await Promise.all([
-        profileRepository.getProfile(),
-        routineRepository.getRoutine('default'),
-        databaseService.getDatabaseStats(),
-        reminderService.getLogs(300),
-        storageService.getSettings()
-      ]);
-      setProfile(p);
-      setRoutine(r);
-      setDbStats(stats);
-      setLogs(l);
-      setSettings(s);
+      applyData(await fetchProfileScreenData());
     } catch (err) {
       console.warn('[ProfileSettings] load failed:', err);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    fetchProfileScreenData()
+      .then((data) => {
+        if (active) applyData(data);
+      })
+      .catch((err) => console.warn('[ProfileSettings] load failed:', err));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleClearLogs = async () => {
     await reminderService.clearLogs();

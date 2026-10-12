@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   StatusBar,
@@ -13,11 +13,12 @@ import {
   BackHandler,
   Linking,
   ActivityIndicator,
-  Platform
+  Platform,
+  Pressable,
+  StyleSheet
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
-import './i18n';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageThemeModal } from './features/settings/LanguageThemeModal';
 import i18n, { getCurrentLanguage, SUPPORTED_LANGUAGES } from './i18n';
@@ -41,8 +42,6 @@ import { storageService } from './services/StorageService';
 import { runMigrations } from './services/migrations';
 import {
   Bell,
-  Activity,
-  Heart,
   ShieldCheck,
   Sun,
   Moon,
@@ -311,14 +310,13 @@ function AppContent() {
         {activeTab === 'today' ? (
           <TodayScreen
             onNavigateToMedicines={() => setActiveTab('medicines')}
-            onNavigateToAlarms={() => setActiveTab('poc_test')}
           />
         ) : activeTab === 'medicines' ? (
           <MedicineListScreen
             onOpenPOCAlarms={() => setActiveTab('poc_test')}
           />
         ) : activeTab === 'poc_test' ? (
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
             showsVerticalScrollIndicator={false}
           >
@@ -328,7 +326,7 @@ function AppContent() {
             />
           </ScrollView>
         ) : activeTab === 'health_check' ? (
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
             showsVerticalScrollIndicator={false}
           >
@@ -339,7 +337,7 @@ function AppContent() {
             />
           </ScrollView>
         ) : (
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             style={[tw`flex-1 p-4 min-h-0`, { backgroundColor: colors.bg }]}
             showsVerticalScrollIndicator={false}
           >
@@ -524,22 +522,20 @@ function AppContent() {
         animationType="fade"
         onRequestClose={() => setShowTopMenu(false)}
       >
-        <TouchableOpacity
-          activeOpacity={1}
-          onPress={() => setShowTopMenu(false)}
-          style={tw`flex-1 justify-start items-end bg-black/60 pt-16 px-4`}
-          accessible={true}
-          accessibilityRole="button"
-          accessibilityLabel={t('accessibility.close')}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
+        <View style={tw`flex-1 justify-start items-end pt-16 px-4`}>
+          {/* Backdrop is a sibling behind the card (not a wrapper), so menu buttons aren't nested
+              inside another button and screen readers can reach each item. */}
+          <Pressable
+            onPress={() => setShowTopMenu(false)}
+            style={[StyleSheet.absoluteFill, tw`bg-black/60`]}
+            accessibilityRole="button"
+            accessibilityLabel={t('accessibility.close')}
+          />
+          <View
             style={[
               tw`w-full max-w-xs rounded-3xl border p-4 shadow-2xl flex flex-col gap-2 overflow-hidden`,
               { backgroundColor: colors.card, borderColor: colors.border }
             ]}
-            accessible={true}
             accessibilityViewIsModal={true}
             accessibilityLabel={t('settings.quickMenu')}
           >
@@ -817,8 +813,8 @@ function AppContent() {
               </View>
               <ChevronRight size={14} color={colors.textMuted} />
             </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       {/* Daily Routine Settings Modal */}

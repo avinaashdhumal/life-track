@@ -6,6 +6,7 @@ import en from './locales/en.json';
 import hi from './locales/hi.json';
 import mr from './locales/mr.json';
 import es from './locales/es.json';
+import { storageService } from '../services/StorageService';
 
 export interface SupportedLanguage {
   code: 'en' | 'hi' | 'mr' | 'es';
@@ -21,27 +22,12 @@ export const SUPPORTED_LANGUAGES: SupportedLanguage[] = [
   { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸' }
 ];
 
-import { storageService } from '../services/StorageService';
-
-const LANGUAGE_STORAGE_KEY = 'lifetrack_user_language';
 
 const getInitialLanguage = (): string => {
   // 1. Check storageService synchronous memory cache
   const cachedLang = storageService.getSyncSetting('language');
   if (cachedLang && ['en', 'hi', 'mr', 'es'].includes(cachedLang)) {
     return cachedLang;
-  }
-
-  // 2. Check localStorage if available in web / hybrid runtime
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if (saved && ['en', 'hi', 'mr', 'es'].includes(saved)) {
-        return saved;
-      }
-    } catch {
-      // ignore storage access errors
-    }
   }
 
   // Detect device locale from expo-localization
@@ -98,13 +84,6 @@ export const changeLanguage = async (langCode: 'en' | 'hi' | 'mr' | 'es') => {
   await storageService.updateSettings({ language: langCode }).catch((err) => {
     console.warn('[i18n] Failed to persist language to storageService:', err);
   });
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(LANGUAGE_STORAGE_KEY, langCode);
-    } catch {
-      // ignore storage write errors
-    }
-  }
 };
 
 export const getCurrentLanguage = (): 'en' | 'hi' | 'mr' | 'es' => {

@@ -20,6 +20,11 @@ import {
   Maximize
 } from 'lucide-react-native';
 
+async function fetchHealthData(): Promise<{ status: HealthCheckStatus; alarms: AlarmItem[] }> {
+  const [status, alarms] = await Promise.all([reminderService.getHealthCheck(), reminderService.getScheduledAlarms()]);
+  return { status, alarms };
+}
+
 interface HealthCheckScreenProps {
   onBack: () => void;
   onSendTestAlarmInOneMinute: () => void;
@@ -32,28 +37,37 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
   onOpenToneSettings
 }) => {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [status, setStatus] = useState<HealthCheckStatus | null>(null);
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
-  const [, setLoading] = useState(true);
   const [brandOverride, setBrandOverride] = useState<string>('auto');
 
   const loadHealthData = async () => {
-    setLoading(true);
-    const hc = await reminderService.getHealthCheck();
-    const scheduled = await reminderService.getScheduledAlarms();
-    setStatus(hc);
-    setAlarms(scheduled);
-    setLoading(false);
+    const data = await fetchHealthData();
+    setStatus(data.status);
+    setAlarms(data.alarms);
   };
 
   useEffect(() => {
-    loadHealthData();
+    let active = true;
+    const load = () => {
+      fetchHealthData()
+        .then((data) => {
+          if (!active) return;
+          setStatus(data.status);
+          setAlarms(data.alarms);
+        })
+        .catch(() => undefined);
+    };
+    load();
     // Re-check after the user returns from a system settings screen.
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') loadHealthData();
+      if (state === 'active') load();
     });
-    return () => sub.remove();
+    return () => {
+      active = false;
+      sub.remove();
+    };
   }, []);
 
   const handleOpenFullScreenSettings = async () => {
@@ -541,7 +555,7 @@ export const HealthCheckScreen: React.FC<HealthCheckScreenProps> = ({
             </Text>
           </View>
           {/* Brand simulator selector */}
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={tw`flex-row gap-2`}

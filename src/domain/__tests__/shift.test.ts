@@ -8,15 +8,12 @@ import {
   validateShiftTransitionDoseGaps,
   detectShiftChange,
   getDefaultShiftConfig,
-  DEFAULT_SHIFT_TYPES,
   ShiftConfig,
   convertMedicineToRoutineRelative,
   convertMedicineToFixedTime
 } from '../shift';
 import {
   calculateRoutineRelativeClockTime,
-  calculateRoutineRelativeTimestamp,
-  resolveAnchorTime,
   getOrderedRoutineTimeline,
   findClosestRoutineAnchor,
   getDefaultDailyRoutine

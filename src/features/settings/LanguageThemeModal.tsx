@@ -87,7 +87,7 @@ export const LanguageThemeModal: React.FC<LanguageThemeModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {/* Language Selection Section */}
             <View style={tw`mb-5`}>
               <Text

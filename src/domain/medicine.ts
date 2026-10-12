@@ -310,14 +310,15 @@ export function generateTodayDoseSlots(
   medicine: Medicine,
   todayDateStr: string, // YYYY-MM-DD
   todayLogs: DoseLogEntry[],
-  dailyRoutine?: DailyRoutine
+  dailyRoutine?: DailyRoutine,
+  nowMs: number = Date.now()
 ): TodayDoseSlot[] {
   if (!medicine.isActive) {
     return [];
   }
 
   const logsForMed = todayLogs.filter((l) => l.medicineId === medicine.id);
-  const now = Date.now();
+  const now = nowMs;
 
   if (medicine.scheduleType === 'prn_as_needed') {
     // For PRN, we show one active PRN card plus any logged entries

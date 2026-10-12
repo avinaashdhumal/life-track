@@ -1,3 +1,5 @@
+import { requireOptionalNativeModule } from 'expo';
+
 export interface NativeAlarmLabels {
   taken?: string;
   snooze?: string;
@@ -51,15 +53,8 @@ export interface NativePendingAction {
   payloadJson: string;
 }
 
-// In Expo Native Environment, this is resolved via requireNativeModule('AlarmEngine')
-let NativeAlarmModule: any = null;
-try {
-  // @ts-ignore
-  const { requireNativeModule } = require('expo-modules-core');
-  NativeAlarmModule = requireNativeModule('AlarmEngine');
-} catch {
-  // Web / fallback environment
-}
+// Resolved from the Kotlin module on Android builds; null on web, Expo Go, and iOS (every export below falls back).
+const NativeAlarmModule: any = requireOptionalNativeModule('AlarmEngine');
 
 /** True when the Kotlin alarm engine is present (Android dev/preview/production builds). */
 export function isAvailable(): boolean {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,23 +6,19 @@ import {
   ScrollView,
   Switch,
   Modal,
-  Alert,
-  TextInput,
-  Platform
+  Alert
 } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   ShiftConfig,
-  ShiftType,
   ShiftOverride,
   RotationCycleStep,
   DayShiftAssignment,
   DEFAULT_SHIFT_TYPES,
   getShiftForDate,
   generateShiftCalendar,
-  isShiftCrossingMidnight,
   validateShiftTransitionDoseGaps,
   detectShiftChange,
   convertMedicineToRoutineRelative,
@@ -39,21 +35,14 @@ import {
   Calendar as CalendarIcon,
   Clock,
   RotateCcw,
-  AlertTriangle,
-  CheckCircle,
   Plus,
   Trash2,
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
   Moon,
-  Sun,
-  Coffee,
   X,
-  Edit3,
-  Layers,
   Sparkles,
-  Info,
   CalendarDays,
   Briefcase
 } from 'lucide-react-native';
@@ -75,7 +64,6 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   const [config, setConfig] = useState<ShiftConfig>(() => shiftRepository.getDefaultConfig());
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [routine, setRoutine] = useState<DailyRoutine | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
 
   // Month navigation for 90-day calendar
   const [currentMonthOffset, setCurrentMonthOffset] = useState<number>(0); // 0 = current, 1 = next, 2 = month +2
@@ -103,30 +91,26 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
     [config.customShiftTypes]
   );
 
-  const loadAllData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [savedConfig, allMeds, activeRoutine] = await Promise.all([
-        shiftRepository.getConfig(),
-        medicinesRepository.getActive('default'),
-        routineRepository.getRoutine('default')
-      ]);
-      setConfig(savedConfig);
-      setMedicines(allMeds);
-      setRoutine(activeRoutine);
-      setSelectedCalendarDate(todayDateStr);
-    } catch {
-      // Fallback
-    } finally {
-      setLoading(false);
-    }
-  }, [todayDateStr]);
-
   useEffect(() => {
-    if (visible) {
-      loadAllData();
-    }
-  }, [visible, loadAllData]);
+    if (!visible) return;
+    let active = true;
+    Promise.all([
+      shiftRepository.getConfig(),
+      medicinesRepository.getActive('default'),
+      routineRepository.getRoutine('default')
+    ])
+      .then(([savedConfig, allMeds, activeRoutine]) => {
+        if (!active) return;
+        setConfig(savedConfig);
+        setMedicines(allMeds);
+        setRoutine(activeRoutine);
+        setSelectedCalendarDate(todayDateStr);
+      })
+      .catch(() => undefined); // keep defaults if loading fails
+    return () => {
+      active = false;
+    };
+  }, [visible, todayDateStr]);
 
   const saveConfig = async (updated: ShiftConfig) => {
     setConfig(updated);
@@ -165,8 +149,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
               }
               const updated: ShiftConfig = {
                 ...config,
-                isEnabled: false,
-                updatedAt: Date.now()
+                isEnabled: false
               };
               await saveConfig(updated);
             }
@@ -187,8 +170,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
             onPress: async () => {
               const updated: ShiftConfig = {
                 ...config,
-                isEnabled: true,
-                updatedAt: Date.now()
+                isEnabled: true
               };
               await saveConfig(updated);
             }
@@ -208,8 +190,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
               }
               const updated: ShiftConfig = {
                 ...config,
-                isEnabled: true,
-                updatedAt: Date.now()
+                isEnabled: true
               };
               await saveConfig(updated);
             }
@@ -223,8 +204,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
   const handleSetWorkMode = async (mode: 'fixed' | 'rotating') => {
     const updated: ShiftConfig = {
       ...config,
-      workMode: mode,
-      updatedAt: Date.now()
+      workMode: mode
     };
     await saveConfig(updated);
   };
@@ -238,8 +218,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
     const newPattern = config.rotationPattern.filter((_, i) => i !== index);
     const updated: ShiftConfig = {
       ...config,
-      rotationPattern: newPattern,
-      updatedAt: Date.now()
+      rotationPattern: newPattern
     };
     await saveConfig(updated);
   };
@@ -249,8 +228,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
     const newStep: RotationCycleStep = { shiftTypeId, count: days };
     const updated: ShiftConfig = {
       ...config,
-      rotationPattern: [...config.rotationPattern, newStep],
-      updatedAt: Date.now()
+      rotationPattern: [...config.rotationPattern, newStep]
     };
     await saveConfig(updated);
     setShowAddStepModal(false);
@@ -278,8 +256,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
       overrides: {
         ...config.overrides,
         [overrideDate]: newOverride
-      },
-      updatedAt: Date.now()
+      }
     };
     await saveConfig(updated);
     setShowOverrideModal(false);
@@ -291,8 +268,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
     delete remaining[overrideDate];
     const updated: ShiftConfig = {
       ...config,
-      overrides: remaining,
-      updatedAt: Date.now()
+      overrides: remaining
     };
     await saveConfig(updated);
     setShowOverrideModal(false);
@@ -425,7 +401,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={tw`p-4`} contentContainerStyle={tw`pb-12`}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={tw`p-4`} contentContainerStyle={tw`pb-12`}>
             {/* Master Toggle Card */}
             <View
               style={[
@@ -656,7 +632,7 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
                     </View>
 
                     {/* Step Sequence Pills */}
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 py-1`}>
+                    <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 py-1`}>
                       {config.rotationPattern.map((step, idx) => {
                         const shift = DEFAULT_SHIFT_TYPES.find((s) => s.id === step.shiftTypeId) || DEFAULT_SHIFT_TYPES[0];
                         return (

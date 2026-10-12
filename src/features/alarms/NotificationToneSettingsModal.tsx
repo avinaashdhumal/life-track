@@ -4,18 +4,15 @@ import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import { reminderService } from '../../services/AlarmEngineService';
-import { ChannelToneInfo, ALARM_CATEGORIES, NotificationChannelId } from '../../domain/alarm';
+import { ChannelToneInfo } from '../../domain/alarm';
 import { previewTone, stopAlarmSound, isAudioPlaying, AlarmToneType } from '../../utils/audioAlarm';
 import {
   Volume2,
-  VolumeX,
   Settings,
   ExternalLink,
   ShieldCheck,
-  CheckCircle,
   Bell,
   Clock,
-  Sparkles,
   Play,
   Square,
   Smartphone,
@@ -23,12 +20,19 @@ import {
   X
 } from 'lucide-react-native';
 
-import { storageService } from '../../services/StorageService';
 
 interface NotificationToneSettingsModalProps {
   visible: boolean;
   onClose: () => void;
   onScheduleQuickTestAlarm: (secondsAhead: number) => void;
+}
+
+const LIFETRACK_CHANNEL_IDS = new Set<string>(['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries']);
+
+/** Native returns every channel on the app; keep only LifeTrack's own channels. */
+async function fetchLifeTrackChannels(): Promise<ChannelToneInfo[]> {
+  const list = await reminderService.getNotificationChannels();
+  return list.filter((c) => LIFETRACK_CHANNEL_IDS.has(c.id)) as ChannelToneInfo[];
 }
 
 export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsModalProps> = ({
@@ -41,43 +45,22 @@ export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsMod
 
   const [channels, setChannels] = useState<ChannelToneInfo[]>([]);
   const [playingTone, setPlayingTone] = useState<AlarmToneType | null>(null);
-  const [selectedInAppTone, setSelectedInAppTone] = useState<AlarmToneType>(() => storageService.getSyncSetting('alarmTone') || 'default_siren');
-  const [backgroundProtected, setBackgroundProtected] = useState(true);
 
   useEffect(() => {
-    if (visible) {
-      loadChannels();
-      storageService.getSettings().then((s) => {
-        if (s.alarmTone) {
-          setSelectedInAppTone(s.alarmTone);
-        }
-      }).catch(() => {
-        // ignore
-      });
-    } else {
+    if (!visible) return;
+    let active = true;
+    fetchLifeTrackChannels()
+      .then((list) => {
+        if (active) setChannels(list);
+      })
+      .catch(() => undefined);
+    // Closing the modal (or unmounting) stops any preview that is still playing.
+    return () => {
+      active = false;
       stopAlarmSound();
       setPlayingTone(null);
-    }
-    return () => {
-      stopAlarmSound();
     };
   }, [visible]);
-
-  const loadChannels = async () => {
-    try {
-      const list = await reminderService.getNotificationChannels();
-      // Native returns every channel on the app; keep only LifeTrack's known channel ids.
-      const known = new Set<string>(['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries']);
-      setChannels(list.filter((c) => known.has(c.id)) as ChannelToneInfo[]);
-    } catch {
-      // Fallback
-    }
-  };
-
-  const handleSelectInAppTone = async (tone: AlarmToneType) => {
-    setSelectedInAppTone(tone);
-    await storageService.updateSettings({ alarmTone: tone });
-  };
 
   const handleTogglePlayTone = (tone: AlarmToneType) => {
     if (playingTone === tone && isAudioPlaying()) {
@@ -200,7 +183,7 @@ export const NotificationToneSettingsModal: React.FC<NotificationToneSettingsMod
           </View>
 
           {/* Body Content */}
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             style={tw`px-3.5 py-4 sm:px-5 sm:py-5`}
             contentContainerStyle={tw`flex flex-col gap-4 pb-6`}
             showsVerticalScrollIndicator={true}

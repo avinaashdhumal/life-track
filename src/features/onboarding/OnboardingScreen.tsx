@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
@@ -11,12 +11,10 @@ import {
   Clock,
   User,
   Heart,
-  Phone,
   Calendar,
   CheckCircle,
   ArrowRight,
   Sparkles,
-  ChevronRight,
   Battery
 } from 'lucide-react-native';
 
@@ -90,7 +88,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ onComplete }
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={tw`p-6 pb-16`}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={tw`p-6 pb-16`}>
         {/* STEP 1: Privacy & Offline-First Core */}
         {step === 1 && (
           <View>

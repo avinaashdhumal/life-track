@@ -21,8 +21,7 @@ import {
   Medicine,
   DoseLogEntry,
   TodayDoseSlot,
-  generateTodayDoseSlots,
-  calculateStockLevel
+  generateTodayDoseSlots
 } from '../../domain/medicine';
 import { ShiftConfig, getShiftForDate } from '../../domain/shift';
 import { DailyRoutine } from '../../domain/routine';
@@ -35,31 +34,41 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Package,
   Calendar,
-  Sparkles,
   ChevronRight,
-  ShieldAlert,
-  RotateCcw,
-  SkipForward,
-  Heart,
-  Sun,
-  Moon,
-  Coffee,
-  X,
-  Briefcase,
-  Utensils,
-  Bed
+  Sun
 } from 'lucide-react-native';
+
+interface TodayData {
+  dateStr: string;
+  loadedAtMs: number;
+  profile: UserProfileRecord;
+  medicines: Medicine[];
+  logs: DoseLogEntry[];
+  shiftConfig: ShiftConfig;
+  routine: DailyRoutine;
+}
+
+/** Everything Today shows, for the current local date (so the screen rolls over at midnight). */
+async function fetchTodayData(): Promise<TodayData> {
+  const loadedAtMs = Date.now();
+  const dateStr = toLocalDateString(loadedAtMs);
+  const [profile, medicines, logs, shiftConfig, routine] = await Promise.all([
+    profileRepository.getProfile(),
+    medicinesRepository.getActive('default'),
+    medicinesRepository.getDosesForDay('default', dateStr),
+    shiftRepository.getConfig(),
+    routineRepository.getRoutine('default')
+  ]);
+  return { dateStr, loadedAtMs, profile, medicines, logs, shiftConfig, routine };
+}
 
 interface TodayScreenProps {
   onNavigateToMedicines?: () => void;
-  onNavigateToAlarms?: () => void;
 }
 
 export const TodayScreen: React.FC<TodayScreenProps> = ({
-  onNavigateToMedicines,
-  onNavigateToAlarms
+  onNavigateToMedicines
 }) => {
   const { t } = useTranslation();
   const { colors, isDark } = useTheme();
@@ -80,6 +89,8 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
 
   // Recomputed on every load so the screen rolls over at midnight instead of showing yesterday.
   const [todayDateStr, setTodayDateStr] = useState<string>(() => toLocalDateString(Date.now()));
+  // Clock used for overdue / next-up; refreshed on every load and every minute.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const tomorrowDateStr = useMemo(() => addLocalDays(todayDateStr, 1), [todayDateStr]);
 
   const formattedDate = useMemo(() => {
@@ -98,33 +109,44 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
     return t('today.greetingEvening', 'Good evening');
   }, [t]);
 
+  const applyData = useCallback((data: TodayData) => {
+    setTodayDateStr(data.dateStr);
+    setNowMs(data.loadedAtMs);
+    setProfile(data.profile);
+    setMedicines(data.medicines);
+    setTodayLogs(data.logs);
+    setShiftConfig(data.shiftConfig);
+    setRoutine(data.routine);
+  }, []);
+
   const loadData = useCallback(async () => {
-    const dateStr = toLocalDateString(Date.now());
-    setTodayDateStr(dateStr);
     try {
-      const [userProfile, allMeds, logs, shiftConf, dailyRout] = await Promise.all([
-        profileRepository.getProfile(),
-        medicinesRepository.getActive('default'),
-        medicinesRepository.getDosesForDay('default', dateStr),
-        shiftRepository.getConfig(),
-        routineRepository.getRoutine('default')
-      ]);
-      setProfile(userProfile);
-      setMedicines(allMeds);
-      setTodayLogs(logs);
-      setShiftConfig(shiftConf);
-      setRoutine(dailyRout);
+      applyData(await fetchTodayData());
     } catch (e) {
       console.warn('Error loading today data:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [applyData]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    fetchTodayData()
+      .then((data) => {
+        if (active) applyData(data);
+      })
+      .catch((e) => console.warn('Error loading today data:', e))
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    // Keep overdue / next-up current while the screen stays open.
+    const tick = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => {
+      active = false;
+      clearInterval(tick);
+    };
+  }, [applyData]);
 
   // Reload when doses or medicines change elsewhere (e.g. "Taken" pressed on a notification and
   // applied when the app comes back), when the routine changes, or when the app returns to the foreground.
@@ -168,7 +190,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
   const todaySlots: TodayDoseSlot[] = useMemo(() => {
     const slots: TodayDoseSlot[] = [];
     for (const med of medicines) {
-      const medSlots = generateTodayDoseSlots(med, todayDateStr, todayLogs, routine || undefined);
+      const medSlots = generateTodayDoseSlots(med, todayDateStr, todayLogs, routine || undefined, nowMs);
       slots.push(...medSlots);
     }
     // Sort: fixed-time chronologically, PRN at the bottom
@@ -177,15 +199,14 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
       if (b.scheduleType === 'prn_as_needed') return -1;
       return a.scheduledTimestampMs - b.scheduledTimestampMs;
     });
-  }, [medicines, todayLogs, todayDateStr, routine]);
+  }, [medicines, todayLogs, todayDateStr, routine, nowMs]);
 
   // Next upcoming dose countdown
   const nextUpcomingSlot = useMemo(() => {
-    const now = Date.now();
     return todaySlots.find(
-      (s) => s.status === 'pending' && s.scheduleType !== 'prn_as_needed' && s.scheduledTimestampMs >= now - 15 * 60 * 1000
+      (s) => s.status === 'pending' && s.scheduleType !== 'prn_as_needed' && s.scheduledTimestampMs >= nowMs - 15 * 60 * 1000
     );
-  }, [todaySlots]);
+  }, [todaySlots, nowMs]);
 
   // Statistics
   const totalScheduled = todaySlots.filter((s) => s.scheduleType !== 'prn_as_needed').length;
@@ -299,7 +320,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </View>
       </View>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         contentContainerStyle={tw`p-5 pb-28`}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
@@ -494,7 +515,7 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
         </View>
 
         {/* Dose Slots List */}
-        {todaySlots.length === 0 ? (
+        {loading ? null : todaySlots.length === 0 ? (
           <View
             style={[
               tw`p-8 rounded-2xl border items-center justify-center my-6`,

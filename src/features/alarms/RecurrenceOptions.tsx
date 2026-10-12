@@ -239,7 +239,7 @@ export const RecurrenceOptions: React.FC<RecurrenceOptionsProps> = ({
       <View style={cardStyle}>
         <View>
           <Text style={[tw`text-xs font-semibold`, { color: colors.text }]}>{t('alarmForm.dayOfMonth')}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1.5 mt-2`}>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1.5 mt-2`}>
             {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => {
               const isSelected = dayOfMonth === d;
               return (
@@ -263,7 +263,7 @@ export const RecurrenceOptions: React.FC<RecurrenceOptionsProps> = ({
           <Text style={[tw`text-xs font-semibold mb-1.5`, { color: colors.textMuted }]}>
             {t('alarmForm.monthsSelected', { count: selectedMonths.length })}
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1`}>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-1`}>
             {monthOptions.map((m) => {
               const isSelected = selectedMonths.includes(m.val);
               return (

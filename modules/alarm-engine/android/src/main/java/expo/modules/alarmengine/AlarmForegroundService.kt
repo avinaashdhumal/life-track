@@ -90,7 +90,7 @@ class AlarmForegroundService : Service() {
             wakeLock?.let { if (it.isHeld) it.release() }
             val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
             wakeLock = powerManager?.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                PowerManager.PARTIAL_WAKE_LOCK,
                 "LifeTrack:ForegroundAlarmWakeLock"
             )
             wakeLock?.acquire(ringMinutes * 60_000L + 30_000L)

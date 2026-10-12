@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "lifetrack",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#09090b"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.lifetrack.app"
@@ -36,7 +31,16 @@
     },
     "plugins": [
       "./plugins/withAlarmEngine.cjs",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#09090b",
+          "imageWidth": 200
+        }
+      ]
     ],
     "extra": {
       "eas": {

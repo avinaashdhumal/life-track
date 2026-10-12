@@ -1,4 +1,16 @@
 import assert from 'node:assert';
+import {
+  MedicineSchema,
+  checkMinimumDoseGap,
+  checkMaxDailyDoses,
+  calculateStockLevel,
+  decrementStock,
+  incrementStock,
+  generateTodayDoseSlots,
+  Medicine,
+  DoseLogEntry
+} from '../medicine';
+import { medicinesRepository } from '../../data/medicinesRepository';
 
 // Ensure AsyncStorage web fallback works cleanly in Node.js test environment
 if (typeof (globalThis as any).window === 'undefined') {
@@ -13,17 +25,6 @@ if (typeof (globalThis as any).window === 'undefined') {
   };
 }
 
-import {
-  MedicineSchema,
-  checkMinimumDoseGap,
-  checkMaxDailyDoses,
-  calculateStockLevel,
-  decrementStock,
-  incrementStock,
-  generateTodayDoseSlots,
-  Medicine,
-  DoseLogEntry
-} from '../medicine';
 
 console.log('🧪 Starting Medicine Domain & Safety Rules Unit Tests...');
 
@@ -122,7 +123,6 @@ const log: DoseLogEntry = {
 const slotsWithLog = generateTodayDoseSlots(sampleMed, testDateStr, [log]);
 assert.strictEqual(slotsWithLog[0].status, 'taken');
 assert.strictEqual(slotsWithLog[1].status, 'pending');
-import { medicinesRepository } from '../../data/medicinesRepository';
 
 // 6. Repository CRUD: Edit and Delete
 async function testRepositoryCrud() {

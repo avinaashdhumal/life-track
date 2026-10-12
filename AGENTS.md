@@ -49,19 +49,23 @@ Indian households (the app ships in English, Hindi, Marathi, and Spanish).
 ```bash
 npm install
 npm test              # i18n checks + every src/**/__tests__/*.test.ts in two timezones
-npm run lint          # tsc --noEmit (strict typecheck)
+npm run lint          # tsc --noEmit (strict, no unused code) + ESLint (eslint-config-expo, React Hooks rules)
+npx expo-doctor       # Expo config schema + SDK-compatible dependency versions
 npm run web           # expo start --web: quick UI check (in-app alarm engine, no native module)
 npx expo export --platform android   # verifies the JS bundles for Android (no JDK needed)
 npx expo prebuild -p android         # regenerate android/ (gitignored, CNG)
 npx expo run:android --device        # dev build on a USB-connected phone (needs a JDK + Android SDK)
 ```
 
-The native module was rewritten on 2026-10-12 and **has not been compiled or device-tested yet** (DEBT-010). Do that
+Native builds need JDK 17 and the Android SDK: set `JAVA_HOME` and `ANDROID_HOME` (`~/Library/Android/sdk`) in your
+shell. `prebuild --clean` deletes `android/local.properties`, so don't rely on it for the SDK path.
+The native module was rewritten on 2026-10-12. It compiles, but **hasn't been device-tested yet** (DEBT-010). Do that
 before building anything else on top of the native engine.
 
 ## Definition of done (every task)
 
-- [ ] `npm test` and `npm run lint` pass.
+- [ ] `npm test` and `npm run lint` pass with zero warnings; `npx expo-doctor` passes after dependency or app.json changes.
+- [ ] Install native/Expo packages with `npx expo install <pkg>` (never plain `npm install`), so versions match the SDK.
 - [ ] New strings are in all 4 locales; new interactive elements have `accessible`, `accessibilityRole`, `accessibilityLabel`.
 - [ ] Domain/service logic changes have tests in a `__tests__/` folder (picked up automatically).
 - [ ] Native (Kotlin) changes were built with `npx expo run:android`, and you stated in the log whether they were tested on a device.

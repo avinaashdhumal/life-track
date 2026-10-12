@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../context/ThemeContext';
 import {
   DailyRoutine,
-  RoutineAnchor,
   RoutineCustomBlock,
   getDefaultDailyRoutine,
   getOrderedRoutineTimeline,
@@ -36,7 +35,6 @@ import {
   X,
   Check,
   Clock,
-  ChevronRight,
   Info
 } from 'lucide-react-native';
 
@@ -71,27 +69,27 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   useEffect(() => {
-    if (visible) {
-      loadRoutine();
-    }
+    if (!visible) return;
+    let active = true;
+    routineRepository
+      .getRoutine('default')
+      .then((loaded) => {
+        if (!active) return;
+        setRoutine(loaded);
+        setWakeTime(loaded.wakeTime || '07:00');
+        setBreakfastTime(loaded.breakfastTime || '08:30');
+        setLunchTime(loaded.lunchTime || '13:00');
+        setDinnerTime(loaded.dinnerTime || '20:00');
+        setWindDownTime(loaded.windDownTime || '22:00');
+        setSleepTime(loaded.sleepTime || '23:00');
+        setExerciseTime(loaded.exerciseTime || '18:00');
+        setCustomBlocks(loaded.customBlocks || []);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
   }, [visible]);
-
-  const loadRoutine = async () => {
-    try {
-      const loaded = await routineRepository.getRoutine('default');
-      setRoutine(loaded);
-      setWakeTime(loaded.wakeTime || '07:00');
-      setBreakfastTime(loaded.breakfastTime || '08:30');
-      setLunchTime(loaded.lunchTime || '13:00');
-      setDinnerTime(loaded.dinnerTime || '20:00');
-      setWindDownTime(loaded.windDownTime || '22:00');
-      setSleepTime(loaded.sleepTime || '23:00');
-      setExerciseTime(loaded.exerciseTime || '18:00');
-      setCustomBlocks(loaded.customBlocks || []);
-    } catch {
-      // Fallback
-    }
-  };
 
   const handleAdjustTime = (
     current: string,
@@ -235,7 +233,7 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={tw`p-4`} contentContainerStyle={tw`pb-10`}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={tw`p-4`} contentContainerStyle={tw`pb-10`}>
             {/* Visual Timeline Bar */}
             <View
               style={[
@@ -267,7 +265,7 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               </View>
 
               {/* Horizontal Scroll of Anchors */}
-              <ScrollView
+              <ScrollView keyboardShouldPersistTaps="handled"
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={tw`flex-row gap-2 py-1`}

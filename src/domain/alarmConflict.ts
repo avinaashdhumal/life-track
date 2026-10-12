@@ -81,10 +81,6 @@ export function detectAlarmConflict(
     hour: '2-digit',
     minute: '2-digit'
   });
-  const newTimeStr = new Date(newAlarmTriggerMs).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
 
   const diffLabel =
     primary.differenceMinutes === 0

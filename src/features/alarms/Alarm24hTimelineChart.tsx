@@ -236,7 +236,7 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
           )}
         </View>
 
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled"
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={tw`flex-row items-center gap-2 pb-2`}
@@ -349,7 +349,7 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
           </Text>
         </View>
 
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled"
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={tw`flex-row items-end gap-2 px-1 pt-2 pb-1`}
@@ -567,7 +567,7 @@ export const Alarm24hTimelineChart: React.FC<Alarm24hTimelineChartProps> = ({
             </Text>
           </View>
         ) : (
-          <ScrollView nestedScrollEnabled={true} style={tw`max-h-64`} contentContainerStyle={tw`flex-col gap-2 pr-1`}>
+          <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled={true} style={tw`max-h-64`} contentContainerStyle={tw`flex-col gap-2 pr-1`}>
             {filtered24hAlarms.map((item) => {
               const cat = resolveAlarmCategory(item);
               const catLabel = getCategoryLabel(cat.id);

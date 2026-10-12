@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { useColorScheme as useNativeColorScheme } from 'react-native';
 import tw from 'twrnc';
+import { storageService } from '../services/StorageService';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -98,9 +99,6 @@ const ThemeContext = createContext<ThemeContextValue>({
   setThemeMode: () => {}
 });
 
-import { storageService } from '../services/StorageService';
-
-const THEME_STORAGE_KEY = 'lifetrack_theme_mode';
 
 export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const systemColorScheme = useNativeColorScheme();
@@ -109,17 +107,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     const cachedSetting = storageService.getSyncSetting('themeMode');
     if (cachedSetting && ['light', 'dark', 'system'].includes(cachedSetting)) {
       return cachedSetting;
-    }
-    // 2. Check window.localStorage fallback
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        const saved = window.localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
-        if (saved && ['light', 'dark', 'system'].includes(saved)) {
-          return saved;
-        }
-      } catch {
-        // ignore
-      }
     }
     return 'dark'; // Default to dark as per existing theme
   });
@@ -159,13 +146,6 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     storageService.updateSettings({ themeMode: mode }).catch((err) => {
       console.warn('[ThemeContext] Failed to persist themeMode:', err);
     });
-    if (typeof window !== 'undefined' && window.localStorage) {
-      try {
-        window.localStorage.setItem(THEME_STORAGE_KEY, mode);
-      } catch {
-        // ignore
-      }
-    }
   };
 
   const toggleTheme = () => {

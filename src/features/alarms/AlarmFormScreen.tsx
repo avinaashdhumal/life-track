@@ -24,7 +24,6 @@ import {
   Bell,
   Volume2,
   CheckCircle2,
-  Plus,
   Sparkles,
   Tag,
   AlertTriangle
@@ -38,15 +37,29 @@ interface AlarmFormScreenProps {
   onUpdate?: (id: string, schedule: Partial<Omit<RecurringSchedule, 'id' | 'createdAt'>>) => void;
 }
 
+// Stable default so memoized values don't recompute on every render.
+const NO_ALARMS: AlarmItem[] = [];
+
+function findRecurringConflict(occurrences: AlarmItem[], existingAlarms: AlarmItem[]) {
+  if (existingAlarms.length === 0) return null;
+  for (const occurrence of occurrences) {
+    const conflictResult = detectAlarmConflict(occurrence.triggerTimeMs, existingAlarms, 5);
+    if (conflictResult.hasConflict) {
+      return { occurrence, conflictResult };
+    }
+  }
+  return null;
+}
+
 export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
-  existingAlarms = [],
+  existingAlarms = NO_ALARMS,
   initialSchedule = null,
   onClose,
   onSave,
   onUpdate
 }) => {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const isEditing = Boolean(initialSchedule);
 
@@ -60,14 +73,17 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   const [timeOfDay, setTimeOfDay] = useState(initialSchedule?.timeOfDay || '19:30');
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays || [1, 2, 3, 4, 5]); // Mon-Fri
   const [intervalDays, setIntervalDays] = useState<number>(initialSchedule?.intervalDays || 2); // e.g. 2 days after
-  const [startDate, setStartDate] = useState<string>(() => initialSchedule?.startDate || toLocalDateString(Date.now()));
+  // "Now" captured once when the form opens, so renders stay pure and the preview is stable.
+  const [openedAtMs] = useState<number>(() => Date.now());
+  const [startDate, setStartDate] = useState<string>(() => initialSchedule?.startDate || toLocalDateString(openedAtMs));
   const [dayOfMonth, setDayOfMonth] = useState<number>(initialSchedule?.dayOfMonth || 1);
   const [selectedMonths, setSelectedMonths] = useState<number[]>(initialSchedule?.monthsOfYear || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const [customDates, setCustomDates] = useState<string[]>(
-    initialSchedule?.specificDates || [
-      addLocalDays(toLocalDateString(Date.now()), 1),
-      addLocalDays(toLocalDateString(Date.now()), 3)
-    ]
+    () =>
+      initialSchedule?.specificDates || [
+        addLocalDays(toLocalDateString(openedAtMs), 1),
+        addLocalDays(toLocalDateString(openedAtMs), 3)
+      ]
   );
   const [snoozeIntervalMinutes, setSnoozeIntervalMinutes] = useState<number>(initialSchedule?.snoozeIntervalMinutes || 10);
 
@@ -86,6 +102,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
   };
 
   // Live preview of next 5 planned occurrences
+  const previewCreatedAt = initialSchedule?.createdAt ?? openedAtMs;
   const previewOccurrences = useMemo(() => {
     const previewSchedule: RecurringSchedule = {
       id: 'preview_schedule',
@@ -105,10 +122,12 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
       specificDates: customDates,
       snoozeIntervalMinutes,
       isEnabled: true,
-      createdAt: Date.now()
+      createdAt: previewCreatedAt
     };
-    return planOccurrencesForRecurringSchedule(previewSchedule, Date.now(), 5, 90);
+    return planOccurrencesForRecurringSchedule(previewSchedule, openedAtMs, 5, 90);
   }, [
+    openedAtMs,
+    previewCreatedAt,
     category,
     title,
     message,
@@ -125,22 +144,8 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
     snoozeIntervalMinutes
   ]);
 
-  // Check if any planned recurrence falls within 5 minutes of existing alarms
-  const recurringConflict = useMemo(() => {
-    if (!existingAlarms || existingAlarms.length === 0 || previewOccurrences.length === 0) {
-      return null;
-    }
-    for (const occ of previewOccurrences) {
-      const res = detectAlarmConflict(occ.triggerTimeMs, existingAlarms, 5);
-      if (res.hasConflict) {
-        return {
-          occurrence: occ,
-          conflictResult: res
-        };
-      }
-    }
-    return null;
-  }, [previewOccurrences, existingAlarms]);
+  // Check if any planned recurrence falls within 5 minutes of existing alarms (cheap: 5 occurrences)
+  const recurringConflict = findRecurringConflict(previewOccurrences, existingAlarms);
 
   const handleSubmit = () => {
     if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(timeOfDay.trim())) {
@@ -233,7 +238,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
         </View>
 
         {/* Form Body */}
-        <ScrollView
+        <ScrollView keyboardShouldPersistTaps="handled"
           style={[tw`flex-1 p-4`, { backgroundColor: colors.bg }]}
           contentContainerStyle={tw`gap-4 pb-12`}
           showsVerticalScrollIndicator={false}
@@ -246,7 +251,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
                 {t('alarmForm.category')}:
               </Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
+            <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
               {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
                 const catDef = ALARM_CATEGORIES[catId];
                 const isSelected = category === catId;
@@ -340,7 +345,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
               {t('alarmForm.recurrenceType')}
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
+            <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
               {[
                 { type: 'daily', label: t('alarmForm.daily'), icon: '⏰' },
                 { type: 'weekly', label: t('alarmForm.weekly'), icon: '📅' },
@@ -447,7 +452,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
               <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
                 {t('alarmForm.notificationChannel')}
               </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
+              <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
                 {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => {
                   const isSelected = channelId === ch;
                   return (
@@ -558,7 +563,7 @@ export const AlarmFormScreen: React.FC<AlarmFormScreenProps> = ({
             <Text style={[tw`text-sm font-semibold mb-2`, { color: colors.textSecondary }]}>
               {t('alarmForm.snoozeInterval')}
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
+            <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-1`}>
               {[5, 10, 15, 30].map((mins) => {
                 const isSelected = snoozeIntervalMinutes === mins;
                 return (

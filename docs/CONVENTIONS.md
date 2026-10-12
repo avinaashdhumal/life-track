@@ -3,7 +3,12 @@
 Follow the existing code. These are the patterns it already uses, written down so they stay consistent.
 
 ## TypeScript & structure
-- Strict TS. `npm run lint` (`tsc --noEmit`) must be clean. Avoid `any` in new code; existing `any` is debt.
+- Strict TS (`strict`, `noUnusedLocals`, `noUnusedParameters`) plus ESLint (`eslint.config.cjs`, Expo config).
+  `npm run lint` must report zero errors and zero warnings. Avoid `any` in new code; existing `any` is debt.
+- React effects: load data with "fetch, then set state in `.then`, guarded by an `active` flag"; never call
+  `setState` synchronously in an effect body. Don't call `Date.now()`/`Math.random()` during render; capture
+  "now" in state (lazy initializer or a timer). Modals with forms mount their body only while visible, so state
+  initializes from props without reset effects.
 - Feature code goes in `src/features/<feature>/`. Use PascalCase `*Screen.tsx` for tabs/screens and `*Modal.tsx` for
   modals. Use named exports (`export const TodayScreen`).
 - Domain code goes in `src/domain/<area>.ts`: pure functions, with zod schemas where data is persisted.

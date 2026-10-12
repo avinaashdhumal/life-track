@@ -15,6 +15,8 @@ export const CURRENT_SCHEMA_VERSION = 2;
 const LEGACY_ONBOARDING_KEY = '@lifetrack:has_completed_onboarding';
 const LEGACY_SHIFT_FLAG_KEY = '@lifetrack:shift_feature_enabled';
 const LEGACY_PROFILE_KEY = '@lifetrack:user_profile:v1';
+// Web-only duplicates of settings.language / settings.themeMode written by v1 i18n and ThemeContext.
+const LEGACY_WEB_KEYS = ['lifetrack_user_language', 'lifetrack_theme_mode'];
 
 export interface MigrationResult {
   fromVersion: number;
@@ -82,6 +84,9 @@ async function migrateV1ToV2(): Promise<void> {
   await kvStore.remove(LEGACY_ONBOARDING_KEY);
   await kvStore.remove(LEGACY_SHIFT_FLAG_KEY);
   await kvStore.remove(LEGACY_PROFILE_KEY);
+  for (const key of LEGACY_WEB_KEYS) {
+    await kvStore.remove(key);
+  }
   await databaseService.reload();
 }
 

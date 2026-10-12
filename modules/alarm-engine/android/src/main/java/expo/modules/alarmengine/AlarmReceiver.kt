@@ -13,7 +13,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
         val wakeLock = powerManager?.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            PowerManager.PARTIAL_WAKE_LOCK,
             "LifeTrack:AlarmWakeLock"
         )
         wakeLock?.acquire(30_000) // Keep awake for up to 30s to dispatch

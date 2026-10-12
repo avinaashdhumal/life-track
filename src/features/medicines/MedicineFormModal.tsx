@@ -36,7 +36,6 @@ import {
   HelpCircle,
   FileText,
   Check,
-  AlertCircle,
   Sun,
   Sparkles
 } from 'lucide-react-native';
@@ -49,8 +48,11 @@ interface MedicineFormModalProps {
   onDelete?: (id: string) => Promise<void>;
 }
 
-export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
-  visible,
+/**
+ * The form body. It is mounted fresh every time the modal opens (see MedicineFormModal below), so all
+ * fields initialize from `medicine` with no reset effect and nothing leaks from the previous edit.
+ */
+const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = ({
   medicine,
   onClose,
   onSave,
@@ -107,61 +109,19 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
-  // Synchronize form fields whenever modal opens or selected medicine changes
+  // Routine preview for routine-anchored doses
   useEffect(() => {
-    if (visible) {
-      routineRepository.getRoutine('default').then(setActiveRoutine).catch(() => {});
-      if (medicine) {
-        setName(medicine.name || '');
-        setForm(medicine.form || 'tablet');
-        setStrength(medicine.strength || '');
-        setFoodRelation(medicine.foodRelation || 'with');
-        setScheduleType(medicine.scheduleType || 'fixed_time');
-        setRoutineAnchor((medicine.routineTiming?.anchor as RoutineAnchor) || 'breakfast');
-        setRoutineOffset(medicine.routineTiming?.offsetMinutes ?? 0);
-        setTimesOfDay(
-          medicine.timesOfDay && medicine.timesOfDay.length > 0
-            ? [...medicine.timesOfDay]
-            : ['08:00']
-        );
-        setMinGapMinutes(
-          medicine.minGapMinutes !== undefined ? String(medicine.minGapMinutes) : '240'
-        );
-        setMaxDailyDoses(
-          medicine.maxDailyDoses !== undefined ? String(medicine.maxDailyDoses) : '4'
-        );
-        setStockCount(String(medicine.stockCount ?? 30));
-        setRefillThreshold(String(medicine.refillThreshold ?? 5));
-        setUnit(medicine.unit || 'tablets');
-        setMissedDoseAdvice(
-          medicine.missedDoseAdvice ||
-            'Take as soon as remembered unless close to the next scheduled dose. Never take a double dose.'
-        );
-        setInstructions(medicine.instructions || '');
-        setIsActive(medicine.isActive ?? true);
-      } else {
-        setName('');
-        setForm('tablet');
-        setStrength('');
-        setFoodRelation('with');
-        setScheduleType('fixed_time');
-        setTimesOfDay(['08:00']);
-        setMinGapMinutes('240');
-        setMaxDailyDoses('4');
-        setStockCount('30');
-        setRefillThreshold('5');
-        setUnit('tablets');
-        setMissedDoseAdvice(
-          'Take as soon as remembered unless close to the next scheduled dose. Never take a double dose.'
-        );
-        setInstructions('');
-        setIsActive(true);
-      }
-      setNewTimeInput('20:00');
-      setIsSaving(false);
-      setIsDeleting(false);
-    }
-  }, [visible, medicine]);
+    let active = true;
+    routineRepository
+      .getRoutine('default')
+      .then((routine) => {
+        if (active) setActiveRoutine(routine);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const formOptions: { value: MedicineForm; label: string; icon: string }[] = [
     { value: 'tablet', label: t('medicines.formTablet', 'Tablet'), icon: '💊' },
@@ -294,665 +254,678 @@ export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={[tw`flex-1`, { backgroundColor: colors.bg }]}
-        accessible={true}
-        accessibilityLabel="Medicine Form Modal"
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={[tw`flex-1`, { backgroundColor: colors.bg }]}
+      accessible={true}
+      accessibilityLabel="Medicine Form Modal"
+    >
+      {/* Header */}
+      <View
+        style={[
+          tw`pt-12 pb-4 px-6 border-b flex-row items-center justify-between`,
+          { backgroundColor: colors.card, borderColor: colors.border }
+        ]}
       >
-        {/* Header */}
+        <View style={tw`flex-row items-center`}>
+          <Text style={[tw`text-lg font-bold`, { color: colors.text }]}>
+            {isEditing
+              ? t('medicines.editMedicine', 'Edit Medicine')
+              : t('medicines.addMedicine', 'Add Medicine')}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={onClose}
+          style={[
+            tw`p-2 rounded-full`,
+            { backgroundColor: isDark ? '#27272a' : '#f1f5f9' }
+          ]}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel="Close medicine form"
+        >
+          <X size={20} color={colors.text} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={tw`p-6 pb-24`}>
+        {/* Active Status Switch */}
         <View
           style={[
-            tw`pt-12 pb-4 px-6 border-b flex-row items-center justify-between`,
+            tw`p-3.5 rounded-2xl border mb-5 flex-row items-center justify-between`,
             { backgroundColor: colors.card, borderColor: colors.border }
           ]}
         >
-          <View style={tw`flex-row items-center`}>
-            <Text style={[tw`text-lg font-bold`, { color: colors.text }]}>
-              {isEditing
-                ? t('medicines.editMedicine', 'Edit Medicine')
-                : t('medicines.addMedicine', 'Add Medicine')}
+          <View>
+            <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
+              {t('medicines.activeStatus', 'Active Schedule')}
+            </Text>
+            <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
+              {isActive
+                ? t('medicines.activeDesc', 'Reminders & alerts are enabled')
+                : t('medicines.pausedDesc', 'Medication is paused')}
             </Text>
           </View>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[
-              tw`p-2 rounded-full`,
-              { backgroundColor: isDark ? '#27272a' : '#f1f5f9' }
-            ]}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Close medicine form"
-          >
-            <X size={20} color={colors.text} />
-          </TouchableOpacity>
+          <Switch
+            value={isActive}
+            onValueChange={setIsActive}
+            trackColor={{ false: '#71717a', true: colors.primary }}
+            thumbColor="#ffffff"
+          />
         </View>
 
-        <ScrollView contentContainerStyle={tw`p-6 pb-24`}>
-          {/* Active Status Switch */}
-          <View
+        {/* Medicine Name */}
+        <View style={tw`mb-4`}>
+          <Text style={[tw`text-xs font-bold mb-1.5`, { color: colors.text }]}>
+            {t('medicines.nameLabel', 'Medicine Name')} *
+          </Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Enter medicine name"
+            placeholderTextColor={colors.textSecondary}
             style={[
-              tw`p-3.5 rounded-2xl border mb-5 flex-row items-center justify-between`,
-              { backgroundColor: colors.card, borderColor: colors.border }
+              tw`p-3.5 rounded-xl border text-sm font-medium`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text
+              }
             ]}
-          >
-            <View>
-              <Text style={[tw`text-sm font-bold`, { color: colors.text }]}>
-                {t('medicines.activeStatus', 'Active Schedule')}
-              </Text>
-              <Text style={[tw`text-xs`, { color: colors.textSecondary }]}>
-                {isActive
-                  ? t('medicines.activeDesc', 'Reminders & alerts are enabled')
-                  : t('medicines.pausedDesc', 'Medication is paused')}
-              </Text>
-            </View>
-            <Switch
-              value={isActive}
-              onValueChange={setIsActive}
-              trackColor={{ false: '#71717a', true: colors.primary }}
-              thumbColor="#ffffff"
-            />
-          </View>
+            accessible={true}
+            accessibilityRole="none"
+            accessibilityLabel="Medicine name input"
+          />
+        </View>
 
-          {/* Medicine Name */}
-          <View style={tw`mb-4`}>
-            <Text style={[tw`text-xs font-bold mb-1.5`, { color: colors.text }]}>
-              {t('medicines.nameLabel', 'Medicine Name')} *
-            </Text>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter medicine name"
-              placeholderTextColor={colors.textSecondary}
-              style={[
-                tw`p-3.5 rounded-xl border text-sm font-medium`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text
-                }
-              ]}
-              accessible={true}
-              accessibilityRole="none"
-              accessibilityLabel="Medicine name input"
-            />
-          </View>
-
-          {/* Strength / Dosage */}
-          <View style={tw`mb-4`}>
-            <Text style={[tw`text-xs font-bold mb-1.5`, { color: colors.text }]}>
-              {t('medicines.strengthLabel', 'Strength / Dosage')}
-            </Text>
-            <TextInput
-              value={strength}
-              onChangeText={setStrength}
-              placeholder="e.g. 500 mg, 10 ml, 1 spray"
-              placeholderTextColor={colors.textSecondary}
-              style={[
-                tw`p-3.5 rounded-xl border text-sm font-medium`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text
-                }
-              ]}
-              accessible={true}
-              accessibilityRole="none"
-              accessibilityLabel="Strength input"
-            />
-          </View>
-
-          {/* Dosage Form Selector */}
-          <View style={tw`mb-5`}>
-            <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
-              {t('medicines.formLabel', 'Form')}
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`gap-2`}>
-              {formOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  onPress={() => setForm(opt.value)}
-                  style={[
-                    tw`px-3 py-2 rounded-xl border flex-row items-center`,
-                    form === opt.value
-                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                      : { backgroundColor: colors.card, borderColor: colors.border }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Form ${opt.label}`}
-                >
-                  <Text style={tw`mr-1.5 text-xs`}>{opt.icon}</Text>
-                  <Text
-                    style={[
-                      tw`text-xs font-bold`,
-                      form === opt.value ? tw`text-white` : { color: colors.text }
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Food Relation Selector */}
-          <View style={tw`mb-5`}>
-            <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
-              {t('medicines.foodRelationLabel', 'Food Instructions')}
-            </Text>
-            <View style={tw`flex-row flex-wrap gap-2`}>
-              {foodOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  onPress={() => setFoodRelation(opt.value)}
-                  style={[
-                    tw`px-3 py-2 rounded-xl border`,
-                    foodRelation === opt.value
-                      ? { backgroundColor: `${colors.primary}20`, borderColor: colors.primary }
-                      : { backgroundColor: colors.card, borderColor: colors.border }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Food relation ${opt.label}`}
-                >
-                  <Text
-                    style={[
-                      tw`text-xs font-bold`,
-                      foodRelation === opt.value ? { color: colors.primary } : { color: colors.text }
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Schedule Type */}
-          <View style={tw`mb-5`}>
-            <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
-              {t('medicines.scheduleTypeLabel', 'Schedule Type')}
-            </Text>
-            <View style={tw`flex-row gap-2`}>
-              {[
-                { type: 'fixed_time' as MedicineScheduleType, label: t('medicines.scheduleFixed', 'Fixed Times') },
-                { type: 'routine_relative' as MedicineScheduleType, label: t('medicines.scheduleRoutine', 'Routine Anchor') },
-                { type: 'prn_as_needed' as MedicineScheduleType, label: t('medicines.schedulePRN', 'As Needed (PRN)') }
-              ].map((opt) => (
-                <TouchableOpacity
-                  key={opt.type}
-                  onPress={() => setScheduleType(opt.type)}
-                  style={[
-                    tw`flex-1 py-2.5 rounded-xl border items-center justify-center`,
-                    scheduleType === opt.type
-                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                      : { backgroundColor: colors.card, borderColor: colors.border }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Schedule type ${opt.label}`}
-                >
-                  <Text
-                    style={[
-                      tw`text-xs font-bold`,
-                      scheduleType === opt.type ? tw`text-white` : { color: colors.text }
-                    ]}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Routine-Relative Anchor Configuration */}
-          {scheduleType === 'routine_relative' && (
-            <View
-              style={[
-                tw`p-4 rounded-2xl border mb-5`,
-                { backgroundColor: colors.card, borderColor: colors.border }
-              ]}
-            >
-              <View style={tw`flex-row items-center mb-3`}>
-                <Sun size={16} color={colors.primary} />
-                <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                  {t('medicines.routineAnchorTitle', 'Routine Milestone Anchor')}
-                </Text>
-              </View>
-
-              {/* Anchor Picker */}
-              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
-                {t('medicines.selectAnchor', 'Anchor Event')}
-              </Text>
-              <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
-                {[
-                  { id: 'wake' as RoutineAnchor, label: 'Wake Up ☀️' },
-                  { id: 'breakfast' as RoutineAnchor, label: 'Breakfast ☕' },
-                  { id: 'lunch' as RoutineAnchor, label: 'Lunch 🍽️' },
-                  { id: 'dinner' as RoutineAnchor, label: 'Dinner 🍲' },
-                  { id: 'windDown' as RoutineAnchor, label: 'Wind Down ✨' },
-                  { id: 'sleep' as RoutineAnchor, label: 'Bedtime 🌙' },
-                  { id: 'exercise' as RoutineAnchor, label: 'Workout 🏃' }
-                ].map((a) => (
-                  <TouchableOpacity
-                    key={a.id}
-                    onPress={() => setRoutineAnchor(a.id)}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Anchor ${a.label}`}
-                    style={[
-                      tw`px-3 py-1.5 rounded-xl border`,
-                      routineAnchor === a.id
-                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                        : { backgroundColor: colors.bg, borderColor: colors.border }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        tw`text-xs font-semibold`,
-                        routineAnchor === a.id ? tw`text-white` : { color: colors.text }
-                      ]}
-                    >
-                      {a.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Offset Picker */}
-              <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
-                {t('medicines.selectOffset', 'Timing Offset')}
-              </Text>
-              <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
-                {[
-                  { offset: 0, label: 'Exactly with' },
-                  { offset: 15, label: '+15m after' },
-                  { offset: 30, label: '+30m after' },
-                  { offset: 60, label: '+1h after' },
-                  { offset: -30, label: '-30m before' }
-                ].map((o) => (
-                  <TouchableOpacity
-                    key={o.offset}
-                    onPress={() => setRoutineOffset(o.offset)}
-                    accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Offset ${o.label}`}
-                    style={[
-                      tw`px-2.5 py-1.5 rounded-xl border`,
-                      routineOffset === o.offset
-                        ? { backgroundColor: colors.primary, borderColor: colors.primary }
-                        : { backgroundColor: colors.bg, borderColor: colors.border }
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        tw`text-xs font-semibold`,
-                        routineOffset === o.offset ? tw`text-white` : { color: colors.text }
-                      ]}
-                    >
-                      {o.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* Dynamic Live Preview */}
-              {activeRoutine && (
-                <View
-                  style={[
-                    tw`p-2.5 rounded-xl border flex-row items-center gap-2`,
-                    { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}25` }
-                  ]}
-                >
-                  <Sparkles size={14} color={colors.primary} />
-                  <Text style={[tw`text-xs flex-1`, { color: colors.primaryText }]}>
-                    Currently resolves to{' '}
-                    <Text style={tw`font-bold font-mono`}>
-                      {calculateRoutineRelativeClockTime(activeRoutine, {
-                        anchor: routineAnchor,
-                        offsetMinutes: routineOffset
-                      })}
-                    </Text>{' '}
-                    based on your daily routine. Shifts automatically with your routine.
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-
-          {/* Fixed Time Slots */}
-          {scheduleType === 'fixed_time' && (
-            <View
-              style={[
-                tw`p-4 rounded-2xl border mb-5`,
-                { backgroundColor: colors.card, borderColor: colors.border }
-              ]}
-            >
-              <View style={tw`flex-row items-center mb-3`}>
-                <Clock size={16} color={colors.primary} />
-                <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                  {t('medicines.scheduledTimesTitle', 'Daily Dose Times (24h)')}
-                </Text>
-              </View>
-
-              <View style={tw`flex-row flex-wrap gap-2 mb-3`}>
-                {timesOfDay.map((time) => (
-                  <View
-                    key={time}
-                    style={[
-                      tw`px-3 py-1.5 rounded-xl border flex-row items-center`,
-                      { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }
-                    ]}
-                  >
-                    <Text style={[tw`text-xs font-bold mr-2`, { color: colors.primary }]}>
-                      {time}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => handleRemoveTime(time)}
-                      accessible={true}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remove time ${time}`}
-                    >
-                      <X size={14} color={colors.primary} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
-
-              <View style={tw`flex-row gap-2 items-center`}>
-                <TextInput
-                  value={newTimeInput}
-                  onChangeText={setNewTimeInput}
-                  placeholder="HH:mm (e.g. 14:00)"
-                  placeholderTextColor={colors.textSecondary}
-                  style={[
-                    tw`flex-1 p-2.5 rounded-xl border text-xs font-medium`,
-                    {
-                      backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                      borderColor: colors.border,
-                      color: colors.text
-                    }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="none"
-                  accessibilityLabel="Add time input"
-                />
-                <TouchableOpacity
-                  onPress={handleAddTime}
-                  style={[tw`px-3 py-2.5 rounded-xl flex-row items-center`, { backgroundColor: colors.primary }]}
-                  accessible={true}
-                  accessibilityRole="button"
-                  accessibilityLabel="Add dose time"
-                >
-                  <Plus size={14} color="#ffffff" />
-                  <Text style={tw`text-white text-xs font-bold ml-1`}>
-                    {t('common.add', 'Add')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Medication Safety Section */}
-          <View
+        {/* Strength / Dosage */}
+        <View style={tw`mb-4`}>
+          <Text style={[tw`text-xs font-bold mb-1.5`, { color: colors.text }]}>
+            {t('medicines.strengthLabel', 'Strength / Dosage')}
+          </Text>
+          <TextInput
+            value={strength}
+            onChangeText={setStrength}
+            placeholder="e.g. 500 mg, 10 ml, 1 spray"
+            placeholderTextColor={colors.textSecondary}
             style={[
-              tw`p-4 rounded-2xl border mb-5`,
-              { backgroundColor: colors.card, borderColor: colors.border }
+              tw`p-3.5 rounded-xl border text-sm font-medium`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text
+              }
             ]}
-          >
-            <View style={tw`flex-row items-center mb-3`}>
-              <ShieldAlert size={16} color="#e11d48" />
-              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                {t('medicines.safetyRulesTitle', 'Safety & Double-Dose Protection')}
-              </Text>
-            </View>
+            accessible={true}
+            accessibilityRole="none"
+            accessibilityLabel="Strength input"
+          />
+        </View>
 
-            {/* Min Dose Gap */}
-            <View style={tw`mb-3`}>
-              <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
-                {t('medicines.minGapLabel', 'Minimum Gap Between Doses (Minutes)')}
-              </Text>
-              <TextInput
-                value={minGapMinutes}
-                onChangeText={setMinGapMinutes}
-                keyboardType="numeric"
-                placeholder="240 (4 hours)"
-                placeholderTextColor={colors.textSecondary}
-                style={[
-                  tw`p-2.5 rounded-xl border text-xs font-medium`,
-                  {
-                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                    borderColor: colors.border,
-                    color: colors.text
-                  }
-                ]}
-                accessible={true}
-                accessibilityRole="none"
-                accessibilityLabel="Minimum gap input"
-              />
-            </View>
-
-            {/* Max Daily Doses */}
-            <View>
-              <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
-                {t('medicines.maxDailyLabel', 'Maximum Doses Allowed Per 24 Hours')}
-              </Text>
-              <TextInput
-                value={maxDailyDoses}
-                onChangeText={setMaxDailyDoses}
-                keyboardType="numeric"
-                placeholder="4"
-                placeholderTextColor={colors.textSecondary}
-                style={[
-                  tw`p-2.5 rounded-xl border text-xs font-medium`,
-                  {
-                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                    borderColor: colors.border,
-                    color: colors.text
-                  }
-                ]}
-                accessible={true}
-                accessibilityRole="none"
-                accessibilityLabel="Max daily doses input"
-              />
-            </View>
-          </View>
-
-          {/* Stock & Refill Threshold */}
-          <View
-            style={[
-              tw`p-4 rounded-2xl border mb-5`,
-              { backgroundColor: colors.card, borderColor: colors.border }
-            ]}
-          >
-            <View style={tw`flex-row items-center mb-3`}>
-              <Package size={16} color="#0284c7" />
-              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                {t('medicines.inventoryTitle', 'Stock Inventory & Refill Alert')}
-              </Text>
-            </View>
-
-            <View style={tw`flex-row gap-3 mb-3`}>
-              <View style={tw`flex-1`}>
-                <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
-                  {t('medicines.currentStockLabel', 'Current Stock')}
-                </Text>
-                <TextInput
-                  value={stockCount}
-                  onChangeText={setStockCount}
-                  keyboardType="numeric"
-                  placeholder="30"
-                  placeholderTextColor={colors.textSecondary}
-                  style={[
-                    tw`p-2.5 rounded-xl border text-xs font-medium`,
-                    {
-                      backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                      borderColor: colors.border,
-                      color: colors.text
-                    }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="none"
-                  accessibilityLabel="Current stock input"
-                />
-              </View>
-
-              <View style={tw`flex-1`}>
-                <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
-                  {t('medicines.refillAlertLabel', 'Refill Alert At')}
-                </Text>
-                <TextInput
-                  value={refillThreshold}
-                  onChangeText={setRefillThreshold}
-                  keyboardType="numeric"
-                  placeholder="5"
-                  placeholderTextColor={colors.textSecondary}
-                  style={[
-                    tw`p-2.5 rounded-xl border text-xs font-medium`,
-                    {
-                      backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                      borderColor: colors.border,
-                      color: colors.text
-                    }
-                  ]}
-                  accessible={true}
-                  accessibilityRole="none"
-                  accessibilityLabel="Refill threshold input"
-                />
-              </View>
-            </View>
-
-            <View>
-              <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
-                {t('medicines.unitLabel', 'Unit (e.g. tablets, capsules, ml)')}
-              </Text>
-              <TextInput
-                value={unit}
-                onChangeText={setUnit}
-                placeholder="tablets"
-                placeholderTextColor={colors.textSecondary}
-                style={[
-                  tw`p-2.5 rounded-xl border text-xs font-medium`,
-                  {
-                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                    borderColor: colors.border,
-                    color: colors.text
-                  }
-                ]}
-                accessible={true}
-                accessibilityRole="none"
-                accessibilityLabel="Unit input"
-              />
-            </View>
-          </View>
-
-          {/* Missed Dose Advice */}
-          <View style={tw`mb-4`}>
-            <View style={tw`flex-row items-center mb-1.5`}>
-              <HelpCircle size={14} color={colors.primary} />
-              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                {t('medicines.missedDoseAdviceLabel', 'Doctor Advice: If I Miss a Dose')}
-              </Text>
-            </View>
-            <TextInput
-              value={missedDoseAdvice}
-              onChangeText={setMissedDoseAdvice}
-              multiline
-              numberOfLines={3}
-              placeholder="e.g. Take as soon as remembered unless close to next dose."
-              placeholderTextColor={colors.textSecondary}
-              style={[
-                tw`p-3.5 rounded-xl border text-xs font-medium leading-4`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text,
-                  minHeight: 70
-                }
-              ]}
-              accessible={true}
-              accessibilityRole="none"
-              accessibilityLabel="Missed dose advice input"
-            />
-          </View>
-
-          {/* Special Instructions */}
-          <View style={tw`mb-6`}>
-            <View style={tw`flex-row items-center mb-1.5`}>
-              <FileText size={14} color={colors.primary} />
-              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
-                {t('medicines.instructionsLabel', 'Special Instructions / Notes')}
-              </Text>
-            </View>
-            <TextInput
-              value={instructions}
-              onChangeText={setInstructions}
-              multiline
-              numberOfLines={2}
-              placeholder="e.g. Take with plenty of water. Avoid taking before sleep."
-              placeholderTextColor={colors.textSecondary}
-              style={[
-                tw`p-3.5 rounded-xl border text-xs font-medium leading-4`,
-                {
-                  backgroundColor: colors.card,
-                  borderColor: colors.border,
-                  color: colors.text,
-                  minHeight: 50
-                }
-              ]}
-              accessible={true}
-              accessibilityRole="none"
-              accessibilityLabel="Special instructions input"
-            />
-          </View>
-
-          {/* Action Buttons */}
-          <View style={tw`gap-3`}>
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={isSaving}
-              style={[
-                tw`py-4 rounded-xl items-center justify-center flex-row shadow-sm`,
-                { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }
-              ]}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel="Save medicine"
-            >
-              <Check size={18} color="#ffffff" style={tw`mr-2`} />
-              <Text style={tw`text-white font-bold text-base`}>
-                {isSaving ? t('common.saving', 'Saving...') : t('common.save', 'Save Medicine')}
-              </Text>
-            </TouchableOpacity>
-
-            {isEditing && (
+        {/* Dosage Form Selector */}
+        <View style={tw`mb-5`}>
+          <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
+            {t('medicines.formLabel', 'Form')}
+          </Text>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`gap-2`}>
+            {formOptions.map((opt) => (
               <TouchableOpacity
-                onPress={handleDelete}
-                disabled={isDeleting || isSaving}
+                key={opt.value}
+                onPress={() => setForm(opt.value)}
                 style={[
-                  tw`py-3.5 rounded-xl items-center justify-center flex-row border border-red-500/30`,
-                  {
-                    backgroundColor: isDark ? '#450a0a30' : '#fee2e250',
-                    opacity: isDeleting ? 0.6 : 1
-                  }
+                  tw`px-3 py-2 rounded-xl border flex-row items-center`,
+                  form === opt.value
+                    ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                    : { backgroundColor: colors.card, borderColor: colors.border }
                 ]}
                 accessible={true}
                 accessibilityRole="button"
-                accessibilityLabel="Delete medicine"
+                accessibilityLabel={`Form ${opt.label}`}
               >
-                <Trash2 size={16} color="#ef4444" style={tw`mr-2`} />
-                <Text style={tw`text-red-500 font-bold text-sm`}>
-                  {isDeleting
-                    ? t('common.deleting', 'Deleting...')
-                    : t('medicines.deleteMedicine', 'Delete Medicine')}
+                <Text style={tw`mr-1.5 text-xs`}>{opt.icon}</Text>
+                <Text
+                  style={[
+                    tw`text-xs font-bold`,
+                    form === opt.value ? tw`text-white` : { color: colors.text }
+                  ]}
+                >
+                  {opt.label}
                 </Text>
               </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Food Relation Selector */}
+        <View style={tw`mb-5`}>
+          <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
+            {t('medicines.foodRelationLabel', 'Food Instructions')}
+          </Text>
+          <View style={tw`flex-row flex-wrap gap-2`}>
+            {foodOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                onPress={() => setFoodRelation(opt.value)}
+                style={[
+                  tw`px-3 py-2 rounded-xl border`,
+                  foodRelation === opt.value
+                    ? { backgroundColor: `${colors.primary}20`, borderColor: colors.primary }
+                    : { backgroundColor: colors.card, borderColor: colors.border }
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Food relation ${opt.label}`}
+              >
+                <Text
+                  style={[
+                    tw`text-xs font-bold`,
+                    foodRelation === opt.value ? { color: colors.primary } : { color: colors.text }
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Schedule Type */}
+        <View style={tw`mb-5`}>
+          <Text style={[tw`text-xs font-bold mb-2`, { color: colors.text }]}>
+            {t('medicines.scheduleTypeLabel', 'Schedule Type')}
+          </Text>
+          <View style={tw`flex-row gap-2`}>
+            {[
+              { type: 'fixed_time' as MedicineScheduleType, label: t('medicines.scheduleFixed', 'Fixed Times') },
+              { type: 'routine_relative' as MedicineScheduleType, label: t('medicines.scheduleRoutine', 'Routine Anchor') },
+              { type: 'prn_as_needed' as MedicineScheduleType, label: t('medicines.schedulePRN', 'As Needed (PRN)') }
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.type}
+                onPress={() => setScheduleType(opt.type)}
+                style={[
+                  tw`flex-1 py-2.5 rounded-xl border items-center justify-center`,
+                  scheduleType === opt.type
+                    ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                    : { backgroundColor: colors.card, borderColor: colors.border }
+                ]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Schedule type ${opt.label}`}
+              >
+                <Text
+                  style={[
+                    tw`text-xs font-bold`,
+                    scheduleType === opt.type ? tw`text-white` : { color: colors.text }
+                  ]}
+                >
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Routine-Relative Anchor Configuration */}
+        {scheduleType === 'routine_relative' && (
+          <View
+            style={[
+              tw`p-4 rounded-2xl border mb-5`,
+              { backgroundColor: colors.card, borderColor: colors.border }
+            ]}
+          >
+            <View style={tw`flex-row items-center mb-3`}>
+              <Sun size={16} color={colors.primary} />
+              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+                {t('medicines.routineAnchorTitle', 'Routine Milestone Anchor')}
+              </Text>
+            </View>
+
+            {/* Anchor Picker */}
+            <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+              {t('medicines.selectAnchor', 'Anchor Event')}
+            </Text>
+            <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
+              {[
+                { id: 'wake' as RoutineAnchor, label: 'Wake Up ☀️' },
+                { id: 'breakfast' as RoutineAnchor, label: 'Breakfast ☕' },
+                { id: 'lunch' as RoutineAnchor, label: 'Lunch 🍽️' },
+                { id: 'dinner' as RoutineAnchor, label: 'Dinner 🍲' },
+                { id: 'windDown' as RoutineAnchor, label: 'Wind Down ✨' },
+                { id: 'sleep' as RoutineAnchor, label: 'Bedtime 🌙' },
+                { id: 'exercise' as RoutineAnchor, label: 'Workout 🏃' }
+              ].map((a) => (
+                <TouchableOpacity
+                  key={a.id}
+                  onPress={() => setRoutineAnchor(a.id)}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Anchor ${a.label}`}
+                  style={[
+                    tw`px-3 py-1.5 rounded-xl border`,
+                    routineAnchor === a.id
+                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                      : { backgroundColor: colors.bg, borderColor: colors.border }
+                  ]}
+                >
+                  <Text
+                    style={[
+                      tw`text-xs font-semibold`,
+                      routineAnchor === a.id ? tw`text-white` : { color: colors.text }
+                    ]}
+                  >
+                    {a.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Offset Picker */}
+            <Text style={[tw`text-[10px] font-bold uppercase tracking-wider mb-2`, { color: colors.textSecondary }]}>
+              {t('medicines.selectOffset', 'Timing Offset')}
+            </Text>
+            <View style={tw`flex-row flex-wrap gap-1.5 mb-3`}>
+              {[
+                { offset: 0, label: 'Exactly with' },
+                { offset: 15, label: '+15m after' },
+                { offset: 30, label: '+30m after' },
+                { offset: 60, label: '+1h after' },
+                { offset: -30, label: '-30m before' }
+              ].map((o) => (
+                <TouchableOpacity
+                  key={o.offset}
+                  onPress={() => setRoutineOffset(o.offset)}
+                  accessible={true}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Offset ${o.label}`}
+                  style={[
+                    tw`px-2.5 py-1.5 rounded-xl border`,
+                    routineOffset === o.offset
+                      ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                      : { backgroundColor: colors.bg, borderColor: colors.border }
+                  ]}
+                >
+                  <Text
+                    style={[
+                      tw`text-xs font-semibold`,
+                      routineOffset === o.offset ? tw`text-white` : { color: colors.text }
+                    ]}
+                  >
+                    {o.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Dynamic Live Preview */}
+            {activeRoutine && (
+              <View
+                style={[
+                  tw`p-2.5 rounded-xl border flex-row items-center gap-2`,
+                  { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}25` }
+                ]}
+              >
+                <Sparkles size={14} color={colors.primary} />
+                <Text style={[tw`text-xs flex-1`, { color: colors.primaryText }]}>
+                  Currently resolves to{' '}
+                  <Text style={tw`font-bold font-mono`}>
+                    {calculateRoutineRelativeClockTime(activeRoutine, {
+                      anchor: routineAnchor,
+                      offsetMinutes: routineOffset
+                    })}
+                  </Text>{' '}
+                  based on your daily routine. Shifts automatically with your routine.
+                </Text>
+              </View>
             )}
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Modal>
+        )}
+
+        {/* Fixed Time Slots */}
+        {scheduleType === 'fixed_time' && (
+          <View
+            style={[
+              tw`p-4 rounded-2xl border mb-5`,
+              { backgroundColor: colors.card, borderColor: colors.border }
+            ]}
+          >
+            <View style={tw`flex-row items-center mb-3`}>
+              <Clock size={16} color={colors.primary} />
+              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+                {t('medicines.scheduledTimesTitle', 'Daily Dose Times (24h)')}
+              </Text>
+            </View>
+
+            <View style={tw`flex-row flex-wrap gap-2 mb-3`}>
+              {timesOfDay.map((time) => (
+                <View
+                  key={time}
+                  style={[
+                    tw`px-3 py-1.5 rounded-xl border flex-row items-center`,
+                    { backgroundColor: `${colors.primary}15`, borderColor: colors.primary }
+                  ]}
+                >
+                  <Text style={[tw`text-xs font-bold mr-2`, { color: colors.primary }]}>
+                    {time}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveTime(time)}
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove time ${time}`}
+                  >
+                    <X size={14} color={colors.primary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            <View style={tw`flex-row gap-2 items-center`}>
+              <TextInput
+                value={newTimeInput}
+                onChangeText={setNewTimeInput}
+                placeholder="HH:mm (e.g. 14:00)"
+                placeholderTextColor={colors.textSecondary}
+                style={[
+                  tw`flex-1 p-2.5 rounded-xl border text-xs font-medium`,
+                  {
+                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                    borderColor: colors.border,
+                    color: colors.text
+                  }
+                ]}
+                accessible={true}
+                accessibilityRole="none"
+                accessibilityLabel="Add time input"
+              />
+              <TouchableOpacity
+                onPress={handleAddTime}
+                style={[tw`px-3 py-2.5 rounded-xl flex-row items-center`, { backgroundColor: colors.primary }]}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel="Add dose time"
+              >
+                <Plus size={14} color="#ffffff" />
+                <Text style={tw`text-white text-xs font-bold ml-1`}>
+                  {t('common.add', 'Add')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Medication Safety Section */}
+        <View
+          style={[
+            tw`p-4 rounded-2xl border mb-5`,
+            { backgroundColor: colors.card, borderColor: colors.border }
+          ]}
+        >
+          <View style={tw`flex-row items-center mb-3`}>
+            <ShieldAlert size={16} color="#e11d48" />
+            <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+              {t('medicines.safetyRulesTitle', 'Safety & Double-Dose Protection')}
+            </Text>
+          </View>
+
+          {/* Min Dose Gap */}
+          <View style={tw`mb-3`}>
+            <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
+              {t('medicines.minGapLabel', 'Minimum Gap Between Doses (Minutes)')}
+            </Text>
+            <TextInput
+              value={minGapMinutes}
+              onChangeText={setMinGapMinutes}
+              keyboardType="numeric"
+              placeholder="240 (4 hours)"
+              placeholderTextColor={colors.textSecondary}
+              style={[
+                tw`p-2.5 rounded-xl border text-xs font-medium`,
+                {
+                  backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                  borderColor: colors.border,
+                  color: colors.text
+                }
+              ]}
+              accessible={true}
+              accessibilityRole="none"
+              accessibilityLabel="Minimum gap input"
+            />
+          </View>
+
+          {/* Max Daily Doses */}
+          <View>
+            <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
+              {t('medicines.maxDailyLabel', 'Maximum Doses Allowed Per 24 Hours')}
+            </Text>
+            <TextInput
+              value={maxDailyDoses}
+              onChangeText={setMaxDailyDoses}
+              keyboardType="numeric"
+              placeholder="4"
+              placeholderTextColor={colors.textSecondary}
+              style={[
+                tw`p-2.5 rounded-xl border text-xs font-medium`,
+                {
+                  backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                  borderColor: colors.border,
+                  color: colors.text
+                }
+              ]}
+              accessible={true}
+              accessibilityRole="none"
+              accessibilityLabel="Max daily doses input"
+            />
+          </View>
+        </View>
+
+        {/* Stock & Refill Threshold */}
+        <View
+          style={[
+            tw`p-4 rounded-2xl border mb-5`,
+            { backgroundColor: colors.card, borderColor: colors.border }
+          ]}
+        >
+          <View style={tw`flex-row items-center mb-3`}>
+            <Package size={16} color="#0284c7" />
+            <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+              {t('medicines.inventoryTitle', 'Stock Inventory & Refill Alert')}
+            </Text>
+          </View>
+
+          <View style={tw`flex-row gap-3 mb-3`}>
+            <View style={tw`flex-1`}>
+              <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
+                {t('medicines.currentStockLabel', 'Current Stock')}
+              </Text>
+              <TextInput
+                value={stockCount}
+                onChangeText={setStockCount}
+                keyboardType="numeric"
+                placeholder="30"
+                placeholderTextColor={colors.textSecondary}
+                style={[
+                  tw`p-2.5 rounded-xl border text-xs font-medium`,
+                  {
+                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                    borderColor: colors.border,
+                    color: colors.text
+                  }
+                ]}
+                accessible={true}
+                accessibilityRole="none"
+                accessibilityLabel="Current stock input"
+              />
+            </View>
+
+            <View style={tw`flex-1`}>
+              <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
+                {t('medicines.refillAlertLabel', 'Refill Alert At')}
+              </Text>
+              <TextInput
+                value={refillThreshold}
+                onChangeText={setRefillThreshold}
+                keyboardType="numeric"
+                placeholder="5"
+                placeholderTextColor={colors.textSecondary}
+                style={[
+                  tw`p-2.5 rounded-xl border text-xs font-medium`,
+                  {
+                    backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                    borderColor: colors.border,
+                    color: colors.text
+                  }
+                ]}
+                accessible={true}
+                accessibilityRole="none"
+                accessibilityLabel="Refill threshold input"
+              />
+            </View>
+          </View>
+
+          <View>
+            <Text style={[tw`text-xs font-semibold mb-1`, { color: colors.textSecondary }]}>
+              {t('medicines.unitLabel', 'Unit (e.g. tablets, capsules, ml)')}
+            </Text>
+            <TextInput
+              value={unit}
+              onChangeText={setUnit}
+              placeholder="tablets"
+              placeholderTextColor={colors.textSecondary}
+              style={[
+                tw`p-2.5 rounded-xl border text-xs font-medium`,
+                {
+                  backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                  borderColor: colors.border,
+                  color: colors.text
+                }
+              ]}
+              accessible={true}
+              accessibilityRole="none"
+              accessibilityLabel="Unit input"
+            />
+          </View>
+        </View>
+
+        {/* Missed Dose Advice */}
+        <View style={tw`mb-4`}>
+          <View style={tw`flex-row items-center mb-1.5`}>
+            <HelpCircle size={14} color={colors.primary} />
+            <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+              {t('medicines.missedDoseAdviceLabel', 'Doctor Advice: If I Miss a Dose')}
+            </Text>
+          </View>
+          <TextInput
+            value={missedDoseAdvice}
+            onChangeText={setMissedDoseAdvice}
+            multiline
+            numberOfLines={3}
+            placeholder="e.g. Take as soon as remembered unless close to next dose."
+            placeholderTextColor={colors.textSecondary}
+            style={[
+              tw`p-3.5 rounded-xl border text-xs font-medium leading-4`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+                minHeight: 70
+              }
+            ]}
+            accessible={true}
+            accessibilityRole="none"
+            accessibilityLabel="Missed dose advice input"
+          />
+        </View>
+
+        {/* Special Instructions */}
+        <View style={tw`mb-6`}>
+          <View style={tw`flex-row items-center mb-1.5`}>
+            <FileText size={14} color={colors.primary} />
+            <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+              {t('medicines.instructionsLabel', 'Special Instructions / Notes')}
+            </Text>
+          </View>
+          <TextInput
+            value={instructions}
+            onChangeText={setInstructions}
+            multiline
+            numberOfLines={2}
+            placeholder="e.g. Take with plenty of water. Avoid taking before sleep."
+            placeholderTextColor={colors.textSecondary}
+            style={[
+              tw`p-3.5 rounded-xl border text-xs font-medium leading-4`,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                color: colors.text,
+                minHeight: 50
+              }
+            ]}
+            accessible={true}
+            accessibilityRole="none"
+            accessibilityLabel="Special instructions input"
+          />
+        </View>
+
+        {/* Action Buttons */}
+        <View style={tw`gap-3`}>
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={isSaving}
+            style={[
+              tw`py-4 rounded-xl items-center justify-center flex-row shadow-sm`,
+              { backgroundColor: colors.primary, opacity: isSaving ? 0.7 : 1 }
+            ]}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel="Save medicine"
+          >
+            <Check size={18} color="#ffffff" style={tw`mr-2`} />
+            <Text style={tw`text-white font-bold text-base`}>
+              {isSaving ? t('common.saving', 'Saving...') : t('common.save', 'Save Medicine')}
+            </Text>
+          </TouchableOpacity>
+
+          {isEditing && (
+            <TouchableOpacity
+              onPress={handleDelete}
+              disabled={isDeleting || isSaving}
+              style={[
+                tw`py-3.5 rounded-xl items-center justify-center flex-row border border-red-500/30`,
+                {
+                  backgroundColor: isDark ? '#450a0a30' : '#fee2e250',
+                  opacity: isDeleting ? 0.6 : 1
+                }
+              ]}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Delete medicine"
+            >
+              <Trash2 size={16} color="#ef4444" style={tw`mr-2`} />
+              <Text style={tw`text-red-500 font-bold text-sm`}>
+                {isDeleting
+                  ? t('common.deleting', 'Deleting...')
+                  : t('medicines.deleteMedicine', 'Delete Medicine')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
+
+export const MedicineFormModal: React.FC<MedicineFormModalProps> = ({ visible, medicine, onClose, onSave, onDelete }) => (
+  <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
+    {visible && (
+      <MedicineFormContent
+        key={medicine?.id ?? 'new'}
+        medicine={medicine}
+        onClose={onClose}
+        onSave={onSave}
+        onDelete={onDelete}
+      />
+    )}
+  </Modal>
+);
+

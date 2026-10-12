@@ -23,7 +23,10 @@
     "noEmit": true,
     "types": [
       "node"
-    ]
+    ],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "extends": "expo/tsconfig.base",
   "include": [

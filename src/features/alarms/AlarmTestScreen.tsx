@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
 import tw from 'twrnc';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,6 @@ import {
   AlarmItem,
   NotificationChannelId,
   RecurringSchedule,
-  ReminderLogEntry,
   AlarmCategory,
   ALARM_CATEGORIES,
   resolveAlarmCategory
@@ -23,7 +22,6 @@ import {
   Bell,
   Clock,
   Play,
-  RotateCcw,
   Volume2,
   Trash2,
   ShieldCheck,
@@ -33,9 +31,16 @@ import {
   ToggleLeft,
   ToggleRight,
   Tag,
-  Pencil,
-  RefreshCw
+  Pencil
 } from 'lucide-react-native';
+
+async function loadAlarmData(): Promise<{ alarms: AlarmItem[]; schedules: RecurringSchedule[] }> {
+  const [alarms, schedules] = await Promise.all([
+    reminderService.getScheduledAlarms(),
+    reminderService.getRecurringSchedules()
+  ]);
+  return { alarms, schedules };
+}
 
 interface AlarmTestScreenProps {
   onTriggerAlarmDirectly: (alarm: AlarmItem) => void;
@@ -47,17 +52,16 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
   onOpenHealthCheck
 }) => {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [alarms, setAlarms] = useState<AlarmItem[]>([]);
   const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>([]);
-  const [logs, setLogs] = useState<ReminderLogEntry[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<AlarmCategory>('medicine');
   const [selectedChannel, setSelectedChannel] = useState<NotificationChannelId>('medicines');
   const [isFullAlarm, setIsFullAlarm] = useState(true);
   const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [now, setNow] = useState(Date.now());
+  const message = '';
+  const [now, setNow] = useState(() => Date.now());
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<RecurringSchedule | null>(null);
   const [, setJustScheduledId] = useState<string | null>(null);
@@ -94,25 +98,29 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Read-only refresh of alarms, schedules, and logs. Firing is owned by the alarm engine (native,
+  // Read-only refresh of alarms and schedules. Firing is owned by the alarm engine (native,
   // or the in-app engine in App.tsx); this screen must never cancel or fire alarms itself.
-  const refreshData = async () => {
-    const [list, schedules, eventLogs] = await Promise.all([
-      reminderService.getScheduledAlarms(),
-      reminderService.getRecurringSchedules(),
-      reminderService.getLogs()
-    ]);
-    setAlarms(list);
-    setRecurringSchedules(schedules);
-    setLogs(eventLogs);
-  };
+  const refreshData = useCallback(async () => {
+    const data = await loadAlarmData();
+    setAlarms(data.alarms);
+    setRecurringSchedules(data.schedules);
+  }, []);
 
   useEffect(() => {
-    refreshData();
-    const unsubscribe = storageService.subscribe(() => refreshData());
+    let active = true;
+    const load = () => {
+      loadAlarmData().then((data) => {
+        if (!active) return;
+        setAlarms(data.alarms);
+        setRecurringSchedules(data.schedules);
+      });
+    };
+    load();
+    const unsubscribe = storageService.subscribe(load);
     // Native alarms change without a JS storage write (fired, snoozed from the notification).
-    const interval = setInterval(refreshData, 5000);
+    const interval = setInterval(load, 5000);
     return () => {
+      active = false;
       unsubscribe();
       clearInterval(interval);
     };
@@ -525,7 +533,7 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
               {t('alarm.category')}
             </Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-center gap-2 pb-2`}>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row items-center gap-2 pb-2`}>
             {(Object.keys(ALARM_CATEGORIES) as AlarmCategory[]).map((catId) => {
               const catDef = ALARM_CATEGORIES[catId];
               const isSelected = selectedCategory === catId;
@@ -596,7 +604,7 @@ export const AlarmTestScreen: React.FC<AlarmTestScreenProps> = ({
             <Text style={[tw`text-sm font-bold mb-2`, { color: colors.textSecondary }]}>
               {t('alarm.notificationChannel')}
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-2`}>
+            <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={tw`flex-row gap-2 pb-2`}>
               {['medicines', 'appointments', 'routine', 'exercise', 'water_meals', 'habits', 'summaries'].map((ch) => {
                 const isSelected = selectedChannel === ch;
                 return (

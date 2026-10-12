@@ -65,7 +65,7 @@ export const ReminderLogsModal: React.FC<ReminderLogsModalProps> = ({ visible, l
             </View>
           </View>
 
-          <ScrollView style={tw`p-4`} contentContainerStyle={tw`flex-col gap-2.5`}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={tw`p-4`} contentContainerStyle={tw`flex-col gap-2.5`}>
             {logs.length === 0 ? (
               <View style={tw`py-8 items-center`}>
                 <Text style={[tw`text-xs`, { color: colors.textMuted }]}>{t('logs.noLogs')}</Text>

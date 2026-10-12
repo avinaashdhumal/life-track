@@ -1,4 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorageModule from '@react-native-async-storage/async-storage';
+
+// Metro gives us the storage API directly; Node (tests via tsx) hands back the CommonJS module object
+// with the API under `.default`. Accept both.
+const AsyncStorage: typeof AsyncStorageModule =
+  typeof (AsyncStorageModule as { getItem?: unknown }).getItem === 'function'
+    ? AsyncStorageModule
+    : (AsyncStorageModule as unknown as { default: typeof AsyncStorageModule }).default;
 
 /**
  * The single persistence engine for LifeTrack (see docs/decisions/0003-storage-consolidation.md).

@@ -8,15 +8,17 @@
     "start": "expo start",
     "android": "expo run:android",
     "web": "expo start --web",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && eslint .",
     "test": "node test-i18n-theme.cjs && node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "^57.0.16",
-    "@react-native-async-storage/async-storage": "^3.1.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "alarm-engine": "file:./modules/alarm-engine",
     "expo": "^57.0.27",
     "expo-localization": "~57.0.2",
+    "expo-splash-screen": "~57.0.9",
+    "expo-system-ui": "~57.0.4",
     "i18next": "^26.4.3",
     "lucide-react-native": "^1.55.0",
     "react": "19.2.3",
@@ -32,6 +34,9 @@
     "@types/node": "^22.14.0",
     "@types/react": "~19.2.4",
     "@types/react-dom": "~19.2.3",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
+    "globals": "^16.5.0",
     "tsx": "^4.21.0",
     "typescript": "~6.0.3"
   }
