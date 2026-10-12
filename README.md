@@ -6,6 +6,8 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 - **Medication Safety Engine**: Minimum dose gap enforcement, max daily doses ceiling, and real-time inventory tracking.
 - **Optional Work Shift Engine**: Disabled by default. When OFF, the app uses a clean, single daily routine without any shift clutter.
 
+> **Contributors & coding agents:** start with [AGENTS.md](AGENTS.md). Current status, backlog, and the value-ordered roadmap live in [`docs/`](docs/README.md). The phase table below is the long-term vision. [docs/STATUS.md](docs/STATUS.md) is the honest current state.
+
 ---
 
 ## 📋 Feature Roadmap & Phase Status
@@ -14,7 +16,7 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 | :--- | :--- | :---: | :--- |
 | **Phase 0** | **Alarm Proof of Concept** | ✅ **Completed** | Native Kotlin module (`alarm-engine`), 7 notification channels, exact alarms, boot receivers, Doze bypass, full-screen lockscreen activity, test screen. |
 | **Phase 1** | **Foundation, Medicines, Basic Today, Onboarding, Profile & Local DB** | ✅ **Completed** | Persistent local DB & storage engine, bottom navigation, dark/light theme, 4-language i18n (`en`, `hi`, `mr`, `es`), full onboarding flow, complete Medicine CRUD with safety rules & stock tracking, zero mock data. |
-| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | ⏳ **Next Phase** | Single daily routine (wake/sleep/meals), optional rotating shift engine, routine-relative reminders, shift change notifications. |
+| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | 🟡 **In Progress** | Routine + rotating shift engine (domain, tests, screens) done. Not yet wired to reminders. See [docs/STATUS.md](docs/STATUS.md). |
 | **Phase 3** | **Appointments, Treatments, Measurements, Symptoms & Sleep** | 📅 *Upcoming* | Doctor visits & reminders, treatment courses, vitals logging with target ranges & sparklines, symptom journal, sleep tracker. |
 | **Phase 4** | **Conditions, Precautions & Food Guidance** | 📅 *Upcoming* | 15+ built-in conditions, Indian food lists (prefer/avoid), doctor instructions, avoid-flagging in meal logging. |
 | **Phase 5** | **Fitness, Guided Session Player & Meditation Timer** | 📅 *Upcoming* | Workout library, yoga & pranayama, timestamp-based guided session player with Android foreground service, meditation timer. |
