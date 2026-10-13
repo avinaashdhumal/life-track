@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-10-12 (after fix session) · **Base commit:** `d86ae90` + uncommitted fixes · **App version:** 1.0.0
+**Last updated:** 2026-10-13 (README, demo media, license) · **Base commit:** `231e026` · **App version:** 1.0.0
 **Updated by:** Claude Code
 
 > The README phase table is the long-term vision. This file is the honest snapshot. Status legend:
@@ -38,7 +38,8 @@
 | | Adherence history / calendar | ⬜ | FEAT-003 |
 | **Routine** | Anchors; changes move routine-relative reminders | ✅ | |
 | **Shifts** | Engine, overrides (incl. custom types), 90-day calendar; onboarding choice applied | ✅ | |
-| | Per-shift routine drives dose times; shift-eve notification | ⬜ | FEAT-012 |
+| | Shift-change evening notice ("Tomorrow: Night shift") | ✅ | FEAT-016 |
+| | Per-shift routine drives dose times | ⬜ | FEAT-012 |
 | **Onboarding** | 4 steps; profile + shift choice persisted correctly | ✅ | |
 | **Settings** | Theme, language, snooze, vibration, full-screen, wake/sleep → applied to alarms | ✅ | |
 | | Backup / restore (all stores, validated, legacy formats, share) | ✅ | Automatic backups: FEAT-007 |

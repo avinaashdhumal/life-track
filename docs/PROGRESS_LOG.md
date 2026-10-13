@@ -15,6 +15,23 @@ Template:
 
 ---
 
+## 2026-10-13 — README for sharing: download, demo video, screenshots, license (Claude Code)
+- **Changed:** README rewritten for end users and forkers: download section with the EAS build link + QR code
+  (`docs/media/download-apk-qr.png`, decodes to the same URL), install steps and required permissions, demo GIF +
+  MP4 (`docs/media/lifetrack-demo.*`), 9 light-theme screenshots (`docs/media/screenshots/`), overview image, how to
+  use, privacy, build from source, EAS APK build, "Make your own version", contributing, known limitations. Old
+  detailed phase list folded into `<details>`; release-APK section now runs `expo prebuild` first. Added MIT
+  `LICENSE` (owner's choice). Fixed doc drift: shift-change evening notice shipped in FEAT-016 but STATUS, BACKLOG
+  FEAT-012, and the README phase table still listed it as todo.
+- **Backlog:** new BUG-029 (routine-anchored medicine shows no time on Medicines list), BUG-030 (alarm countdown shows
+  "225:47"), DEBT-014 (language codes repeated in 5 places).
+- **Verified:** media captured on the emulator (`medium_phone`, API 36) from the current debug build with demo data
+  (app data was cleared first; demo name "Asha Patil"). The quick 10 s test alarm fired with the screen locked and
+  showed the full-screen activity; Taken dismissed it. `npm test` ✅ · `npm run lint` ✅. No code changes.
+- **Left / risks:** the EAS build behind the link/QR wasn't inspected (needs the owner's Expo login), so it may be
+  older than `main`; EAS build links can expire, so a GitHub Release with the APK attached would be a permanent
+  download. The emulator still has the demo data, light theme, and shifts enabled.
+
 ## 2026-10-13 — Reminders for medicines, routine, shifts + per-medicine tone (Claude Code)
 - **Changed:** FEAT-016 (see BACKLOG): per-medicine reminder style + tone picker; routine milestone/custom-block
   notifications with bell switches; shift-change evening notice with switch/time; native per-tone channels, OK-only

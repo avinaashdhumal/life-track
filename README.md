@@ -1,22 +1,243 @@
-# LifeTrack — Offline-First Daily Life & Health Tracker
+# LifeTrack — Offline-First Medicine Reminders & Daily Health Tracker
 
-LifeTrack is a personal, offline-first daily life and health tracker designed for Android (with iOS support planned from the same codebase).
-- **100% Offline & Private**: No login, no cloud sync, no tracking, no ads. All data lives solely on the device.
-- **Rock-Solid Hardware Alarms**: Built with native Kotlin `AlarmManager.setAlarmClock()` to guarantee alarms fire in Doze mode, when locked, or when the app is swiped away.
-- **Medication Safety Engine**: Minimum dose gap enforcement, max daily doses ceiling, and real-time inventory tracking.
-- **Optional Work Shift Engine**: Disabled by default. When OFF, the app uses a clean, single daily routine without any shift clutter.
+**Medicine reminders that always ring.** LifeTrack is a free, open-source Android app for people who take regular
+medication, the family members who look after them, and shift workers. It has no login, no cloud, no ads, and no
+tracking: everything stays on your phone.
 
-> **Contributors & coding agents:** start with [AGENTS.md](AGENTS.md). Current status, backlog, and the value-ordered roadmap live in [`docs/`](docs/README.md). The phase table below is the long-term vision. [docs/STATUS.md](docs/STATUS.md) is the honest current state.
+<p align="center">
+  <img src="docs/media/lifetrack-overview.png" alt="LifeTrack screens: Today, Medicines, full-screen medicine alarm, and shift calendar" width="900">
+</p>
+
+- **Alarms that ring.** Native Android `AlarmManager.setAlarmClock()` alarms fire on time in Doze mode, on a locked
+  screen, and after the app is swiped away. They're restored after a reboot.
+- **Medication safety.** Minimum gap between doses, a maximum-doses-per-day ceiling, stock tracking with low-stock
+  alerts, and the doctor's "if I miss a dose" advice on every medicine.
+- **Fits your day.** Doses can be fixed times, follow your routine ("with lunch", "30 min after waking"), or be
+  as-needed (PRN). An optional rotating shift engine moves your routine with your work schedule.
+- **Built for Indian households.** Available in English, हिन्दी (Hindi), मराठी (Marathi), and Español, with light
+  and dark themes.
+
+> **Contributors and coding agents:** start with [AGENTS.md](AGENTS.md). Current status, backlog, and roadmap live in
+> [`docs/`](docs/README.md). [docs/STATUS.md](docs/STATUS.md) is the honest snapshot of what works today.
+
+---
+
+## 📥 Download & Install (Android)
+
+<table>
+  <tr>
+    <td width="220" align="center">
+      <img src="docs/media/download-apk-qr.png" alt="QR code to download the LifeTrack APK" width="200"><br>
+      <sub>Scan with your phone camera</sub>
+    </td>
+    <td>
+      <b>Download the latest APK:</b><br>
+      <a href="https://expo.dev/accounts/avinashdhumal1703/projects/lifetrack/builds/487e83de-8a37-4463-88a1-4e45b7b72a33">expo.dev → LifeTrack Android build</a>
+      <br><br>
+      Or copy and paste this link into your phone's browser:
+      <pre>https://expo.dev/accounts/avinashdhumal1703/projects/lifetrack/builds/487e83de-8a37-4463-88a1-4e45b7b72a33</pre>
+      <b>Requires:</b> Android 7.0 or newer. iPhone is not supported yet.
+    </td>
+  </tr>
+</table>
+
+### Install steps
+
+1. Open the link (or scan the QR code) **on your Android phone** and tap **Install** / **Download** to get the `.apk`.
+2. Open the downloaded file. If Android asks, allow your browser or file manager to **install unknown apps**
+   (Settings → Apps → *your browser* → Install unknown apps → Allow).
+3. If Google Play Protect shows *"Unsafe app blocked"* or *"App not scanned"*, tap **More details → Install anyway**.
+   This appears for any app installed outside the Play Store.
+4. Open **LifeTrack** and follow the 4-step setup.
+
+**Updating:** install the newer APK over the old one. Your data is kept. Uninstalling the app deletes all its data,
+so make a backup first (Profile → download icon).
+
+### Allow these so reminders never miss
+
+The first-run setup asks for these, and the **Health Check** tab shows what's still missing:
+
+| Permission | Why |
+| --- | --- |
+| Notifications | Shows the reminder and its Taken / Snooze / Skip buttons. |
+| Alarms & reminders (exact alarms) | Rings at the exact minute instead of "sometime soon". |
+| Full-screen notifications (Android 14+) | Shows the alarm over the lock screen. |
+| Battery: Unrestricted | Stops the phone from killing reminders in the background. Xiaomi, Samsung, OnePlus, Oppo, Vivo, and Realme phones also have an **Autostart** switch; Health Check links to it. |
+
+---
+
+## 🎬 Demo
+
+<p align="center">
+  <img src="docs/media/lifetrack-demo.gif" alt="LifeTrack demo: Today, routine, medicines, adding a medicine, shift calendar, Health Check, Hindi language, and a full-screen alarm ringing on a locked phone" width="300">
+</p>
+
+Full-quality video (2 min 20 s): [docs/media/lifetrack-demo.mp4](docs/media/lifetrack-demo.mp4). It shows Today →
+Daily Routine → Medicines → adding a medicine → Shift & Schedule → Health Check → switching to Hindi → a test alarm
+ringing on a locked phone.
+
+---
+
+## 📸 Screenshots
+
+| Today | Medicines | Add / edit medicine |
+| :---: | :---: | :---: |
+| <img src="docs/media/screenshots/01-today.png" alt="Today screen with dose schedule, next dose, and refill alert" width="250"> | <img src="docs/media/screenshots/02-medicines.png" alt="Medicines list with stock, dose gap, and daily limit" width="250"> | <img src="docs/media/screenshots/03-medicine-form.png" alt="Medicine form with routine anchor timing and reminder style" width="250"> |
+| **Alarm on the lock screen** | **Daily routine** | **Shift calendar** |
+| <img src="docs/media/screenshots/04-alarm-ringing.png" alt="Full-screen alarm with Taken, Snooze, and Skip buttons" width="250"> | <img src="docs/media/screenshots/05-daily-routine.png" alt="Daily routine anchors: wake, meals, workout, sleep" width="250"> | <img src="docs/media/screenshots/06-shift-calendar.png" alt="Rotating shift engine with 90-day calendar" width="250"> |
+| **24-hour alarm timeline** | **Health Check** | **Profile & settings** |
+| <img src="docs/media/screenshots/07-alarm-timeline.png" alt="24-hour alarm timeline with upcoming reminders" width="250"> | <img src="docs/media/screenshots/08-health-check.png" alt="Health Check showing alarm, notification, and battery permissions" width="250"> | <img src="docs/media/screenshots/09-profile.png" alt="Profile with emergency contact, routine, and on-device data" width="250"> |
+
+Screenshots use made-up demo data.
+
+---
+
+## 🧭 How to Use
+
+1. **Set up (about 1 minute).** Read the privacy note, grant the reminder permissions, add your name, blood group, and an
+   emergency contact (optional), and choose whether you work shifts.
+2. **Add a medicine.** Medicines → **Add Medicine**. Enter the name and strength, form (tablet, syrup, …), and food
+   instruction, then pick a schedule:
+   - **Fixed Times**: e.g. 08:00 and 20:00.
+   - **Routine Anchor**: e.g. "with lunch" or "+30 min after dinner". It moves when your routine changes.
+   - **As Needed (PRN)**: no alarm; LifeTrack warns you if a dose is too soon or over the daily maximum.
+
+   Choose **Ringing alarm** (full screen, rings until you respond) or **Notification** (a banner with sound), and
+   optionally a tone. Set the current stock and when to warn you about a refill.
+3. **When it rings,** tap **Taken**, **Snooze**, or **Skip**, on the lock screen, in the notification, or on the
+   Today tab. Taken doses reduce the stock automatically.
+4. **Today** shows every dose for the day, what's next, what's overdue, and low-stock warnings.
+5. **Daily Routine** (⋮ menu or the Today card): set wake, meal, workout, and sleep times. Routine-anchored doses
+   follow them. Each anchor can also have its own reminder bell.
+6. **Shift & Schedule** (⋮ menu, optional): build a rotation such as "5 Morning, 2 Off, 5 Afternoon…", see a 90-day
+   calendar, override single days, and get an evening notice before your shift changes.
+7. **Health Check** tab: green ticks mean your phone is set up to ring reliably. Fix anything orange.
+8. **Language and theme** (⋮ menu): English, Hindi, Marathi, or Spanish; light, dark, or system theme.
+9. **Back up** your data (Profile → download icon) before you change phones or uninstall. Restore from the same screen.
+
+> ⚠️ LifeTrack is a reminder and record-keeping tool. It is not medical advice and does not replace your doctor or
+> pharmacist. Always follow your prescription.
+
+---
+
+## 🔒 Privacy
+
+- No account, no sign-in, no server. The app makes **no network calls**.
+- No analytics, crash reporters, or ads.
+- All data lives in the app's private storage on your phone. Backups are files that you choose where to save or share.
+
+See [ADR-0001](docs/decisions/0001-offline-first-no-cloud.md) for why.
+
+---
+
+## 🧑‍💻 Build From Source
+
+LifeTrack is an [Expo](https://expo.dev) (SDK 57) / React Native 0.86 / TypeScript app with a custom Kotlin alarm
+module in [`modules/alarm-engine/`](modules/alarm-engine/). Because of that native module it **does not run in Expo
+Go**. Use the web preview for quick UI work and a development build on Android for real alarms.
+
+### Prerequisites
+
+- Node.js 20.19 or newer (22 LTS recommended), and npm
+- For Android builds: JDK 17 and Android Studio (Android SDK + an emulator, or a phone with USB debugging)
+- Optional, for cloud APK builds: a free [Expo account](https://expo.dev/signup) and `npx eas-cli`
+
+### Run it
+
+```bash
+git clone https://github.com/avinaashdhumal/life-track.git
+cd life-track
+npm install
+```
+
+Quick UI check in the browser (uses an in-app alarm engine instead of the native one):
+
+```bash
+npm run web
+```
+
+On an Android emulator or a USB-connected phone (set `JAVA_HOME` and `ANDROID_HOME` first):
+
+```bash
+npx expo run:android
+```
+
+Checks to run before you open a pull request:
+
+```bash
+npm test && npm run lint
+```
+
+### Build an installable APK
+
+With EAS (cloud, no Android Studio needed). The `preview` profile in [eas.json](eas.json) produces an `.apk`:
+
+```bash
+npx eas-cli login
+```
+
+```bash
+npx eas-cli build -p android --profile preview
+```
+
+When it finishes, EAS prints a download link and QR code like the one above. You can also build locally; see
+[Building a Release APK Locally](#-building-a-release-apk-locally).
+
+---
+
+## 🍴 Make Your Own Version
+
+The code is MIT licensed (see [License](#-license)), so you can fork it and build your own app on top of it.
+
+1. **Fork** the repository on GitHub and clone your fork.
+2. **Rename the app** in [app.json](app.json): `name`, `slug`, `scheme`, `android.package`, and
+   `ios.bundleIdentifier`. Use your own reverse-domain id, such as `com.yourname.meds`. Two apps with the same
+   package name can't be installed side by side.
+3. **Use your own Expo project:** delete `extra.eas.projectId` from `app.json`, then run `npx eas-cli init`.
+4. **Replace the branding** in [`assets/`](assets/) (`icon.png`, `adaptive-icon.png`, `splash.png`, `favicon.png`).
+5. **Add a language:** copy `src/i18n/locales/en.json` to e.g. `ta.json` and translate it. Then import it and add it
+   to `SUPPORTED_LANGUAGES` and the language-code lists in [src/i18n/index.ts](src/i18n/index.ts), the
+   `handleLanguageChange`/`handleSelectLanguage` types in `src/features/settings/`, and the `locales` lists in
+   [test-i18n-theme.cjs](test-i18n-theme.cjs). `npm test` then checks every key exists in your file.
+6. **Read the rules first:** [AGENTS.md](AGENTS.md) (golden rules) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+   They explain how storage, migrations, and the alarm pipeline fit together, so a new feature doesn't break
+   reminders or lose user data.
+
+Ideas and the planned feature order are in [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/BACKLOG.md](docs/BACKLOG.md).
+
+---
+
+## 🤝 Contributing
+
+Bug reports, translations, and pull requests are welcome.
+
+- **Found a bug?** Open an issue with your phone model, Android version, and what happened. Mention if a reminder
+  didn't ring; those get top priority.
+- **Pull requests:** pick an item from [docs/BACKLOG.md](docs/BACKLOG.md), follow
+  [docs/CONVENTIONS.md](docs/CONVENTIONS.md), make sure `npm test` and `npm run lint` pass, and use
+  [Conventional Commits](https://www.conventionalcommits.org/) that mention the backlog id, e.g.
+  `fix(alarms): keep scheduleId on native sync (BUG-002)`.
+- **Translations:** improvements to the Hindi, Marathi, and Spanish files in `src/i18n/locales/` are very welcome.
+
+### Known limitations
+
+- Android only for now. iOS is planned from the same codebase.
+- The rewritten native alarm engine has been tested on the Android emulator (it rings over the lock screen). Testing
+  on many real phones is still in progress ([DEBT-010](docs/BACKLOG.md)), so run the Health Check after installing.
+- Some aggressive battery savers (on some Xiaomi, Oppo, Vivo, and Realme phones) can still delay alarms unless
+  Autostart and Unrestricted battery are on.
 
 ---
 
 ## 📋 Feature Roadmap & Phase Status
 
+The long-term plan. What works today is tracked honestly in [docs/STATUS.md](docs/STATUS.md).
+
 | Phase | Feature Description | Status | Details |
 | :--- | :--- | :---: | :--- |
 | **Phase 0** | **Alarm Proof of Concept** | ✅ **Completed** | Native Kotlin module (`alarm-engine`), 7 notification channels, exact alarms, boot receivers, Doze bypass, full-screen lockscreen activity, test screen. |
 | **Phase 1** | **Foundation, Medicines, Basic Today, Onboarding, Profile & Local DB** | ✅ **Completed** | Persistent local DB & storage engine, bottom navigation, dark/light theme, 4-language i18n (`en`, `hi`, `mr`, `es`), full onboarding flow, complete Medicine CRUD with safety rules & stock tracking, zero mock data. |
-| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | 🟡 **In Progress** | Routine + rotating shift engine done; medicine reminders follow the routine. Per-shift dose times and shift-eve notices still to do. See [docs/STATUS.md](docs/STATUS.md). |
+| **Phase 2** | **Daily Routine & Optional Shift/Schedule Engine** | 🟡 **In Progress** | Routine + rotating shift engine done; medicine reminders follow the routine. Shift-change evening notices work; per-shift dose times are still to do. See [docs/STATUS.md](docs/STATUS.md). |
 | **Phase 3** | **Appointments, Treatments, Measurements, Symptoms & Sleep** | 📅 *Upcoming* | Doctor visits & reminders, treatment courses, vitals logging with target ranges & sparklines, symptom journal, sleep tracker. |
 | **Phase 4** | **Conditions, Precautions & Food Guidance** | 📅 *Upcoming* | 15+ built-in conditions, Indian food lists (prefer/avoid), doctor instructions, avoid-flagging in meal logging. |
 | **Phase 5** | **Fitness, Guided Session Player & Meditation Timer** | 📅 *Upcoming* | Workout library, yoga & pranayama, timestamp-based guided session player with Android foreground service, meditation timer. |
@@ -26,9 +247,13 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 | **Phase 9** | **Backup & Restore, Security App Lock & Emergency Card** | 📅 *Upcoming* | Versioned JSON export/import, automatic SAF weekly backups, biometric/PIN app lock, emergency lockscreen card. |
 | **Phase 10** | **Health Connect Import, Home Screen Widgets & Polish** | 📅 *Upcoming* | Read-only Android Health Connect sync, home screen widgets, performance tuning for 2+ years of data. |
 
+
 ---
 
 ## 🔍 Detailed Phase Status
+
+<details>
+<summary>Show what each phase covers</summary>
 
 ### ✅ Phase 0: Alarm Engine Proof of Concept (Completed)
 - **Native Module (`modules/alarm-engine`)**:
@@ -146,6 +371,8 @@ LifeTrack is a personal, offline-first daily life and health tracker designed fo
 - Android home screen widgets (Next medicine, Today progress, Water quick-add).
 - Long-term database performance optimization for 2+ years of records.
 
+</details>
+
 ---
 
 ## 🛠️ Testing & Verification
@@ -234,11 +461,26 @@ adb logcat -s AlarmEngine:V LifeTrack:*
 
 ---
 
+---
+
 ## 📦 Building a Release APK Locally
-To build a release APK for your phone without a cloud service:
+To build a release APK on your computer without a cloud service (needs JDK 17 and the Android SDK):
 ```bash
-cd android
-./gradlew assembleRelease
+npx expo prebuild -p android
+```
+```bash
+cd android && ./gradlew assembleRelease
 ```
 The generated APK will be located at:
 `android/app/build/outputs/apk/release/app-release.apk`
+
+The Expo template signs this release build with the debug keystore, which is fine for installing on your own phones.
+Before publishing to the Play Store, create your own upload key and signing config (see
+[Expo: app signing](https://docs.expo.dev/app-signing/app-credentials/)), or let EAS manage the keys.
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 Avinash Dhumal. You're free to use, change, and share this code, including in your own apps,
+as long as you keep the copyright notice.
