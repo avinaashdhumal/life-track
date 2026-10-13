@@ -1,6 +1,7 @@
 {
   "name": "lifetrack",
   "private": true,
+  "license": "MIT",
   "version": "1.0.0",
   "type": "module",
   "main": "expo/AppEntry.js",

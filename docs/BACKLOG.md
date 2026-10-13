@@ -5,7 +5,7 @@ item, and add new findings with the next free ID. Don't renumber or delete items
 
 **Statuses:** `todo` · `in-progress` · `blocked` · `done` · `wontfix`
 **Priority:** **P0** breaks the core promise or loses data · **P1** big user value · **P2** worthwhile · **P3** nice to have
-**Next free IDs:** BUG-029 · DEBT-014 · FEAT-017
+**Next free IDs:** BUG-031 · DEBT-015 · FEAT-017
 
 ---
 
@@ -47,6 +47,21 @@ item, and add new findings with the next free ID. Don't renumber or delete items
   English. Move each to i18n keys in all four locales. `npm test` already fails on missing keys; consider extending it
   to flag string-literal `accessibilityLabel`/`placeholder` props.
 
+### BUG-029 · P2 · todo — Routine-anchored medicines show an empty schedule on the Medicines list
+- **Seen 2026-10-13 (emulator):** a medicine set to *Routine Anchor → Lunch* shows only the clock icon, no time or
+  anchor. `MedicineListScreen.tsx` renders `med.timesOfDay.join(', ')`, which is empty for routine-anchored medicines.
+- **Do:** show the anchor and offset (e.g. "With lunch · 13:00") using the resolved time from the routine.
+
+### BUG-030 · P3 · todo — Alarm countdowns show minutes over 60 ("225:47")
+- `formatCountdown` in `src/features/alarms/AlarmTestScreen.tsx` formats `mm:ss` only, so "Next Ring In" and
+  "… left" on the Alarms tab read "225:47" for 3 h 45 min. Show hours (`3h 45m`, or `h:mm:ss`) past 60 minutes.
+
+### DEBT-014 · P3 · todo — Supported language codes are repeated in five places
+- `'en' | 'hi' | 'mr' | 'es'` and the locale list appear in `src/i18n/index.ts` (type, `SUPPORTED_LANGUAGES`, three
+  `includes` checks), `ProfileSettingsScreen.tsx`, `LanguageThemeModal.tsx`, and `test-i18n-theme.cjs`. Adding a
+  language means editing all of them (README "Make Your Own Version" lists the steps). Derive the type and checks
+  from `SUPPORTED_LANGUAGES`, and have the test read the `locales/` folder.
+
 ### Features (ordered by user value; see ROADMAP for milestones)
 
 | ID | P | Status | Feature | Milestone |
@@ -60,7 +75,7 @@ item, and add new findings with the next free ID. Don't renumber or delete items
 | FEAT-011 | P2 | todo | "Delete all my data" button in Settings (logic exists: `dataManagementService.clearAllData()` + `reminderService.cancelAll()`) | M2 |
 | FEAT-006 | P1 | todo | Doctor report: share a PDF of medicines and 30-day adherence (`expo-print` + `expo-sharing`) | M3 |
 | FEAT-008 | P2 | todo | Emergency card (blood group, allergies, conditions, contacts) on lock screen / quick share | M3 |
-| FEAT-012 | P2 | todo | Shift-aware dose times: use the current shift's routine template; shift-eve notification | M3 |
+| FEAT-012 | P2 | todo | Shift-aware dose times: use the current shift's routine template (shift-eve notification shipped in FEAT-016) | M3 |
 | FEAT-015 | P1 | in-progress | Play Store readiness: full-screen-intent check + settings link **done**; still to do: decide `USE_EXACT_ALARM` vs user-granted `SCHEDULE_EXACT_ALARM` under current Play policy, privacy policy URL, Data Safety form | M3 |
 | FEAT-010 | P2 | todo | Appointments with reminders (Phase 3 start) | M4 |
 | FEAT-013 | P2 | todo | Vitals log (BP, sugar, weight) with target ranges (Phase 3) | M4 |
