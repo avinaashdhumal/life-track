@@ -107,7 +107,7 @@ modules/alarm-engine/           Kotlin: AlarmManager, receivers, action handler,
 plugins/withAlarmEngine.cjs     Config plugin that patches AndroidManifest for the module
 scripts/run-tests.mjs           Test runner (auto-discovery, two timezones)
 scripts/build-site.sh           Assembles the landing page (site/ + docs/media) into _site/
-site/                           Landing page (static HTML/CSS/JS, GitHub Pages via .github/workflows/pages.yml)
+site/                           Landing page (static HTML/CSS/JS), deployed by Cloudflare Pages from `main`
 docs/                           Agent and project context (this system)
 ```
 

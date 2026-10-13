@@ -15,6 +15,14 @@ Template:
 
 ---
 
+## 2026-10-13 — Landing page moved to Cloudflare Pages (Claude Code)
+- **Changed:** GitHub Actions can't run on the owner's account (billing lock), so the GitHub Pages deploy never ran.
+  Created Cloudflare Pages project `lifetrack-app` (Git-connected to `main`, build `bash scripts/build-site.sh`,
+  output `_site`) → https://lifetrack-app.pages.dev/. Canonical/OG URLs and README now use that address; removed
+  `.github/workflows/pages.yml`; GitHub Pages turned off again.
+- **Verified:** see the deploy check below this entry's PR (live URL returns the page and assets).
+- **Left / risks:** none known. A custom domain can be added later in the Cloudflare project.
+
 ## 2026-10-13 — Landing page on GitHub Pages (Claude Code)
 - **Changed:** new static landing page in `site/` (hero, why, four age groups, screenshot tour, 3 steps, demo video,
   privacy, languages, download with QR + copy link, FAQ, medical disclaimer). Self-hosted Fraunces + Instrument Sans
