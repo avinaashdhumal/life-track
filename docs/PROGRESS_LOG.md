@@ -15,6 +15,19 @@ Template:
 
 ---
 
+## 2026-10-13 — Landing page on GitHub Pages (Claude Code)
+- **Changed:** new static landing page in `site/` (hero, why, four age groups, screenshot tour, 3 steps, demo video,
+  privacy, languages, download with QR + copy link, FAQ, medical disclaimer). Self-hosted Fraunces + Instrument Sans
+  (OFL texts in `site/fonts/`), no third-party requests, no analytics. `scripts/build-site.sh` assembles `site/` +
+  `docs/media` into `_site/` (gitignored); `.github/workflows/pages.yml` deploys on push to `main`. OG image for
+  link previews. Replaced `docs/media/screenshots/04-alarm-ringing.png` (was the "Quick test" alarm) with a real
+  medicine alarm and regenerated `docs/media/lifetrack-overview.png`. README links the site; AGENTS.md map updated.
+- **Verified:** previewed at 1440×900 and 375×812 in the browser pane: no console errors, no horizontal scroll, all
+  assets 200. Emulator: a Metformin dose added for 09:54 rang on time over the locked screen; dose time removed after.
+- **Left / risks:** Pages must be set to "GitHub Actions" in repo settings (done via API if the owner agreed); the
+  site goes live after this PR merges. Observed once: after the 09:54 alarm, waking + unlocking the emulator left no
+  alarm screen and no running alarm service, though no button was tapped. Not reproduced; worth a look under DEBT-010.
+
 ## 2026-10-13 — README for sharing: download, demo video, screenshots, license (Claude Code)
 - **Changed:** README rewritten for end users and forkers: download section with the EAS build link + QR code
   (`docs/media/download-apk-qr.png`, decodes to the same URL), install steps and required permissions, demo GIF +

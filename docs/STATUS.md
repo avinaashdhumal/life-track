@@ -1,6 +1,6 @@
 # Project Status
 
-**Last updated:** 2026-10-13 (README, demo media, license) · **Base commit:** `231e026` · **App version:** 1.0.0
+**Last updated:** 2026-10-13 (landing page) · **Base commit:** `231e026` · **App version:** 1.0.0
 **Updated by:** Claude Code
 
 > The README phase table is the long-term vision. This file is the honest snapshot. Status legend:

@@ -1,6 +1,8 @@
 # LifeTrack — Offline-First Medicine Reminders & Daily Health Tracker
 
-**Medicine reminders that always ring.** LifeTrack is a free, open-source Android app for people who take regular
+**Medicine reminders that always ring.** 🌐 **[avinaashdhumal.github.io/life-track](https://avinaashdhumal.github.io/life-track/)**
+
+LifeTrack is a free, open-source Android app for people who take regular
 medication, the family members who look after them, and shift workers. It has no login, no cloud, no ads, and no
 tracking: everything stays on your phone.
 
@@ -218,6 +220,18 @@ Bug reports, translations, and pull requests are welcome.
   [Conventional Commits](https://www.conventionalcommits.org/) that mention the backlog id, e.g.
   `fix(alarms): keep scheduleId on native sync (BUG-002)`.
 - **Translations:** improvements to the Hindi, Marathi, and Spanish files in `src/i18n/locales/` are very welcome.
+
+### Landing page
+
+The website lives in [`site/`](site/) (plain HTML, CSS, and a little JS; fonts are self-hosted so the page has no
+third-party requests). Screenshots and the demo video are reused from `docs/media/`. Preview it locally:
+
+```bash
+bash scripts/build-site.sh && python3 -m http.server 4173 -d _site
+```
+
+Every push to `main` that touches `site/` or `docs/media/` redeploys it to GitHub Pages through
+[.github/workflows/pages.yml](.github/workflows/pages.yml).
 
 ### Known limitations
 

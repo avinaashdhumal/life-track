@@ -106,6 +106,8 @@ src/context/ThemeContext.tsx    Light/dark palette: use `useTheme().colors`, nev
 modules/alarm-engine/           Kotlin: AlarmManager, receivers, action handler, foreground service, lock-screen UI
 plugins/withAlarmEngine.cjs     Config plugin that patches AndroidManifest for the module
 scripts/run-tests.mjs           Test runner (auto-discovery, two timezones)
+scripts/build-site.sh           Assembles the landing page (site/ + docs/media) into _site/
+site/                           Landing page (static HTML/CSS/JS, GitHub Pages via .github/workflows/pages.yml)
 docs/                           Agent and project context (this system)
 ```
 
