@@ -1,6 +1,6 @@
 # LifeTrack — Offline-First Medicine Reminders & Daily Health Tracker
 
-**Medicine reminders that always ring.** 🌐 **[avinaashdhumal.github.io/life-track](https://avinaashdhumal.github.io/life-track/)**
+**Medicine reminders that always ring.** 🌐 **[lifetrack-app.pages.dev](https://lifetrack-app.pages.dev/)**
 
 LifeTrack is a free, open-source Android app for people who take regular
 medication, the family members who look after them, and shift workers. It has no login, no cloud, no ads, and no
@@ -230,8 +230,8 @@ third-party requests). Screenshots and the demo video are reused from `docs/medi
 bash scripts/build-site.sh && python3 -m http.server 4173 -d _site
 ```
 
-Every push to `main` that touches `site/` or `docs/media/` redeploys it to GitHub Pages through
-[.github/workflows/pages.yml](.github/workflows/pages.yml).
+It's hosted free on **Cloudflare Pages** (project `lifetrack-app`), which builds from `main` on every push using
+build command `bash scripts/build-site.sh` and output directory `_site`. No GitHub Actions are involved.
 
 ### Known limitations
 
