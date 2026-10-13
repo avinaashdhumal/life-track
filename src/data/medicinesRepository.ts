@@ -66,6 +66,9 @@ export class MedicinesRepository {
       foodRelation: medicineData.foodRelation || existing?.foodRelation || 'no_relation',
       scheduleType: medicineData.scheduleType || existing?.scheduleType || 'fixed_time',
       timesOfDay: medicineData.timesOfDay || existing?.timesOfDay || ['08:00'],
+      // Keys present in the update win (even when explicitly undefined, e.g. leaving routine mode);
+      // missing keys keep the stored value. Before this, routineTiming was never saved (BUG-027).
+      routineTiming: 'routineTiming' in medicineData ? medicineData.routineTiming : existing?.routineTiming,
       intervalHours: medicineData.intervalHours ?? existing?.intervalHours,
       minGapMinutes:
         medicineData.minGapMinutes !== undefined ? medicineData.minGapMinutes : existing?.minGapMinutes,
@@ -86,6 +89,9 @@ export class MedicinesRepository {
           : existing?.missedDoseAdvice,
       instructions:
         medicineData.instructions !== undefined ? medicineData.instructions : existing?.instructions,
+      reminderStyle: medicineData.reminderStyle || existing?.reminderStyle || 'full_alarm',
+      toneUri: 'toneUri' in medicineData ? medicineData.toneUri || undefined : existing?.toneUri,
+      toneName: 'toneName' in medicineData ? medicineData.toneName || undefined : existing?.toneName,
       color: medicineData.color || existing?.color || '#10b981',
       icon: medicineData.icon || existing?.icon || 'pill',
       isActive:

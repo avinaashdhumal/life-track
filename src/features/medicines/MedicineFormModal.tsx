@@ -18,8 +18,10 @@ import {
   Medicine,
   MedicineForm,
   FoodRelation,
-  MedicineScheduleType
+  MedicineScheduleType,
+  MedicineReminderStyle
 } from '../../domain/medicine';
+import { TonePickerModal } from '../alarms/TonePickerModal';
 import {
   RoutineAnchor,
   DailyRoutine,
@@ -37,7 +39,11 @@ import {
   FileText,
   Check,
   Sun,
-  Sparkles
+  Sparkles,
+  Bell,
+  BellRing,
+  Music,
+  ChevronRight
 } from 'lucide-react-native';
 
 interface MedicineFormModalProps {
@@ -106,6 +112,12 @@ const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = (
   );
   const [instructions, setInstructions] = useState<string>(medicine?.instructions || '');
   const [isActive, setIsActive] = useState<boolean>(medicine?.isActive ?? true);
+
+  // Reminder presentation for this medicine
+  const [reminderStyle, setReminderStyle] = useState<MedicineReminderStyle>(medicine?.reminderStyle ?? 'full_alarm');
+  const [toneUri, setToneUri] = useState<string | undefined>(medicine?.toneUri);
+  const [toneName, setToneName] = useState<string | undefined>(medicine?.toneName);
+  const [showTonePicker, setShowTonePicker] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
@@ -200,6 +212,10 @@ const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = (
         color: medicine?.color,
         icon: medicine?.icon,
         createdAt: medicine?.createdAt,
+        reminderStyle,
+        // '' clears a previously chosen tone (back to the default)
+        toneUri: toneUri ?? '',
+        toneName: toneName ?? '',
         isActive
       });
       onClose();
@@ -655,6 +671,88 @@ const MedicineFormContent: React.FC<Omit<MedicineFormModalProps, 'visible'>> = (
             </View>
           </View>
         )}
+
+        {/* Reminder: how this medicine alerts and with which tone */}
+        {scheduleType !== 'prn_as_needed' && (
+          <View
+            style={[tw`p-4 rounded-2xl border mb-5`, { backgroundColor: colors.card, borderColor: colors.border }]}
+          >
+            <View style={tw`flex-row items-center mb-1`}>
+              <Bell size={16} color={colors.primary} />
+              <Text style={[tw`text-xs font-bold ml-1.5`, { color: colors.text }]}>
+                {t('medicines.reminderTitle')}
+              </Text>
+            </View>
+            <Text style={[tw`text-[11px] mb-3`, { color: colors.textMuted }]}>{t('medicines.reminderSubtitle')}</Text>
+
+            <View style={tw`flex-row gap-2 mb-3`}>
+              {(
+                [
+                  { value: 'full_alarm', label: t('medicines.reminderStyleAlarm'), hint: t('medicines.reminderStyleAlarmHint'), Icon: BellRing },
+                  { value: 'notification', label: t('medicines.reminderStyleNotification'), hint: t('medicines.reminderStyleNotificationHint'), Icon: Bell }
+                ] as const
+              ).map((opt) => {
+                const selected = reminderStyle === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setReminderStyle(opt.value)}
+                    accessible={true}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`${opt.label}. ${opt.hint}`}
+                    style={[
+                      tw`flex-1 p-3 rounded-xl border min-h-11`,
+                      selected
+                        ? { backgroundColor: `${colors.primary}20`, borderColor: colors.primary }
+                        : { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+                    ]}
+                  >
+                    <View style={tw`flex-row items-center gap-1.5 mb-1`}>
+                      <opt.Icon size={14} color={selected ? colors.primary : colors.textMuted} />
+                      <Text style={[tw`text-xs font-bold`, { color: selected ? colors.primary : colors.text }]}>
+                        {opt.label}
+                      </Text>
+                    </View>
+                    <Text style={[tw`text-[10px]`, { color: colors.textMuted }]}>{opt.hint}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowTonePicker(true)}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`${t('medicines.reminderTone')}: ${toneName || t('tones.defaultTone')}`}
+              style={[
+                tw`flex-row items-center justify-between p-3 rounded-xl border min-h-11`,
+                { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+              ]}
+            >
+              <View style={tw`flex-row items-center gap-2 flex-1 min-w-0`}>
+                <Music size={14} color={colors.primary} />
+                <View style={tw`flex-1 min-w-0`}>
+                  <Text style={[tw`text-[11px]`, { color: colors.textMuted }]}>{t('medicines.reminderTone')}</Text>
+                  <Text style={[tw`text-xs font-bold`, { color: colors.text }]} numberOfLines={1}>
+                    {toneName || t('tones.defaultTone')}
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={14} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TonePickerModal
+          visible={showTonePicker}
+          selectedUri={toneUri}
+          onSelect={(selection) => {
+            setToneUri(selection.uri);
+            setToneName(selection.name);
+          }}
+          onClose={() => setShowTonePicker(false)}
+        />
 
         {/* Medication Safety Section */}
         <View

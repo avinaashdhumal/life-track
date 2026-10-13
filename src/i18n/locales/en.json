@@ -465,7 +465,14 @@
     "refillStockTitle": "Refill Inventory",
     "addStock": "Add Stock",
     "safetyWarningTitle": "⚠️ Medication Safety Warning",
-    "doseLogged": "Dose Logged"
+    "doseLogged": "Dose Logged",
+    "reminderTitle": "Reminder",
+    "reminderSubtitle": "How you are reminded at each dose time",
+    "reminderStyleAlarm": "Ringing alarm",
+    "reminderStyleAlarmHint": "Full screen, rings until you respond",
+    "reminderStyleNotification": "Notification",
+    "reminderStyleNotificationHint": "Banner with sound, no full screen",
+    "reminderTone": "Tone"
   },
   "today": {
     "greetingMorning": "Good morning",
@@ -509,7 +516,8 @@
     "infoNote": "When you schedule medications or habits relative to routine anchors (e.g. \"with breakfast\"), updating your routine here automatically adjusts those alarms.",
     "customLabelRequired": "Please enter a name for this routine block",
     "saveFailed": "Failed to save daily routine",
-    "menuDesc": "Wake, meals, sleep milestones"
+    "menuDesc": "Wake, meals, sleep milestones",
+    "notifyLabel": "Notification for {{name}}"
   },
   "shift": {
     "title": "Shift & Schedule",
@@ -561,7 +569,11 @@
     "eveAlertTitle": "Shift Change Notification",
     "invalidDays": "Please enter a valid number of days (1-30).",
     "minOneStep": "A rotation cycle requires at least 1 step.",
-    "overrideNotePlaceholder": "e.g. Swapped with colleague, annual leave"
+    "overrideNotePlaceholder": "e.g. Swapped with colleague, annual leave",
+    "noticeToggleTitle": "Evening notice before a shift change",
+    "noticeToggleSubtitle": "Notification at {{time}} the evening before your shift changes.",
+    "noticeEarlier": "Send the notice 30 minutes earlier",
+    "noticeLater": "Send the notice 30 minutes later"
   },
   "reminders": {
     "badge": "LIFETRACK REMINDER",
@@ -570,6 +582,30 @@
     "skip": "Skip",
     "medicineTitle": "Time for {{name}}",
     "medicineDefault": "Scheduled dose at {{time}}",
-    "snoozedNotice": "We will remind you about {{name}} again in {{minutes}} minutes."
+    "snoozedNotice": "We will remind you about {{name}} again in {{minutes}} minutes.",
+    "routineMessage": "Daily routine · {{time}}",
+    "shiftNoticeTitle": "Tomorrow: {{shift}}",
+    "shiftNoticeMessage": "{{start}} – {{end}}. Your reminders follow this shift.",
+    "shiftNoticeOffTitle": "Tomorrow is a day off",
+    "shiftNoticeOffMessage": "No shift tomorrow. Rest well.",
+    "routineTitle": {
+      "wake": "Good morning! Time to wake up",
+      "breakfast": "Breakfast time",
+      "lunch": "Lunch time",
+      "exercise": "Time to exercise",
+      "dinner": "Dinner time",
+      "windDown": "Time to wind down",
+      "sleep": "Bedtime"
+    }
+  },
+  "tones": {
+    "title": "Reminder tone",
+    "defaultSection": "LifeTrack",
+    "defaultTone": "Default tone",
+    "section_alarm": "Alarm sounds",
+    "section_notification": "Notification sounds",
+    "section_ringtone": "Ringtones",
+    "noPhoneTones": "Your phone's sounds appear here in the Android app.",
+    "useTone": "Use this tone"
   }
 }

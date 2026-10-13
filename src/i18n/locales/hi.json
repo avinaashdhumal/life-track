@@ -465,7 +465,14 @@
     "refillStockTitle": "इन्वेंट्री रीफिल करें",
     "addStock": "स्टॉक जोड़ें",
     "safetyWarningTitle": "⚠️ दवा सुरक्षा चेतावनी",
-    "doseLogged": "खुराक दर्ज की गई"
+    "doseLogged": "खुराक दर्ज की गई",
+    "reminderTitle": "रिमाइंडर",
+    "reminderSubtitle": "हर खुराक के समय आपको कैसे याद दिलाया जाए",
+    "reminderStyleAlarm": "बजने वाला अलार्म",
+    "reminderStyleAlarmHint": "पूरी स्क्रीन पर, जवाब देने तक बजता है",
+    "reminderStyleNotification": "सूचना",
+    "reminderStyleNotificationHint": "ध्वनि के साथ बैनर, पूरी स्क्रीन नहीं",
+    "reminderTone": "टोन"
   },
   "today": {
     "greetingMorning": "शुभ प्रभात",
@@ -509,7 +516,8 @@
     "infoNote": "जब आप दिनचर्या के अनुसार दवाएं या आदतें शेड्यूल करते हैं, तो दिनचर्या बदलने पर वे रिमाइंडर अपने आप बदल जाते हैं।",
     "customLabelRequired": "कृपया इस दिनचर्या ब्लॉक का नाम दर्ज करें",
     "saveFailed": "दैनिक दिनचर्या सहेजने में विफल",
-    "menuDesc": "जागना, भोजन, सोने का समय"
+    "menuDesc": "जागना, भोजन, सोने का समय",
+    "notifyLabel": "{{name}} के लिए सूचना"
   },
   "shift": {
     "title": "शिफ्ट और अनुसूची",
@@ -561,7 +569,11 @@
     "eveAlertTitle": "शिफ्ट बदलाव अधिसूचना",
     "invalidDays": "कृपया दिनों की मान्य संख्या दर्ज करें (1-30)।",
     "minOneStep": "रोटेशन चक्र में कम से कम 1 चरण होना चाहिए।",
-    "overrideNotePlaceholder": "जैसे सहकर्मी से बदली, वार्षिक छुट्टी"
+    "overrideNotePlaceholder": "जैसे सहकर्मी से बदली, वार्षिक छुट्टी",
+    "noticeToggleTitle": "शिफ्ट बदलने से पहले शाम की सूचना",
+    "noticeToggleSubtitle": "शिफ्ट बदलने से पहले वाली शाम {{time}} बजे सूचना।",
+    "noticeEarlier": "सूचना 30 मिनट पहले भेजें",
+    "noticeLater": "सूचना 30 मिनट बाद भेजें"
   },
   "reminders": {
     "badge": "लाइफ़ट्रैक रिमाइंडर",
@@ -570,6 +582,30 @@
     "skip": "छोड़ें",
     "medicineTitle": "{{name}} लेने का समय",
     "medicineDefault": "{{time}} बजे की खुराक",
-    "snoozedNotice": "{{name}} की याद {{minutes}} मिनट बाद फिर दिलाएँगे।"
+    "snoozedNotice": "{{name}} की याद {{minutes}} मिनट बाद फिर दिलाएँगे।",
+    "routineMessage": "दैनिक दिनचर्या · {{time}}",
+    "shiftNoticeTitle": "कल: {{shift}}",
+    "shiftNoticeMessage": "{{start}} – {{end}}। आपके रिमाइंडर इस शिफ्ट के अनुसार होंगे।",
+    "shiftNoticeOffTitle": "कल छुट्टी है",
+    "shiftNoticeOffMessage": "कल कोई शिफ्ट नहीं है। अच्छे से आराम करें।",
+    "routineTitle": {
+      "wake": "सुप्रभात! उठने का समय",
+      "breakfast": "नाश्ते का समय",
+      "lunch": "दोपहर के खाने का समय",
+      "exercise": "व्यायाम का समय",
+      "dinner": "रात के खाने का समय",
+      "windDown": "आराम करने का समय",
+      "sleep": "सोने का समय"
+    }
+  },
+  "tones": {
+    "title": "रिमाइंडर टोन",
+    "defaultSection": "LifeTrack",
+    "defaultTone": "डिफ़ॉल्ट टोन",
+    "section_alarm": "अलार्म ध्वनियाँ",
+    "section_notification": "सूचना ध्वनियाँ",
+    "section_ringtone": "रिंगटोन",
+    "noPhoneTones": "फ़ोन की ध्वनियाँ Android ऐप में यहाँ दिखती हैं।",
+    "useTone": "यह टोन इस्तेमाल करें"
   }
 }

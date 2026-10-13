@@ -69,6 +69,9 @@ export const DoseStatusSchema = z.enum([
 ]);
 export type DoseStatus = z.infer<typeof DoseStatusSchema>;
 
+export const MedicineReminderStyleSchema = z.enum(['full_alarm', 'notification']);
+export type MedicineReminderStyle = z.infer<typeof MedicineReminderStyleSchema>;
+
 export const MedicineSchema = z.object({
   id: z.string().min(1),
   profileId: z.string().default('default'),
@@ -89,6 +92,11 @@ export const MedicineSchema = z.object({
   instructions: z.string().optional(), // e.g. "Take with plenty of water"
   color: z.string().default('#10b981'),
   icon: z.string().default('pill'),
+  // Reminder presentation (per medicine): ringing full-screen alarm or a notification with sound.
+  reminderStyle: MedicineReminderStyleSchema.default('full_alarm'),
+  // Phone tone for this medicine's reminders (Android content URI + display name). Unset = default tone.
+  toneUri: z.string().optional(),
+  toneName: z.string().optional(),
   isActive: z.boolean().default(true),
   createdAt: z.number().int(),
   updatedAt: z.number().int()

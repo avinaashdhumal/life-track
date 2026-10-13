@@ -30,7 +30,7 @@ import { AddRotationStepModal } from './AddRotationStepModal';
 import { medicinesRepository } from '../../data/medicinesRepository';
 import { routineRepository } from '../../data/routineRepository';
 import { Medicine } from '../../domain/medicine';
-import { DailyRoutine, timeStringToMinutes } from '../../domain/routine';
+import { DailyRoutine, timeStringToMinutes, minutesToTimeString } from '../../domain/routine';
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -536,6 +536,63 @@ export const ShiftScheduleScreen: React.FC<ShiftScheduleScreenProps> = ({
                     </View>
                   </View>
                 )}
+
+                {/* Evening notice before the shift changes (user can turn it off and pick the time) */}
+                <View
+                  style={[
+                    tw`p-3.5 rounded-2xl border mb-4`,
+                    { backgroundColor: colors.card, borderColor: colors.border }
+                  ]}
+                >
+                  <View style={tw`flex-row items-center justify-between`}>
+                    <View style={tw`flex-1 pr-3`}>
+                      <Text style={[tw`text-xs font-bold`, { color: colors.text }]}>{t('shift.noticeToggleTitle')}</Text>
+                      <Text style={[tw`text-[11px] mt-0.5`, { color: colors.textMuted }]}>
+                        {t('shift.noticeToggleSubtitle', { time: config.eveningNotificationTime })}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={config.shiftChangeNotice !== false}
+                      onValueChange={(on) => saveConfig({ ...config, shiftChangeNotice: on })}
+                      trackColor={{ false: '#3f3f46', true: '#f59e0b' }}
+                      thumbColor={config.shiftChangeNotice !== false ? '#ffffff' : '#a1a1aa'}
+                      accessible={true}
+                      accessibilityRole="switch"
+                      accessibilityLabel={t('shift.noticeToggleTitle')}
+                    />
+                  </View>
+                  {config.shiftChangeNotice !== false && (
+                    <View style={tw`flex-row items-center gap-2 mt-3`}>
+                      {[-30, 30].map((delta) => (
+                        <TouchableOpacity
+                          key={delta}
+                          onPress={() =>
+                            saveConfig({
+                              ...config,
+                              eveningNotificationTime: minutesToTimeString(
+                                (timeStringToMinutes(config.eveningNotificationTime) + delta + 1440) % 1440
+                              )
+                            })
+                          }
+                          accessible={true}
+                          accessibilityRole="button"
+                          accessibilityLabel={t(delta < 0 ? 'shift.noticeEarlier' : 'shift.noticeLater')}
+                          style={[
+                            tw`px-3 py-2 rounded-lg border min-h-11 justify-center`,
+                            { backgroundColor: colors.cardSecondary, borderColor: colors.border }
+                          ]}
+                        >
+                          <Text style={[tw`text-xs font-bold`, { color: colors.textMuted }]}>
+                            {delta < 0 ? '-30m' : '+30m'}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                      <Text style={[tw`text-sm font-bold font-mono`, { color: colors.primary }]}>
+                        {config.eveningNotificationTime}
+                      </Text>
+                    </View>
+                  )}
+                </View>
 
                 {/* Work Mode Selector */}
                 <View style={tw`mb-4`}>

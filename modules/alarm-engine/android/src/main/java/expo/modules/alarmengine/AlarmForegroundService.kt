@@ -102,7 +102,7 @@ class AlarmForegroundService : Service() {
         startForeground(alarm.id.hashCode(), notifBuilder.build())
 
         if (alarm.isFullAlarm) {
-            startAudioPlayback(alarm.channelId)
+            startAudioPlayback(alarm)
             if (alarm.vibrate) {
                 startVibration()
             } else {
@@ -124,12 +124,16 @@ class AlarmForegroundService : Service() {
         }
     }
 
-    private fun startAudioPlayback(channelId: String) {
+    private fun startAudioPlayback(alarm: NativeAlarm) {
         try {
             stopAudioPlayback()
 
-            // Resolve sound URI selected by user for this channel (or fallback to default alarm tone)
-            val soundUri: Uri = AlarmNotificationHelper.getChannelSoundUri(this, channelId)
+            // The reminder's own tone if one was chosen, else the channel's sound (or the default alarm tone)
+            val soundUri: Uri = if (alarm.soundUri.isNotBlank()) {
+                Uri.parse(alarm.soundUri)
+            } else {
+                AlarmNotificationHelper.getChannelSoundUri(this, alarm.channelId)
+            }
 
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(applicationContext, soundUri)

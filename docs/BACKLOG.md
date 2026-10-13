@@ -5,7 +5,7 @@ item, and add new findings with the next free ID. Don't renumber or delete items
 
 **Statuses:** `todo` · `in-progress` · `blocked` · `done` · `wontfix`
 **Priority:** **P0** breaks the core promise or loses data · **P1** big user value · **P2** worthwhile · **P3** nice to have
-**Next free IDs:** BUG-027 · DEBT-013 · FEAT-016
+**Next free IDs:** BUG-029 · DEBT-014 · FEAT-017
 
 ---
 
@@ -31,6 +31,14 @@ item, and add new findings with the next free ID. Don't renumber or delete items
   4. Snooze from the lock screen → rings again after the configured snooze minutes, same medicine.
   5. Reboot with an alarm due 2 min later → still rings; after a missed one, the next day's occurrence exists.
 - Record the device, Android version, and results in PROGRESS_LOG.md.
+
+### DEBT-013 · P1 · todo — Android 16 "audio hardening" may mute the ringing alarm
+- **Seen 2026-10-13 (emulator API 36):** `AudioService: AudioHardening background playback would be muted for
+  com.lifetrack.app`. Audit-only today (the alarm rang), but enforcement would silence the looping alarm tone, which
+  is played by `AlarmForegroundService` (type `specialUse`) started from the background.
+- **Do:** on a real Android 16 device, check whether the tone plays with the screen locked. Evaluate the FGS type
+  for alarm audio (`mediaPlayback`, or `systemExempted` for exact-alarm apps) against current Play policy, and the
+  fallback of relying on the notification channel sound. Decide together with FEAT-015.
 
 ### DEBT-009 · P1 · todo — ~70 hard-coded English UI strings remain
 - Mostly `accessibilityLabel="..."` (screen-reader text) plus some visible text and placeholders in
@@ -109,6 +117,22 @@ DEBT-010.
 - **DEBT-008 · P3 — Navigation.** Android back button returns to Today before exiting; deep links
   `lifetrack://today|medicines|alarms|health|profile`. (A navigation library is still optional; revisit with FEAT-005.)
 - **FEAT-001 · P0 — Medicine reminders end to end** (BUG-001 + BUG-004 + BUG-005).
+
+### Reminders for everything (2026-10-13)
+- **FEAT-016 · P1 — Reminder notifications beyond medicines, with user control.**
+  - Medicines: per-medicine **reminder style** (ringing full-screen alarm or notification) and **tone** picked from
+    the phone's alarm/notification/ringtone sounds with preview (`TonePickerModal`). Native posts each tone on its
+    own channel (`<base>__tone_<hash>`, Android 8+ binds sound to channels); the ringing service plays that tone.
+  - Daily Routine: a bell switch per milestone (wake, meals, exercise, wind-down, sleep) and per custom block; off by
+    default. Planned 14 days ahead with native roll-forward (`src/domain/routineReminders.ts`).
+  - Shifts: evening "Tomorrow: Night shift" notice before each change, switch + time (±30 min) on the Shift screen,
+    on by default when shifts are enabled; planned 30 days ahead by JS (`src/domain/shiftNotices.ts`).
+  - Routine and shift notifications have a single **OK** button and open the app when tapped.
+  - Verified on the emulator: routine block and medicine reminders scheduled natively (14 each).
+- **BUG-028 · P2 — "Next up" and shift cards looked broken on Android** (grey band behind a lighter strip):
+  translucent backgrounds + `shadow-sm` elevation. Now opaque tints via `tintOver()` (`src/utils/color.ts`).
+- **BUG-027 · P1 — Routine-anchored medicines lost their anchor on save** (`upsert` never copied `routineTiming`,
+  so they reminded at 08:00). Fixed; covered by `src/data/__tests__/medicinesRepository.test.ts`.
 
 ### Lint and health pass (2026-10-12, later the same day)
 - **DEBT-011 · P1 — No real linter.** `npm run lint` was only `tsc` without `strict`. Now: tsconfig `strict`,

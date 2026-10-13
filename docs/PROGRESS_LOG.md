@@ -15,6 +15,16 @@ Template:
 
 ---
 
+## 2026-10-13 — Reminders for medicines, routine, shifts + per-medicine tone (Claude Code)
+- **Changed:** FEAT-016 (see BACKLOG): per-medicine reminder style + tone picker; routine milestone/custom-block
+  notifications with bell switches; shift-change evening notice with switch/time; native per-tone channels, OK-only
+  action, tone listing/preview; BUG-027 fix (routineTiming saved).
+- **Verified:** `npm run lint` ✅ · `npm test` ✅ (9 files × 2 timezones; new routineReminders + medicinesRepository
+  tests) · Kotlin compile + debug APK ✅ · emulator: routine block (14) and medicine (14) reminders scheduled natively.
+- **Left / risks:** user's physical phone still runs the old preview APK, which has none of this. Tone picker needs a
+  hands-on check on device (lists phone sounds, preview, chosen tone heard). Custom tones mean extra notification
+  channels in Android settings (one per chosen tone).
+
 ## 2026-10-12 — Production lint, type strictness, and date hardening pass (Antigravity)
 - **Changed:**
   - `tsconfig.json`: Added `noImplicitReturns`, `noFallthroughCasesInSwitch`, `noImplicitOverride`, and `forceConsistentCasingInFileNames`.

@@ -465,7 +465,14 @@
     "refillStockTitle": "Recargar inventario",
     "addStock": "Agregar stock",
     "safetyWarningTitle": "⚠️ Advertencia de seguridad del medicamento",
-    "doseLogged": "Dosis registrada"
+    "doseLogged": "Dosis registrada",
+    "reminderTitle": "Recordatorio",
+    "reminderSubtitle": "Cómo te avisamos en cada toma",
+    "reminderStyleAlarm": "Alarma sonora",
+    "reminderStyleAlarmHint": "Pantalla completa, suena hasta que respondas",
+    "reminderStyleNotification": "Notificación",
+    "reminderStyleNotificationHint": "Aviso con sonido, sin pantalla completa",
+    "reminderTone": "Tono"
   },
   "today": {
     "greetingMorning": "Buenos días",
@@ -509,7 +516,8 @@
     "infoNote": "Cuando programas medicamentos o hábitos relativos a tu rutina (ej. \"con el desayuno\"), cambiar tu rutina aquí ajusta automáticamente esas alarmas.",
     "customLabelRequired": "Ingresa un nombre para este bloque de rutina",
     "saveFailed": "Error al guardar la rutina diaria",
-    "menuDesc": "Despertar, comidas y hora de dormir"
+    "menuDesc": "Despertar, comidas y hora de dormir",
+    "notifyLabel": "Notificación de {{name}}"
   },
   "shift": {
     "title": "Turnos y Horario",
@@ -561,7 +569,11 @@
     "eveAlertTitle": "Notificación de cambio de turno",
     "invalidDays": "Ingresa una cantidad válida de días (1-30).",
     "minOneStep": "Un ciclo de rotación requiere al menos 1 paso.",
-    "overrideNotePlaceholder": "p. ej. Cambio con un compañero, vacaciones"
+    "overrideNotePlaceholder": "p. ej. Cambio con un compañero, vacaciones",
+    "noticeToggleTitle": "Aviso por la tarde antes de un cambio de turno",
+    "noticeToggleSubtitle": "Notificación a las {{time}} la tarde anterior al cambio de turno.",
+    "noticeEarlier": "Enviar el aviso 30 minutos antes",
+    "noticeLater": "Enviar el aviso 30 minutos después"
   },
   "reminders": {
     "badge": "RECORDATORIO LIFETRACK",
@@ -570,6 +582,30 @@
     "skip": "Omitir",
     "medicineTitle": "Hora de {{name}}",
     "medicineDefault": "Dosis programada a las {{time}}",
-    "snoozedNotice": "Te recordaremos {{name}} de nuevo en {{minutes}} minutos."
+    "snoozedNotice": "Te recordaremos {{name}} de nuevo en {{minutes}} minutos.",
+    "routineMessage": "Rutina diaria · {{time}}",
+    "shiftNoticeTitle": "Mañana: {{shift}}",
+    "shiftNoticeMessage": "{{start}} – {{end}}. Tus recordatorios siguen este turno.",
+    "shiftNoticeOffTitle": "Mañana es día libre",
+    "shiftNoticeOffMessage": "Mañana no tienes turno. Descansa.",
+    "routineTitle": {
+      "wake": "¡Buenos días! Hora de levantarse",
+      "breakfast": "Hora del desayuno",
+      "lunch": "Hora del almuerzo",
+      "exercise": "Hora de hacer ejercicio",
+      "dinner": "Hora de la cena",
+      "windDown": "Hora de relajarse",
+      "sleep": "Hora de dormir"
+    }
+  },
+  "tones": {
+    "title": "Tono del recordatorio",
+    "defaultSection": "LifeTrack",
+    "defaultTone": "Tono predeterminado",
+    "section_alarm": "Sonidos de alarma",
+    "section_notification": "Sonidos de notificación",
+    "section_ringtone": "Tonos de llamada",
+    "noPhoneTones": "Los sonidos del teléfono aparecen aquí en la app de Android.",
+    "useTone": "Usar este tono"
   }
 }

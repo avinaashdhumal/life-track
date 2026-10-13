@@ -16,6 +16,8 @@ export interface RoutineCustomBlock {
   id: string;
   label: string;
   time: string; // "HH:mm" (24h)
+  /** Send a reminder notification at this block's time (off unless the user turns it on). */
+  notify?: boolean;
 }
 
 export interface DailyRoutine {
@@ -30,6 +32,8 @@ export interface DailyRoutine {
   windDownTime?: string; // "HH:mm" e.g. "22:00"
   exerciseTime?: string; // "HH:mm" e.g. "18:00"
   customBlocks?: RoutineCustomBlock[];
+  /** Milestones that send a reminder notification at their time (none by default; the user opts in). */
+  notifyAnchors?: RoutineAnchor[];
   updatedAt: number;
 }
 

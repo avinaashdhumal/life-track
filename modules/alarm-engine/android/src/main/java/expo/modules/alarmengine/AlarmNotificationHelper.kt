@@ -8,6 +8,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
@@ -23,6 +24,62 @@ object AlarmNotificationHelper {
     const val ACTION_TAKEN = "expo.modules.alarmengine.ACTION_TAKEN"
     const val ACTION_SNOOZE = "expo.modules.alarmengine.ACTION_SNOOZE"
     const val ACTION_SKIP = "expo.modules.alarmengine.ACTION_SKIP"
+    const val ACTION_DISMISS = "expo.modules.alarmengine.ACTION_DISMISS"
+
+    private const val TONE_CHANNEL_MARKER = "__tone_"
+
+    /** Channels whose reminders use alarm-stream audio (audible even when the ringer is on vibrate). */
+    private fun usesAlarmAudio(baseChannelId: String): Boolean =
+        baseChannelId == CHANNEL_MEDICINES || baseChannelId == CHANNEL_APPOINTMENTS || baseChannelId == CHANNEL_ROUTINE
+
+    fun isToneChannel(channelId: String): Boolean = channelId.contains(TONE_CHANNEL_MARKER)
+
+    /** Display name of a tone URI (e.g. "Beep-Beep"), for channel names. */
+    fun toneTitle(context: Context, uri: Uri): String {
+        return try {
+            RingtoneManager.getRingtone(context, uri)?.getTitle(context) ?: "Tone"
+        } catch (e: Exception) {
+            "Tone"
+        }
+    }
+
+    /**
+     * Android 8+ binds a notification's sound to its channel, so a reminder with its own tone is posted
+     * on a dedicated channel "<base>__tone_<hash>" (created once, copying the base channel's settings).
+     * Without a tone, the base channel (and whatever sound the user set on it) is used.
+     */
+    fun resolveChannelId(context: Context, alarm: NativeAlarm): String {
+        val base = if (alarm.channelId.isNotEmpty()) alarm.channelId else CHANNEL_MEDICINES
+        if (alarm.soundUri.isBlank() || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return base
+
+        val id = base + TONE_CHANNEL_MARKER + Integer.toHexString(alarm.soundUri.hashCode())
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.getNotificationChannel(id) == null) {
+            val baseChannel = manager.getNotificationChannel(base)
+            val uri = Uri.parse(alarm.soundUri)
+            val usage = if (usesAlarmAudio(base)) AudioAttributes.USAGE_ALARM else AudioAttributes.USAGE_NOTIFICATION
+            val channel = NotificationChannel(
+                id,
+                "${baseChannel?.name ?: base} · ${toneTitle(context, uri)}",
+                baseChannel?.importance ?: NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = baseChannel?.description
+                enableLights(true)
+                enableVibration(true)
+                setSound(
+                    uri,
+                    AudioAttributes.Builder()
+                        .setUsage(usage)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                if (base == CHANNEL_MEDICINES) setBypassDnd(true)
+            }
+            manager.createNotificationChannel(channel)
+        }
+        return id
+    }
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -192,7 +249,7 @@ object AlarmNotificationHelper {
     ): NotificationCompat.Builder {
         createChannels(context)
 
-        val channelId = if (alarm.channelId.isNotEmpty()) alarm.channelId else CHANNEL_MEDICINES
+        val channelId = resolveChannelId(context, alarm)
 
         val pendingFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -232,14 +289,26 @@ object AlarmNotificationHelper {
             .setContentTitle(alarm.title)
             .setContentText(alarm.message)
             .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setCategory(if (alarm.infoOnly) NotificationCompat.CATEGORY_REMINDER else NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(!alarm.isFullAlarm)
             .setOngoing(alarm.isFullAlarm)
-            .setContentIntent(fullScreenPendingIntent)
-            .addAction(android.R.drawable.ic_menu_agenda, takenLabel, actionIntent(ACTION_TAKEN, 1))
-            .addAction(android.R.drawable.ic_popup_reminder, snoozeLabel, actionIntent(ACTION_SNOOZE, 2))
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, skipLabel, actionIntent(ACTION_SKIP, 3))
+            .setContentIntent(if (alarm.infoOnly) openAppIntent(context, notificationId, pendingFlags) ?: fullScreenPendingIntent else fullScreenPendingIntent)
+
+        if (alarm.infoOnly) {
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, alarm.label("ok", "OK"), actionIntent(ACTION_DISMISS, 4))
+        } else {
+            builder
+                .addAction(android.R.drawable.ic_menu_agenda, takenLabel, actionIntent(ACTION_TAKEN, 1))
+                .addAction(android.R.drawable.ic_popup_reminder, snoozeLabel, actionIntent(ACTION_SNOOZE, 2))
+                .addAction(android.R.drawable.ic_menu_close_clear_cancel, skipLabel, actionIntent(ACTION_SKIP, 3))
+        }
+
+        // Before Android 8 the sound is set per notification instead of per channel.
+        if (alarm.soundUri.isNotBlank() && Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            @Suppress("DEPRECATION")
+            builder.setSound(Uri.parse(alarm.soundUri))
+        }
 
         if (silent) {
             builder.setSilent(true).setOnlyAlertOnce(true)
@@ -250,6 +319,13 @@ object AlarmNotificationHelper {
         }
 
         return builder
+    }
+
+    /** Tapping an informational reminder opens the app itself. */
+    private fun openAppIntent(context: Context, requestCode: Int, flags: Int): PendingIntent? {
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return null
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        return PendingIntent.getActivity(context, requestCode + 5, launch, flags)
     }
 
     /** Android 14+ lets users (and Play policy) revoke full-screen intents. */

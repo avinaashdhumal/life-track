@@ -142,4 +142,22 @@ const opts = { nowMs: now, style: 'full_alarm' as const, snoozeMinutes: 10, text
   console.log('✅ Routine-relative reminders follow the routine');
 }
 
+// 8. Each medicine's own reminder style and tone are used
+{
+  const asNotification = planMedicineReminders(
+    med({ timesOfDay: ['20:00'], reminderStyle: 'notification', toneUri: 'content://media/internal/audio/media/42', toneName: 'Chime' }),
+    opts
+  );
+  assert.ok(asNotification.every((a) => a.style === 'notification'));
+  assert.ok(asNotification.every((a) => a.soundUri === 'content://media/internal/audio/media/42'));
+  assert.ok(asNotification.every((a) => a.actions === 'dose'));
+
+  // Records saved before this field existed fall back to the global style, default tone
+  const legacy = { ...med({ timesOfDay: ['20:00'] }) } as Partial<Medicine>;
+  delete legacy.reminderStyle;
+  const legacyAlarms = planMedicineReminders(legacy as Medicine, { ...opts, style: 'full_alarm' });
+  assert.ok(legacyAlarms.every((a) => a.style === 'full_alarm' && a.soundUri === undefined));
+  console.log('✅ Per-medicine reminder style and tone');
+}
+
 console.log('🎉 ALL MEDICINE REMINDER TESTS PASSED!');

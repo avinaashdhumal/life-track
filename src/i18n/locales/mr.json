@@ -465,7 +465,14 @@
     "refillStockTitle": "इन्व्हेंटरी रिफिल करा",
     "addStock": "स्टॉक जोडा",
     "safetyWarningTitle": "⚠️ औषध सुरक्षा इशारा",
-    "doseLogged": "डोस नोंदवला गेला"
+    "doseLogged": "डोस नोंदवला गेला",
+    "reminderTitle": "स्मरणपत्र",
+    "reminderSubtitle": "प्रत्येक डोसच्या वेळी आठवण कशी करून द्यावी",
+    "reminderStyleAlarm": "वाजणारा अलार्म",
+    "reminderStyleAlarmHint": "पूर्ण स्क्रीन, प्रतिसाद देईपर्यंत वाजतो",
+    "reminderStyleNotification": "सूचना",
+    "reminderStyleNotificationHint": "आवाजासह बॅनर, पूर्ण स्क्रीन नाही",
+    "reminderTone": "टोन"
   },
   "today": {
     "greetingMorning": "शुभ सकाळ",
@@ -509,7 +516,8 @@
     "infoNote": "जेव्हा तुम्ही औषधे किंवा सवयी दिनचर्येनुसार शेड्यूल करता, तेव्हा दिनचर्या बदलल्यास स्मरणपत्रे आपोआप समायोजित होतात.",
     "customLabelRequired": "कृपया या दिनचर्या घटकाचे नाव प्रविष्ट करा",
     "saveFailed": "दैनिक दिनचर्या जतन करण्यात अयशस्वी",
-    "menuDesc": "उठणे, जेवण, झोपण्याचे टप्पे"
+    "menuDesc": "उठणे, जेवण, झोपण्याचे टप्पे",
+    "notifyLabel": "{{name}} साठी सूचना"
   },
   "shift": {
     "title": "शिफ्ट आणि वेळापत्रक",
@@ -561,7 +569,11 @@
     "eveAlertTitle": "शिफ्ट बदलाची सूचना",
     "invalidDays": "कृपया वैध दिवसांची संख्या प्रविष्ट करा (१-३०).",
     "minOneStep": "रोटेशन चक्रात किमान १ टप्पा असणे आवश्यक आहे.",
-    "overrideNotePlaceholder": "उदा. सहकाऱ्याशी अदलाबदल, वार्षिक रजा"
+    "overrideNotePlaceholder": "उदा. सहकाऱ्याशी अदलाबदल, वार्षिक रजा",
+    "noticeToggleTitle": "शिफ्ट बदलण्यापूर्वी संध्याकाळची सूचना",
+    "noticeToggleSubtitle": "शिफ्ट बदलण्याच्या आदल्या संध्याकाळी {{time}} वाजता सूचना.",
+    "noticeEarlier": "सूचना 30 मिनिटे आधी पाठवा",
+    "noticeLater": "सूचना 30 मिनिटे नंतर पाठवा"
   },
   "reminders": {
     "badge": "लाइफट्रॅक स्मरणपत्र",
@@ -570,6 +582,30 @@
     "skip": "वगळा",
     "medicineTitle": "{{name}} घेण्याची वेळ",
     "medicineDefault": "{{time}} वाजताचा डोस",
-    "snoozedNotice": "{{name}} ची आठवण {{minutes}} मिनिटांनी पुन्हा करून देऊ."
+    "snoozedNotice": "{{name}} ची आठवण {{minutes}} मिनिटांनी पुन्हा करून देऊ.",
+    "routineMessage": "दैनंदिन दिनक्रम · {{time}}",
+    "shiftNoticeTitle": "उद्या: {{shift}}",
+    "shiftNoticeMessage": "{{start}} – {{end}}. तुमची स्मरणपत्रे या शिफ्टनुसार असतील.",
+    "shiftNoticeOffTitle": "उद्या सुट्टी आहे",
+    "shiftNoticeOffMessage": "उद्या शिफ्ट नाही. नीट विश्रांती घ्या.",
+    "routineTitle": {
+      "wake": "सुप्रभात! उठायची वेळ",
+      "breakfast": "नाश्त्याची वेळ",
+      "lunch": "दुपारच्या जेवणाची वेळ",
+      "exercise": "व्यायामाची वेळ",
+      "dinner": "रात्रीच्या जेवणाची वेळ",
+      "windDown": "विश्रांती घेण्याची वेळ",
+      "sleep": "झोपायची वेळ"
+    }
+  },
+  "tones": {
+    "title": "स्मरणपत्र टोन",
+    "defaultSection": "LifeTrack",
+    "defaultTone": "डिफॉल्ट टोन",
+    "section_alarm": "अलार्म आवाज",
+    "section_notification": "सूचना आवाज",
+    "section_ringtone": "रिंगटोन",
+    "noPhoneTones": "फोनचे आवाज Android ॲपमध्ये इथे दिसतात.",
+    "useTone": "हा टोन वापरा"
   }
 }

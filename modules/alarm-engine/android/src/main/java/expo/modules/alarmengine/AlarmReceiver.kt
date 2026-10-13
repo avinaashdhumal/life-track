@@ -33,6 +33,8 @@ class AlarmReceiver : BroadcastReceiver() {
                     )
                 AlarmNotificationHelper.ACTION_SKIP ->
                     AlarmActionHandler.handle(context, alarmId, AlarmActionHandler.SKIPPED)
+                AlarmNotificationHelper.ACTION_DISMISS ->
+                    AlarmActionHandler.handle(context, alarmId, AlarmActionHandler.DISMISSED)
             }
         } finally {
             wakeLock?.let { if (it.isHeld) it.release() }

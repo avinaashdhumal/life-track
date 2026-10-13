@@ -9,9 +9,18 @@ import {
   slotKey
 } from '../domain/medicineReminders';
 import { planNextInSeries } from '../domain/reminderPlanner';
+import {
+  ROUTINE_ALARM_KIND,
+  ROUTINE_ALARM_PREFIX,
+  RoutineReminderTarget,
+  planRoutineReminders
+} from '../domain/routineReminders';
+import { SHIFT_NOTICE_KIND, SHIFT_NOTICE_PREFIX, planShiftChangeNotices } from '../domain/shiftNotices';
+import { ShiftType } from '../domain/shift';
 import { localDateTimeToMs, startOfLocalDay, toLocalDateString } from '../domain/dates';
 import { medicinesRepository } from '../data/medicinesRepository';
 import { routineRepository } from '../data/routineRepository';
+import { shiftRepository } from '../data/shiftRepository';
 import { AppSettings, STORAGE_KEYS, storageService } from './StorageService';
 import { reminderService } from './AlarmEngineService';
 import i18n from '../i18n';
@@ -86,7 +95,14 @@ class ReminderCoordinator {
     });
 
     routineRepository.changes.subscribe(() => {
-      this.enqueue(() => this.syncAllMedicines());
+      this.enqueue(async () => {
+        await this.syncAllMedicines();
+        await this.syncRoutineReminders({ force: true });
+      });
+    });
+
+    shiftRepository.changes.subscribe(() => {
+      this.enqueue(() => this.syncShiftNotices({ force: true }));
     });
 
     storageService.subscribe((key) => {
@@ -118,6 +134,45 @@ class ReminderCoordinator {
   private async syncAll(options: { force?: boolean } = {}): Promise<void> {
     await reminderService.replanRecurringSchedules(options);
     await this.syncAllMedicines(options);
+    await this.syncRoutineReminders(options);
+    await this.syncShiftNotices(options);
+  }
+
+  // --- Routine reminders (only milestones/blocks the user switched on) ---
+
+  private routineText = (target: RoutineReminderTarget) => ({
+    title: target.anchor ? i18n.t(`reminders.routineTitle.${target.anchor}`) : target.label || i18n.t('routine.title'),
+    message: i18n.t('reminders.routineMessage', { time: target.time })
+  });
+
+  private async syncRoutineReminders(options: { force?: boolean } = {}): Promise<void> {
+    const routine = await routineRepository.getRoutine('default');
+    const desired = planRoutineReminders(routine, { nowMs: Date.now(), text: this.routineText });
+    await reminderService.syncAlarms(
+      desired,
+      (a) => a.payload?.kind === ROUTINE_ALARM_KIND || a.id.startsWith(ROUTINE_ALARM_PREFIX),
+      { force: options.force }
+    );
+  }
+
+  // --- Shift change notices ---
+
+  private shiftNoticeText = (tomorrow: ShiftType) =>
+    tomorrow.isOffDay
+      ? { title: i18n.t('reminders.shiftNoticeOffTitle'), message: i18n.t('reminders.shiftNoticeOffMessage') }
+      : {
+          title: i18n.t('reminders.shiftNoticeTitle', { shift: tomorrow.name }),
+          message: i18n.t('reminders.shiftNoticeMessage', { start: tomorrow.startTime, end: tomorrow.endTime })
+        };
+
+  private async syncShiftNotices(options: { force?: boolean } = {}): Promise<void> {
+    const config = await shiftRepository.getConfig();
+    const desired = planShiftChangeNotices(config, { nowMs: Date.now(), text: this.shiftNoticeText });
+    await reminderService.syncAlarms(
+      desired,
+      (a) => a.payload?.kind === SHIFT_NOTICE_KIND || a.id.startsWith(`${SHIFT_NOTICE_PREFIX}_`),
+      { force: options.force }
+    );
   }
 
   // --- Medicine reminders ---
@@ -225,10 +280,15 @@ class ReminderCoordinator {
           title,
           message,
           channelId: 'medicines',
-          style: settings.fullScreenAlarmEnabled ? 'full_alarm' : 'notification',
+          style:
+            settings.fullScreenAlarmEnabled && (medicine.reminderStyle ?? 'full_alarm') === 'full_alarm'
+              ? 'full_alarm'
+              : 'notification',
           triggerTimeMs: slot.scheduledTimestampMs,
           snoozeIntervalMinutes: minutes,
-          payload: { kind: 'medicine_dose', medicineId: medicine.id, scheduledTime: slot.scheduledTime }
+          payload: { kind: 'medicine_dose', medicineId: medicine.id, scheduledTime: slot.scheduledTime },
+          soundUri: medicine.toneUri || undefined,
+          actions: 'dose'
         },
         minutes
       );

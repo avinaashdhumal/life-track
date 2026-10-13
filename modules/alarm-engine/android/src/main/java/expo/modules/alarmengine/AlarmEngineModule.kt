@@ -28,6 +28,8 @@ class ScheduleAlarmOptionsRecord : Record {
     @Field var vibrate: Boolean = true
     @Field var autoDismissMinutes: Int = 5
     @Field var labels: Map<String, String>? = null
+    @Field var soundUri: String = ""
+    @Field var infoOnly: Boolean = false
 }
 
 class AlarmEngineModule : Module() {
@@ -65,7 +67,9 @@ class AlarmEngineModule : Module() {
                 seriesSuffix = options.seriesSuffix,
                 vibrate = options.vibrate,
                 autoDismissMinutes = options.autoDismissMinutes.coerceAtLeast(0),
-                labelsJson = labelsJson
+                labelsJson = labelsJson,
+                soundUri = options.soundUri,
+                infoOnly = options.infoOnly
             )
 
             AlarmSchedulerHelper.scheduleExact(context, alarm)
@@ -94,9 +98,24 @@ class AlarmEngineModule : Module() {
                     "isFullAlarm" to alarm.isFullAlarm,
                     "snoozeIntervalMinutes" to alarm.snoozeIntervalMinutes,
                     "payloadJson" to alarm.payloadJson,
-                    "repeatEveryDays" to alarm.repeatEveryDays
+                    "repeatEveryDays" to alarm.repeatEveryDays,
+                    "soundUri" to alarm.soundUri,
+                    "infoOnly" to alarm.infoOnly
                 )
             }
+        }
+
+        AsyncFunction("getSystemTones") { ->
+            ToneHelper.listTones(context)
+        }
+
+        AsyncFunction("previewTone") { uri: String ->
+            ToneHelper.preview(context, uri)
+        }
+
+        AsyncFunction("stopTonePreview") { ->
+            ToneHelper.stopPreview()
+            true
         }
 
         AsyncFunction("drainPendingActions") { ->

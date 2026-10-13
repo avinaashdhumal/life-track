@@ -247,7 +247,13 @@ export interface AlarmItem {
   shiftTypeId?: string | null;
   payload?: Record<string, unknown>;
   repeat?: AlarmRepeat;
+  /** Sound to play (Android content URI from the phone's tones). Empty = the channel's default sound. */
+  soundUri?: string;
+  /** 'dose' = Taken / Snooze / Skip buttons; 'info' = a single OK button (routine, shift notices). */
+  actions?: AlarmActionSet;
 }
+
+export type AlarmActionSet = 'dose' | 'info';
 
 export interface ReminderLogEntry {
   id: string;

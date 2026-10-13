@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeColors } from '../../context/ThemeContext';
 import {
   DailyRoutine,
+  RoutineAnchor,
   RoutineCustomBlock,
   getDefaultDailyRoutine,
   getOrderedRoutineTimeline,
@@ -35,7 +36,9 @@ import {
   X,
   Check,
   Clock,
-  Info
+  Info,
+  Bell,
+  BellOff
 } from 'lucide-react-native';
 
 interface RoutineSettingsModalProps {
@@ -61,6 +64,8 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
   const [sleepTime, setSleepTime] = useState<string>('23:00');
   const [exerciseTime, setExerciseTime] = useState<string>('18:00');
   const [customBlocks, setCustomBlocks] = useState<RoutineCustomBlock[]>([]);
+  // Milestones that send a notification at their time (user's choice, off by default)
+  const [notifyAnchors, setNotifyAnchors] = useState<RoutineAnchor[]>([]);
 
   // Add custom block state
   const [newCustomLabel, setNewCustomLabel] = useState<string>('');
@@ -84,6 +89,7 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
         setSleepTime(loaded.sleepTime || '23:00');
         setExerciseTime(loaded.exerciseTime || '18:00');
         setCustomBlocks(loaded.customBlocks || []);
+        setNotifyAnchors(loaded.notifyAnchors || []);
       })
       .catch(() => undefined);
     return () => {
@@ -120,6 +126,14 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
     setCustomBlocks((prev) => prev.filter((b) => b.id !== id));
   };
 
+  const toggleAnchorNotify = (anchor: RoutineAnchor) => {
+    setNotifyAnchors((prev) => (prev.includes(anchor) ? prev.filter((a) => a !== anchor) : [...prev, anchor]));
+  };
+
+  const toggleBlockNotify = (id: string) => {
+    setCustomBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, notify: !b.notify } : b)));
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -133,6 +147,7 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
         sleepTime,
         exerciseTime,
         customBlocks,
+        notifyAnchors,
         updatedAt: Date.now()
       };
 
@@ -303,6 +318,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(245, 158, 11, 0.15)' : '#fef3c7'}
               label={t('routine.wakeTime', 'Wake Up Time')}
               time={wakeTime}
+
+              notify={notifyAnchors.includes('wake')}
+
+              onToggleNotify={() => toggleAnchorNotify('wake')}
               onAdjust={(delta) => handleAdjustTime(wakeTime, delta, setWakeTime)}
               colors={colors}
               isDark={isDark}
@@ -314,6 +333,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(249, 115, 22, 0.15)' : '#ffedd5'}
               label={t('routine.breakfastTime', 'Breakfast')}
               time={breakfastTime}
+
+              notify={notifyAnchors.includes('breakfast')}
+
+              onToggleNotify={() => toggleAnchorNotify('breakfast')}
               onAdjust={(delta) => handleAdjustTime(breakfastTime, delta, setBreakfastTime)}
               colors={colors}
               isDark={isDark}
@@ -325,6 +348,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(16, 185, 129, 0.15)' : '#d1fae5'}
               label={t('routine.lunchTime', 'Lunch')}
               time={lunchTime}
+
+              notify={notifyAnchors.includes('lunch')}
+
+              onToggleNotify={() => toggleAnchorNotify('lunch')}
               onAdjust={(delta) => handleAdjustTime(lunchTime, delta, setLunchTime)}
               colors={colors}
               isDark={isDark}
@@ -336,6 +363,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(6, 182, 212, 0.15)' : '#cffafe'}
               label={t('routine.exerciseTime', 'Workout / Exercise')}
               time={exerciseTime}
+
+              notify={notifyAnchors.includes('exercise')}
+
+              onToggleNotify={() => toggleAnchorNotify('exercise')}
               onAdjust={(delta) => handleAdjustTime(exerciseTime, delta, setExerciseTime)}
               colors={colors}
               isDark={isDark}
@@ -347,6 +378,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(139, 92, 246, 0.15)' : '#ede9fe'}
               label={t('routine.dinnerTime', 'Dinner')}
               time={dinnerTime}
+
+              notify={notifyAnchors.includes('dinner')}
+
+              onToggleNotify={() => toggleAnchorNotify('dinner')}
               onAdjust={(delta) => handleAdjustTime(dinnerTime, delta, setDinnerTime)}
               colors={colors}
               isDark={isDark}
@@ -358,6 +393,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(236, 72, 153, 0.15)' : '#fce7f3'}
               label={t('routine.windDownTime', 'Wind Down')}
               time={windDownTime}
+
+              notify={notifyAnchors.includes('windDown')}
+
+              onToggleNotify={() => toggleAnchorNotify('windDown')}
               onAdjust={(delta) => handleAdjustTime(windDownTime, delta, setWindDownTime)}
               colors={colors}
               isDark={isDark}
@@ -369,6 +408,10 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
               iconBg={isDark ? 'rgba(99, 102, 241, 0.15)' : '#e0e7ff'}
               label={t('routine.sleepTime', 'Bedtime / Sleep')}
               time={sleepTime}
+
+              notify={notifyAnchors.includes('sleep')}
+
+              onToggleNotify={() => toggleAnchorNotify('sleep')}
               onAdjust={(delta) => handleAdjustTime(sleepTime, delta, setSleepTime)}
               colors={colors}
               isDark={isDark}
@@ -443,6 +486,12 @@ export const RoutineSettingsModal: React.FC<RoutineSettingsModalProps> = ({
                       </Text>
                     </View>
                     <View style={tw`flex-row items-center gap-2`}>
+                      <NotifyBellButton
+                        on={!!block.notify}
+                        name={block.label}
+                        onPress={() => toggleBlockNotify(block.id)}
+                        colors={colors}
+                      />
                       <Text style={[tw`text-sm font-bold font-mono px-2 py-1 rounded-lg bg-zinc-800 text-zinc-200`]}>
                         {block.time}
                       </Text>
@@ -598,9 +647,38 @@ interface RoutineAnchorRowProps {
   label: string;
   time: string;
   onAdjust: (delta: number) => void;
+  notify: boolean;
+  onToggleNotify: () => void;
   colors: ThemeColors;
   isDark: boolean;
 }
+
+/** Bell switch: send a notification at this routine time or not. */
+const NotifyBellButton: React.FC<{ on: boolean; name: string; onPress: () => void; colors: ThemeColors }> = ({
+  on,
+  name,
+  onPress,
+  colors
+}) => {
+  const { t } = useTranslation();
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      accessible={true}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: on }}
+      accessibilityLabel={t('routine.notifyLabel', { name })}
+      style={[
+        tw`w-9 h-9 rounded-lg border items-center justify-center`,
+        on
+          ? { backgroundColor: `${colors.primary}20`, borderColor: colors.primary }
+          : { backgroundColor: colors.cardSecondary, borderColor: colors.borderLight }
+      ]}
+    >
+      {on ? <Bell size={15} color={colors.primary} /> : <BellOff size={15} color={colors.textMuted} />}
+    </TouchableOpacity>
+  );
+};
 
 const RoutineAnchorRow: React.FC<RoutineAnchorRowProps> = ({
   icon,
@@ -608,6 +686,8 @@ const RoutineAnchorRow: React.FC<RoutineAnchorRowProps> = ({
   label,
   time,
   onAdjust,
+  notify,
+  onToggleNotify,
   colors,
   isDark
 }) => {
@@ -631,6 +711,7 @@ const RoutineAnchorRow: React.FC<RoutineAnchorRowProps> = ({
       </View>
 
       <View style={tw`flex-row items-center gap-1.5`}>
+        <NotifyBellButton on={notify} name={label} onPress={onToggleNotify} colors={colors} />
         <TouchableOpacity
           onPress={() => onAdjust(-15)}
           accessible={true}

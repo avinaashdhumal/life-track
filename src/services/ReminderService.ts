@@ -1,4 +1,12 @@
-import { AlarmCategory, AlarmItem, AlarmRepeat, HealthCheckStatus, RecurringSchedule, ReminderLogEntry } from '../domain/alarm';
+import {
+  AlarmActionSet,
+  AlarmCategory,
+  AlarmItem,
+  AlarmRepeat,
+  HealthCheckStatus,
+  RecurringSchedule,
+  ReminderLogEntry
+} from '../domain/alarm';
 
 export interface ScheduleAlarmParams {
   id: string;
@@ -12,6 +20,8 @@ export interface ScheduleAlarmParams {
   snoozeIntervalMinutes?: number;
   payload?: Record<string, unknown>;
   repeat?: AlarmRepeat;
+  soundUri?: string;
+  actions?: AlarmActionSet;
 }
 
 export interface IReminderService {

@@ -5,6 +5,7 @@ export interface NativeAlarmLabels {
   snooze?: string;
   skip?: string;
   badge?: string;
+  ok?: string;
 }
 
 export interface NativeAlarmOptions {
@@ -26,6 +27,16 @@ export interface NativeAlarmOptions {
   autoDismissMinutes?: number;
   /** Localized button and badge text for the native notification and lock-screen alarm. */
   labels?: NativeAlarmLabels;
+  /** Phone tone (content URI from getSystemTones). Empty = channel default. */
+  soundUri?: string;
+  /** Single OK button instead of Taken / Snooze / Skip (routine and shift notices). */
+  infoOnly?: boolean;
+}
+
+export interface NativeTone {
+  title: string;
+  uri: string;
+  kind: 'alarm' | 'notification' | 'ringtone';
 }
 
 export interface NativeAlarmInfo {
@@ -38,6 +49,8 @@ export interface NativeAlarmInfo {
   snoozeIntervalMinutes: number;
   payloadJson?: string;
   repeatEveryDays?: number;
+  soundUri?: string;
+  infoOnly?: boolean;
   firedAtMs?: number;
 }
 
@@ -81,8 +94,11 @@ export async function scheduleAlarm(options: NativeAlarmOptions): Promise<boolea
         taken: String(options.labels?.taken || ''),
         snooze: String(options.labels?.snooze || ''),
         skip: String(options.labels?.skip || ''),
-        badge: String(options.labels?.badge || '')
-      }
+        badge: String(options.labels?.badge || ''),
+        ok: String(options.labels?.ok || '')
+      },
+      soundUri: String(options.soundUri || ''),
+      infoOnly: options.infoOnly === true
     };
     if (options.payload && typeof options.payload === 'object') {
       sanitized.payload = options.payload;
@@ -119,6 +135,28 @@ export async function drainPendingActions(): Promise<NativePendingAction[]> {
     return NativeAlarmModule.drainPendingActions();
   }
   return [];
+}
+
+/** The phone's alarm, notification, and ringtone sounds (empty on web / without the native module). */
+export async function getSystemTones(): Promise<NativeTone[]> {
+  if (NativeAlarmModule?.getSystemTones) {
+    return NativeAlarmModule.getSystemTones();
+  }
+  return [];
+}
+
+/** Plays a tone for up to 6 seconds. */
+export async function previewTone(uri: string): Promise<boolean> {
+  if (NativeAlarmModule?.previewTone) {
+    return NativeAlarmModule.previewTone(uri);
+  }
+  return false;
+}
+
+export async function stopTonePreview(): Promise<void> {
+  if (NativeAlarmModule?.stopTonePreview) {
+    await NativeAlarmModule.stopTonePreview();
+  }
 }
 
 /** Android 14+: whether the system lets LifeTrack show full-screen alarms over the lock screen. */

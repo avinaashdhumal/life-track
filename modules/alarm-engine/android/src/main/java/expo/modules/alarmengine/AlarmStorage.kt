@@ -24,8 +24,12 @@ data class NativeAlarm(
     val vibrate: Boolean = true,
     // Stop ringing after this many minutes without user action (0 = ring until acted on).
     val autoDismissMinutes: Int = 5,
-    // Localized UI text from JS: {"taken","snooze","skip","badge"}.
-    val labelsJson: String = "{}"
+    // Localized UI text from JS: {"taken","snooze","skip","badge","ok"}.
+    val labelsJson: String = "{}",
+    // Phone tone (content URI) chosen for this reminder; blank = the channel's default sound.
+    val soundUri: String = "",
+    // Informational reminder (routine, shift notice): a single OK button instead of Taken/Snooze/Skip.
+    val infoOnly: Boolean = false
 ) {
     fun label(key: String, fallback: String): String {
         return try {
@@ -53,6 +57,8 @@ data class NativeAlarm(
         obj.put("vibrate", vibrate)
         obj.put("autoDismissMinutes", autoDismissMinutes)
         obj.put("labelsJson", labelsJson)
+        obj.put("soundUri", soundUri)
+        obj.put("infoOnly", infoOnly)
         return obj
     }
 
@@ -74,7 +80,9 @@ data class NativeAlarm(
                 seriesSuffix = obj.optString("seriesSuffix", ""),
                 vibrate = obj.optBoolean("vibrate", true),
                 autoDismissMinutes = obj.optInt("autoDismissMinutes", 5),
-                labelsJson = obj.optString("labelsJson", "{}")
+                labelsJson = obj.optString("labelsJson", "{}"),
+                soundUri = obj.optString("soundUri", ""),
+                infoOnly = obj.optBoolean("infoOnly", false)
             )
         }
 

@@ -51,6 +51,8 @@ export interface ShiftConfig {
   customShiftTypes: ShiftType[];
   overrides: Record<string, ShiftOverride>; // key: "YYYY-MM-DD"
   eveningNotificationTime: string; // "20:00"
+  /** Evening notice the day before the shift changes ("Tomorrow: Night shift"). On unless turned off. */
+  shiftChangeNotice?: boolean;
   updatedAt: number;
 }
 

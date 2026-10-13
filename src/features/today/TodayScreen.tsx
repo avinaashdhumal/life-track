@@ -29,6 +29,7 @@ import { ShiftScheduleScreen } from '../shift/ShiftScheduleScreen';
 import { RoutineSettingsModal } from '../routine/RoutineSettingsModal';
 import { UserProfileRecord } from '../../services/DatabaseService';
 import { reminderCoordinator } from '../../services/reminderCoordinator';
+import { tintOver } from '../../utils/color';
 import { addLocalDays, toLocalDateString } from '../../domain/dates';
 import {
   CheckCircle2,
@@ -337,8 +338,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             style={[
               tw`p-4 rounded-3xl border mb-4 shadow-sm`,
               {
-                backgroundColor: `${todayShiftAssignment.shiftType.color}15`,
-                borderColor: `${todayShiftAssignment.shiftType.color}40`
+                // Opaque tints: translucent fills + elevation render a grey band on Android
+                backgroundColor: tintOver(todayShiftAssignment.shiftType.color, 0.08, colors.bg),
+                borderColor: tintOver(todayShiftAssignment.shiftType.color, 0.25, colors.bg)
               }
             ]}
           >
@@ -420,8 +422,9 @@ export const TodayScreen: React.FC<TodayScreenProps> = ({
             style={[
               tw`p-4 rounded-3xl border mb-5 shadow-sm flex-row items-center justify-between`,
               {
-                backgroundColor: `${colors.primary}12`,
-                borderColor: `${colors.primary}30`
+                // Opaque tints: translucent fills + elevation render a grey band on Android
+                backgroundColor: tintOver(colors.primary, 0.07, colors.bg),
+                borderColor: tintOver(colors.primary, 0.19, colors.bg)
               }
             ]}
           >

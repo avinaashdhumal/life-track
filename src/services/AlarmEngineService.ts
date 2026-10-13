@@ -31,7 +31,9 @@ function sameAlarm(a: AlarmItem, b: AlarmItem): boolean {
     a.title === b.title &&
     a.message === b.message &&
     a.style === b.style &&
-    a.snoozeIntervalMinutes === b.snoozeIntervalMinutes
+    a.snoozeIntervalMinutes === b.snoozeIntervalMinutes &&
+    (a.soundUri || '') === (b.soundUri || '') &&
+    (a.actions || 'dose') === (b.actions || 'dose')
   );
 }
 
@@ -191,7 +193,9 @@ export class AlarmEngineService implements IReminderService {
         isFullAlarm: item.style === 'full_alarm',
         snoozeIntervalMinutes: item.snoozeIntervalMinutes,
         payload: item.payload,
-        repeat: item.repeat
+        repeat: item.repeat,
+        soundUri: item.soundUri,
+        actions: item.actions
       },
       options
     );
@@ -216,7 +220,9 @@ export class AlarmEngineService implements IReminderService {
       triggerTimeMs: params.triggerTimeMs,
       snoozeIntervalMinutes: snoozeMinutes,
       payload: params.payload,
-      repeat: params.repeat
+      repeat: params.repeat,
+      soundUri: params.soundUri,
+      actions: params.actions
     };
 
     let ok = true;
@@ -240,8 +246,11 @@ export class AlarmEngineService implements IReminderService {
           taken: i18n.t('reminders.taken'),
           snooze: i18n.t('reminders.snooze', { minutes: snoozeMinutes }),
           skip: i18n.t('reminders.skip'),
-          badge: i18n.t('reminders.badge')
-        }
+          badge: i18n.t('reminders.badge'),
+          ok: i18n.t('common.ok')
+        },
+        soundUri: params.soundUri || '',
+        infoOnly: params.actions === 'info'
       });
     } else {
       await storageService.saveScheduledAlarm(alarmItem);
@@ -273,7 +282,9 @@ export class AlarmEngineService implements IReminderService {
         channelId: alarm.channelId,
         isFullAlarm: alarm.style === 'full_alarm',
         snoozeIntervalMinutes: minutes,
-        payload: alarm.payload
+        payload: alarm.payload,
+        soundUri: alarm.soundUri,
+        actions: alarm.actions
       },
       { log: false }
     );
@@ -325,7 +336,9 @@ export class AlarmEngineService implements IReminderService {
           style: n.isFullAlarm ? 'full_alarm' : 'notification',
           triggerTimeMs: n.triggerTimeMs,
           snoozeIntervalMinutes: n.snoozeIntervalMinutes,
-          payload: Object.keys(payload).length > 0 ? payload : undefined
+          payload: Object.keys(payload).length > 0 ? payload : undefined,
+          soundUri: n.soundUri || undefined,
+          actions: n.infoOnly ? 'info' : 'dose'
         };
         return item;
       })
@@ -398,6 +411,21 @@ export class AlarmEngineService implements IReminderService {
           }
         : null
     };
+  }
+
+  // --- TONES ---
+
+  /** The phone's sounds for the tone picker (empty on web, where only the default tone exists). */
+  async getSystemTones(): Promise<NativeAlarmEngine.NativeTone[]> {
+    return NativeAlarmEngine.getSystemTones();
+  }
+
+  async previewTone(uri: string): Promise<boolean> {
+    return NativeAlarmEngine.previewTone(uri);
+  }
+
+  async stopTonePreview(): Promise<void> {
+    await NativeAlarmEngine.stopTonePreview();
   }
 
   async canScheduleExactAlarms(): Promise<boolean> {

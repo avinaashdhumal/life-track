@@ -95,6 +95,18 @@ they're derived.
   for planning) but schedules their successor so the native series continues. PRN and paused → none.
 - `planNextInSeries(alarm, now)`: JS twin of the native roll-forward, used by the in-app engine and tests.
 
+### 4a-bis. Reminder families
+| Family | Planner | Id prefix | Style | Buttons | Native repeat |
+| --- | --- | --- | --- | --- | --- |
+| Recurring schedules (Alarms tab) | `reminderPlanner.ts` | `rec_…` | per schedule | Taken/Snooze/Skip | periodic rules |
+| Medicine doses | `medicineReminders.ts` | `dose_<medId>_…` | per medicine (`reminderStyle`), tone `toneUri` | Taken/Snooze/Skip | 14 days |
+| Routine milestones / blocks | `routineReminders.ts` | `routine_<anchor or block_id>_…` | notification | OK | 14 days |
+| Shift change notices | `shiftNotices.ts` | `shiftnotice_…` | notification | OK | none (JS plans 30 days) |
+
+Tones: `AlarmItem.soundUri` → native `soundUri`. With a tone, the notification is posted on a per-tone channel
+`<base>__tone_<hash>` (created on first use, copying the base channel); the foreground service plays the tone for full
+alarms. `getSystemTones` / `previewTone` / `stopTonePreview` back the in-app tone picker.
+
 ### 4b. Sync (`reminderCoordinator`, `AlarmEngineService.syncAlarms`)
 - Diff-based: for a family of alarms (`isOwned`), cancel owned alarms not desired (keeping valid snoozes), schedule
   desired alarms that are missing or changed (`force` reschedules all, e.g. after settings or language change).

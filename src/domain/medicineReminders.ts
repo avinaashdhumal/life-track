@@ -23,6 +23,7 @@ export interface MedicineReminderOptions {
   windowDays?: number;
   /** Slots already taken or skipped, as `slotKey(date, time)`. They get no alarm. */
   handledSlotKeys?: Set<string>;
+  /** Fallback when a medicine has no reminder style of its own (older records). */
   style: AlarmStyle;
   snoozeMinutes: number;
   /** Localized title and message for a dose at `time`. */
@@ -101,10 +102,12 @@ export function planMedicineReminders(medicine: Medicine, options: MedicineRemin
       title,
       message,
       channelId: 'medicines',
-      style: options.style,
+      style: medicine.reminderStyle ?? options.style,
       triggerTimeMs,
       snoozeIntervalMinutes: options.snoozeMinutes,
       payload,
+      soundUri: medicine.toneUri || undefined,
+      actions: 'dose',
       repeat: {
         everyDays: windowDays,
         seriesPrefix: medicineSeriesPrefix(medicine.id),
